@@ -1,0 +1,215 @@
+2023-11-28 17:54:06,641 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 17:57:51,112 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:00:29,650 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:07:15,534 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:07:49,314 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:08:34,945 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:10:47,244 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:11:14,228 - multilabelfy.factory - ERROR - Error in save function for user combo1: [Errno 2] No such file or directory: 'results/combo1/current_image_index_combo1.txt'
+2023-11-28 18:11:22,608 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:11:26,324 - multilabelfy.factory - ERROR - Error in save function for user combo1: [Errno 2] No such file or directory: 'results/combo1/current_image_index_combo1.txt'
+2023-11-28 18:16:41,203 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:16:47,753 - multilabelfy.factory - ERROR - Exception on /combo1/save [POST]
+Traceback (most recent call last):
+  File "/home/esla/DStorage/anaconda3/envs/pytorch_latest/lib/python3.9/site-packages/flask/app.py", line 2190, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/esla/DStorage/anaconda3/envs/pytorch_latest/lib/python3.9/site-packages/flask/app.py", line 1486, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/esla/DStorage/anaconda3/envs/pytorch_latest/lib/python3.9/site-packages/flask/app.py", line 1484, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/esla/DStorage/anaconda3/envs/pytorch_latest/lib/python3.9/site-packages/flask/app.py", line 1469, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/home/esla/server_drive/esla/research/my-git-repos-server/staging/my_git_repo_maintainance/for_multilabelfy/multilabelfy/routes.py", line 112, in save
+    comments_json, checkbox_selections = load_user_data(username)
+TypeError: load_user_data() missing 1 required positional argument: 'username'
+2023-11-28 18:17:52,931 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:22:14,894 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:25:20,749 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:37:52,154 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-28 18:57:36,190 - multilabelfy.factory - INFO - Username received: combo1
+2023-11-30 12:14:11,558 - multilabelfy.factory - INFO - Username received: combo1
+2024-09-21 20:27:21,126 - multilabelfy.factory - INFO - Username received: timothy
+2024-09-22 10:28:22,752 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/predictions_demo.json
+2024-09-22 10:28:22,753 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/sample_images_info.json
+2024-09-22 10:29:29,390 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 10:32:22,296 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/predictions_demo.json
+2024-09-22 10:32:22,296 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/sample_images_info.json
+2024-09-22 10:37:58,261 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/predictions_demo.json
+2024-09-22 10:37:58,262 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/sample_images_info.json
+2024-09-22 10:38:16,492 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/predictions_demo.json
+2024-09-22 10:38:16,493 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/sample_images_info.json
+2024-09-22 10:38:24,474 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/predictions_demo.json
+2024-09-22 10:38:24,475 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/sample_images_info.json
+2024-09-22 10:54:54,824 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 10:54:55,927 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/checkbox_selections_demo.json
+2024-09-22 10:54:55,927 - multilabelfy.factory - ERROR - File not found: /home/esla/Documents/home_work/for_multilabelfy_data/annotator_dirs/demo/comments_demo.json
+2024-09-22 11:00:51,292 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:03:53,717 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:04:49,359 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:14:42,272 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:36:30,828 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:41:20,310 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:41:23,393 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:41:25,116 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:42:21,253 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:45:08,616 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:45:31,971 - multilabelfy.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/routes.py", line 85, in label_image
+    copy_to_static_dir(example_image, app.config['EXAMPLES_DATASET_ROOT_DIR'],
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/helper_funcs.py", line 125, in copy_to_static_dir
+    raise ValueError("Invalid image type")
+ValueError: Invalid image type
+2024-09-22 11:47:41,042 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:50:20,739 - multilabelfy.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/routes.py", line 87, in label_image
+    copy_to_static_dir(example_image, app.config['EXAMPLES_DATASET_ROOT_DIR'],
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/helper_funcs.py", line 125, in copy_to_static_dir
+    raise ValueError("Invalid image type")
+ValueError: Invalid image type
+2024-09-22 11:50:22,608 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:50:23,800 - multilabelfy.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/routes.py", line 87, in label_image
+    copy_to_static_dir(example_image, app.config['EXAMPLES_DATASET_ROOT_DIR'],
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/helper_funcs.py", line 125, in copy_to_static_dir
+    raise ValueError("Invalid image type")
+ValueError: Invalid image type
+2024-09-22 11:51:11,991 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 11:51:50,342 - multilabelfy.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/routes.py", line 87, in label_image
+    copy_to_static_dir(example_image, app.config['EXAMPLES_DATASET_ROOT_DIR'],
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/helper_funcs.py", line 125, in copy_to_static_dir
+    raise ValueError("Invalid image type")
+ValueError: Invalid image type
+2024-09-22 11:58:22,517 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 12:02:08,658 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 12:03:58,658 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 13:05:42,804 - multilabelfy.factory - INFO - Username received: demo
+2024-09-22 13:19:07,383 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:11:40,294 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:12:11,201 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:15:23,331 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:15:24,539 - multilabelfy.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/anaconda3/envs/pytorch/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/esla/Documents/home_work/for_multilabelfy/multilabelfy/routes.py", line 87, in label_image
+    checkbox_selections_file = os.path.join(app.config['RESULTS_FOLDER'], username,
+                                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'RESULTS_FOLDER'
+2024-09-23 22:16:47,668 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:25:05,984 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 22:30:28,620 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 23:01:40,729 - multilabelfy.factory - INFO - Username received: demo
+2024-09-23 23:15:53,126 - app.factory - INFO - Username received: demo
+2024-09-23 23:23:49,019 - app.factory - INFO - Username received: demo
+2024-09-23 23:25:14,520 - app.factory - INFO - Username received: demo
+2024-09-23 23:26:40,483 - app.factory - ERROR - Error in save function for user demo: 'demo'
+2024-09-23 23:26:55,663 - app.factory - INFO - Username received: demo
+2024-09-23 23:27:29,832 - app.factory - INFO - Username received: demo
+2024-09-23 23:32:20,470 - app.factory - INFO - Username received: demo
+2024-09-23 23:41:26,133 - app.factory - INFO - Username received: demo
+2024-09-24 07:57:58,151 - app.factory - INFO - Username received: demo
+2024-09-24 08:03:47,367 - app.factory - INFO - Username received: demo
+2024-09-24 08:05:22,658 - app.factory - INFO - Username received: demo
+2024-09-24 08:06:32,853 - app.factory - INFO - Username received: demo
+2024-09-24 08:10:13,568 - app.factory - INFO - Username received: demo
+2024-09-24 08:14:01,115 - app.factory - INFO - Username received: demo
+2024-09-24 08:24:13,870 - app.factory - INFO - Username received: demo
+2024-09-24 08:25:45,460 - app.factory - INFO - Username received: demo
+2024-10-14 18:37:07,622 - app.factory - INFO - Username received: demo
+2024-10-14 18:40:18,755 - app.factory - INFO - Username received: demo
+2024-10-14 18:59:58,971 - app.factory - INFO - Username received: demo
+2024-10-14 19:06:51,849 - app.factory - INFO - Username received: demo
+2024-10-14 19:08:13,838 - app.factory - INFO - Username received: demo
+2024-10-14 19:11:36,224 - app.factory - INFO - Username received: demo
+2024-10-14 19:18:25,143 - app.factory - INFO - Username received: demo
+2024-10-14 19:22:16,950 - app.factory - INFO - Username received: demo
+2024-10-14 19:29:36,196 - app.factory - INFO - Username received: demo
+2024-10-14 19:35:12,535 - app.factory - INFO - Username received: demo
+2024-10-14 19:37:14,591 - app.factory - INFO - Username received: demo
+2024-10-15 18:04:10,167 - app.factory - INFO - Username received: demo
+2024-10-15 18:06:36,912 - app.factory - ERROR - Error in save function for user demo: 'demo'
+2024-10-15 18:06:54,435 - app.factory - INFO - Username received: demo
+2024-10-15 18:53:12,900 - app.factory - ERROR - Error in save function for user demo: 'demo'
+2024-10-15 18:53:20,867 - app.factory - INFO - Username received: demo
+2024-10-15 18:53:22,605 - app.factory - INFO - Username received: demo
+2024-10-15 18:56:09,295 - app.factory - INFO - Username received: demo
+2024-10-16 00:23:10,261 - app.factory - INFO - Username received: demo
+2024-10-16 00:29:33,326 - app.factory - INFO - Username received: demo
+2024-10-16 00:31:58,633 - app.factory - INFO - Username received: demo
+2024-10-16 00:33:25,379 - app.factory - INFO - Username received: demo
+2024-10-16 00:38:23,958 - app.factory - INFO - Username received: demo
+2024-10-16 00:44:02,186 - app.factory - INFO - Username received: 
+2024-10-16 00:44:04,336 - app.factory - INFO - Username received: demo
+2024-10-16 00:45:02,655 - app.factory - ERROR - Error in save function for user demo: 'demo'
+2024-10-16 00:45:17,076 - app.factory - INFO - Username received: demo
+2024-10-16 00:51:07,822 - app.factory - INFO - Username received: demo
+2024-10-16 00:53:15,101 - app.factory - ERROR - Error in save function for user demo: 'demo'
+2024-10-16 00:53:26,380 - app.factory - INFO - Username received: demo
+2024-10-16 00:55:34,343 - app.factory - INFO - Username received: demo
+2024-10-16 11:59:16,701 - app.factory - INFO - Username received: demo
+2024-10-16 14:13:55,774 - app.factory - INFO - Username received: demo
+2024-10-16 14:30:41,336 - app.factory - INFO - Username received: demo
+2024-10-17 12:03:13,047 - app.factory - ERROR - Error in save function for user demo: [Errno 2] No such file or directory: '/home/esla/server_drive/esla/research/experiments_for_papers/ihci_2023/multilabelfy/app/demo_data/annotator_dirs/demo/current_image_index_demo.txt'
