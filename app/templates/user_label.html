@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Classification Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <script>
+        function change(direction) {
+            document.getElementById("direction").value = direction;
+        }
+
+        function pageSelect(pageNumber) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById("page" + i).classList.toggle('selected', i === pageNumber);
+                const divs = document.getElementsByClassName("page" + i + "_element");
+                for (const div of divs) {
+                    div.style.display = i === pageNumber ? "flex" : "none";
+                }
+            }
+        }
+
+        window.onload = function() {
+            const modal = document.getElementById('modal-container');
+            const closeModal = document.getElementById('close-modal');
+
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('show-modal');
+                }
+            });
+
+            closeModal.addEventListener('click', function() {
+                modal.classList.remove('show-modal');
+            });
+        };
+
+        function show_image(img) {
+            document.getElementById("modal-container").classList.add('show-modal');
+            document.getElementById("modal-image").src = img.src;
+        }
+    </script>
+</head>
+
+<body>
+    <div class="row">
+        <div class="column-main">
+            <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
+        </div>
+
+        <div class="column-main">
+            <div class="caption">Image to Annotate</div>
+            <img class="thumbnail-main" src="{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
+            <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
+            <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
+            <div>Current Image Index: {{ current_image_index }}</div>
+            <br>
+            <div style="width:100%; display:flex;">
+                <textarea form="save" style="width:70%; margin:auto;" name="comments" placeholder="Leave your comments here..." rows="3">{{ comments }}</textarea>
+            </div>
+        </div>
+
+        <div class="column-main last-column">
+            <div class="refresh-btn" onclick="change('next'); document.getElementById('save').submit();">&#9654;</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="page_number">20 Most likely labels -> </div>
+        <div id="page1" class="page_number selected" onclick="pageSelect(1);">1-5</div>
+        <div id="page2" class="page_number" onclick="pageSelect(2);">6-10</div>
+        <div id="page3" class="page_number" onclick="pageSelect(3);">11-15</div>
+        <div id="page4" class="page_number" onclick="pageSelect(4);">16-20</div>
+    </div>
+
+    <div class="row">
+        <p>
+            <form id="save" action="{{ url_for('save', username=username) }}" method="post"></form>
+
+            {% for pred_info, images in similar_images.items() %}
+                {% if loop.index < 21 %}
+                    <div class="column
+                        {% if loop.index in [5, 10, 15, 20] %}last-column{% endif %}
+                        {% if loop.index < 6 %}page1_element{% elif loop.index < 11 %}page2_element
+                        {% elif loop.index < 16 %}page3_element{% else %}page4_element{% endif %}">
+
+                        <div class="category_label">{{ human_readable_classes_map[pred_info|string] }}</div>
+                        <label class="container">
+                            <input form="save" type="checkbox" id="checkbox_{{ loop.index }}" name="checkboxes" value="{{ pred_info }}"
+                                   {% if pred_info|string in checked_categories %}checked{% endif %}>
+                            <div class="checkmark"></div>
+                        </label>
+                        <div class="right">
+                            {% for img_url in images %}
+                                <img class="thumbnail" src="{{ img_url }}" alt="Class Image" onclick="show_image(this)">
+                                {% if loop.index is divisibleby num_similar_images and not loop.last %}
+                                    </div><div class="right">
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+    </div>
+
+    <div id="modal-container" class="modal-container">
+        <div id="modal" class="modal">
+            <img id="modal-image" class="modal-image">
+        </div>
+    </div>
+
+    <div id="modal-container" class="modal-container">
+        <div id="modal" class="modal">
+            <span id="close-modal" class="close-modal">&times;</span> <!-- Close button -->
+            <img id="modal-image" class="modal-image">
+        </div>
+    </div>
+</body>
+</html>
