@@ -13,7 +13,7 @@ def copy_styles_file_to_static(app):
     """
     # Define source and destination paths
     source_path = os.path.join(app.root_path, 'templates', 'styles.css')
-    destination_path = os.path.join(app.root_path, app.config['STATIC_FOLDER'], 'css' 'styles.css')
+    destination_path = os.path.join(app.root_path, app.config['STATIC_FOLDER'], 'css', 'styles.css')
 
     # Ensure the static folder exists
     os.makedirs(os.path.dirname(destination_path), exist_ok=True)
