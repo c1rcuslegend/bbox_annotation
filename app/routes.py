@@ -89,8 +89,8 @@ def register_routes(app):
         checkbox_selections = read_json_file(checkbox_selections_file, app) or {}
         comments_json = read_json_file(comments_file, app) or {}
 
-        comments = comments_json.get(current_imagepath[0].lstrip('static/'), '')
-        checked_categories = checkbox_selections.get(current_imagepath[0].lstrip('static/'), [])
+        comments = comments_json.get(current_imagepath[0].lstrip('static/images'), '')
+        checked_categories = checkbox_selections.get(current_imagepath[0].lstrip('static/images'), [])
 
         return render_template('user_label.html',
                                predicted_image=current_imagepath[0],
