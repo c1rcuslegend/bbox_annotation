@@ -10,7 +10,88 @@ Multilabelfy was used in the re-annotation process of **ImageNetV2**. The figure
 
 ![ImageNetV2 Label Enhancement](assets/images/framework_overview.png)
 
-For more details on how this framework was applied to ImageNetV2 and to cite the work, please refer to the following paper:
+## Links to Resources
+
+<div style="text-align: center; margin-top: 20px;">
+  <h3 style="font-family: Arial, sans-serif; color: #333;">Links to Resources</h3>
+  <div style="display: flex; justify-content: center; gap: 20px; margin-top: 10px; margin-bottom: 30px;">
+    <a href="https://github.com/modestyachts/ImageNetV2" style="text-decoration: none;">
+      <button style="
+        background-color: #007BFF; 
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        padding: 15px; 
+        font-size: 16px; 
+        font-family: Arial, sans-serif; 
+        cursor: pointer; 
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        width: 250px; 
+        height: 80px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        text-align: center;
+      "
+      onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0px 6px 10px rgba(0, 0, 0, 0.2)';"
+      onmouseout="this.style.backgroundColor='#007BFF'; this.style.transform='scale(1)'; this.style.boxShadow='0px 4px 6px rgba(0, 0, 0, 0.1)';">
+        ImageNetV2 Dataset <br>(imagenetv2-matched-frequency)
+      </button>
+    </a>
+    <a href="https://www.example.com/refined-imagenetv2-labels" style="text-decoration: none;">
+      <button style="
+        background-color: #007BFF; 
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        padding: 15px; 
+        font-size: 16px; 
+        font-family: Arial, sans-serif; 
+        cursor: pointer; 
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        width: 250px; 
+        height: 80px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        text-align: center;
+      "
+      onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0px 6px 10px rgba(0, 0, 0, 0.2)';"
+      onmouseout="this.style.backgroundColor='#007BFF'; this.style.transform='scale(1)'; this.style.boxShadow='0px 4px 6px rgba(0, 0, 0, 0.1)';">
+        Refined ImageNetV2 Labels
+      </button>
+    </a>
+    <a href="https://multilabelfy.ngrok.app/demo" style="text-decoration: none;">
+      <button style="
+        background-color: #007BFF; 
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        padding: 15px; 
+        font-size: 16px; 
+        font-family: Arial, sans-serif; 
+        cursor: pointer; 
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        width: 250px; 
+        height: 80px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        text-align: center;
+      "
+      onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0px 6px 10px rgba(0, 0, 0, 0.2)';"
+      onmouseout="this.style.backgroundColor='#007BFF'; this.style.transform='scale(1)'; this.style.boxShadow='0px 4px 6px rgba(0, 0, 0, 0.1)';">
+        Multilabelfy Demo Webpage
+      </button>
+    </a>
+  </div>
+</div>
+
+### For more details on how this framework was applied to ImageNetV2 and to cite the work, please refer to the following paper:
+
 ## Citation
 
 ```bibtex
