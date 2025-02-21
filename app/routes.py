@@ -63,7 +63,9 @@ def register_routes(app):
 
         # Set current image index
         current_image_index = app.current_image_index_dct.get(username, 0)
-
+        print(current_image_index)
+        print(proposals_info)
+        print(len(proposals_info))
         current_image_data = proposals_info[current_image_index]
         current_image = current_image_data['image_name']
         current_gt_class = current_image_data['ground_truth']

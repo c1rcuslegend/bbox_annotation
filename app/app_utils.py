@@ -35,8 +35,7 @@ def copy_sample_files_to_static(source, destination):
     """
 
     # Walk through the source directory
-    for dirpath, dirnames, filenames in tqdm(os.walk(source),
-                                             desc=f"Copying sample images to the static folder"):
+    for dirpath, dirnames, filenames in tqdm(os.walk(source), desc="Copying sample images to the static folder"):
         # Compute the relative path from the source directory
         relative_path = os.path.relpath(dirpath, source)
 
@@ -46,8 +45,9 @@ def copy_sample_files_to_static(source, destination):
         # Ensure the destination directory exists
         os.makedirs(dest_dir, exist_ok=True)
 
-        # Copy files from the source directory to the corresponding destination directory
-        for file in filenames:
+        # Copy only one file (if available) from the source directory
+        if filenames:
+            file = filenames[0]  # Take the first file only
             source_file = os.path.join(dirpath, file)
             dest_file = os.path.join(dest_dir, file)
 
