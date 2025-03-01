@@ -1,0 +1,182 @@
+2025-02-21 15:42:42,076 - app.factory - INFO - Username received: gaodsfoaisd
+2025-02-21 15:43:11,204 - app.factory - INFO - Username received: demo
+2025-02-21 15:43:11,299 - app.factory - ERROR - Exception on /demo [GET]
+Traceback (most recent call last):
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\site-packages\flask\app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\site-packages\flask\app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\site-packages\flask\app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\site-packages\flask\app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\prog\work\Multilabelfy\app\routes.py", line 78, in label_image
+    copy_to_static_dir(current_imagepath, app.config['ANNOTATIONS_ROOT_FOLDER'],
+  File "D:\prog\work\Multilabelfy\app\helper_funcs.py", line 123, in copy_to_static_dir
+    shutil.copy(src_file, dest_file)
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\shutil.py", line 431, in copy
+    copyfile(src, dst, follow_symlinks=follow_symlinks)
+  File "C:\Users\Home\anaconda3\envs\imagenet-1k\Lib\shutil.py", line 256, in copyfile
+    with open(src, 'rb') as fsrc:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\imagenet_val\\n03617480\\c93024b7062969656923f99d0e9c5fbd101b7c8d.jpeg'
+2025-02-21 15:45:29,254 - app.factory - INFO - Username received: demo
+2025-02-21 15:46:05,569 - app.factory - INFO - Username received: demo
+2025-02-21 15:46:37,572 - app.factory - INFO - Username received: dasdasd
+2025-02-21 15:48:04,455 - app.factory - INFO - Username received: demo
+2025-02-21 15:51:25,616 - app.factory - INFO - Username received: demo
+2025-02-21 15:58:06,807 - app.factory - INFO - Username received: demo
+2025-02-21 15:58:46,219 - app.factory - INFO - Username received: demo
+2025-02-21 15:59:10,795 - app.factory - INFO - Username received: demo
+2025-02-21 16:00:21,034 - app.factory - INFO - Username received: demo
+2025-02-21 16:01:16,307 - app.factory - INFO - Username received: demo
+2025-02-21 16:01:54,694 - app.factory - INFO - Username received: demo
+2025-02-21 16:05:57,505 - app.factory - INFO - Username received: demo
+2025-02-25 13:53:20,278 - app.factory - INFO - Username received: demo 
+2025-02-25 13:53:27,642 - app.factory - INFO - Username received: demo
+2025-02-25 14:12:13,345 - app.factory - INFO - Username received: demo
+2025-02-25 14:13:08,486 - app.factory - INFO - Username received: demo
+2025-02-25 14:14:56,169 - app.factory - INFO - Username received: demo
+2025-02-25 14:15:57,754 - app.factory - INFO - Username received: demo
+2025-02-25 19:50:02,082 - app.factory - INFO - Username received: demo
+2025-02-25 21:02:58,615 - app.factory - INFO - Username received: demo
+2025-02-27 15:24:34,246 - app.factory - INFO - Username received: demo
+2025-02-27 15:34:38,695 - app.factory - INFO - Username received: demo
+2025-02-27 15:38:09,691 - app.factory - INFO - Username received: demo
+2025-02-27 15:41:49,396 - app.factory - INFO - Username received: demo
+2025-02-27 15:43:13,560 - app.factory - INFO - Username received: demo
+2025-02-27 15:43:31,597 - app.factory - INFO - Username received: demo
+2025-02-27 16:52:04,417 - app.factory - INFO - Username received: demo
+2025-02-27 16:54:17,875 - app.factory - INFO - Username received: demo
+2025-02-27 18:20:58,997 - app.factory - INFO - Username received: demo
+2025-02-27 18:21:23,569 - app.factory - INFO - Username received: demo
+2025-02-27 18:21:48,557 - app.factory - INFO - Username received: demo
+2025-02-27 18:23:43,618 - app.factory - INFO - Username received: demo
+2025-02-27 18:25:00,442 - app.factory - INFO - Username received: demo
+2025-02-27 18:28:24,627 - app.factory - INFO - Username received: demo
+2025-02-27 18:30:04,245 - app.factory - INFO - Username received: demo
+2025-02-27 18:35:08,033 - app.factory - INFO - Username received: demo
+2025-02-27 18:36:27,232 - app.factory - INFO - Username received: demo
+2025-02-27 18:41:25,363 - app.factory - INFO - Username received: demo
+2025-02-27 18:43:04,091 - app.factory - INFO - Username received: demo
+2025-02-27 18:43:46,528 - app.factory - INFO - Username received: demo
+2025-02-27 18:45:33,208 - app.factory - INFO - Username received: demo
+2025-02-27 18:46:10,458 - app.factory - INFO - Username received: demo
+2025-02-27 19:05:37,812 - app.factory - INFO - Username received: demo
+2025-02-27 19:10:46,510 - app.factory - INFO - Username received: demo
+2025-02-27 19:11:51,297 - app.factory - INFO - Username received: demo
+2025-02-27 19:12:46,324 - app.factory - INFO - Username received: demo
+2025-02-27 19:17:49,656 - app.factory - INFO - Username received: demo
+2025-02-27 19:34:10,091 - app.factory - INFO - Username received: demo
+2025-02-28 13:12:45,225 - app.factory - INFO - Username received: demo
+2025-02-28 13:13:59,215 - app.factory - INFO - Username received: demo
+2025-02-28 13:14:54,267 - app.factory - INFO - Username received: demo
+2025-02-28 13:27:06,895 - app.factory - INFO - Username received: demo
+2025-02-28 13:28:09,062 - app.factory - INFO - Username received: demo
+2025-02-28 13:33:57,345 - app.factory - INFO - Username received: demo
+2025-02-28 13:46:44,630 - app.factory - INFO - Username received: âóüù
+2025-02-28 13:46:49,253 - app.factory - INFO - Username received: demo
+2025-02-28 13:58:45,988 - app.factory - INFO - Username received: demo
+2025-02-28 14:04:44,251 - app.factory - INFO - Username received: demo
+2025-02-28 14:08:54,697 - app.factory - INFO - Username received: demo
+2025-02-28 14:16:25,453 - app.factory - INFO - Username received: demo
+2025-02-28 14:19:22,094 - app.factory - INFO - Username received: demo
+2025-02-28 14:51:48,498 - app.factory - INFO - Username received: demo
+2025-02-28 14:55:32,718 - app.factory - INFO - Username received: demo
+2025-02-28 14:59:19,577 - app.factory - INFO - Username received: demo
+2025-02-28 15:07:13,367 - app.factory - INFO - Username received: demo
+2025-02-28 15:12:11,973 - app.factory - INFO - Username received: demo
+2025-02-28 15:25:04,248 - app.factory - INFO - Username received: demo
+2025-02-28 15:25:58,502 - app.factory - INFO - Username received: demo
+2025-02-28 15:31:13,977 - app.factory - INFO - Username received: demo
+2025-02-28 15:32:19,132 - app.factory - INFO - Username received: demo
+2025-02-28 15:34:55,627 - app.factory - INFO - Username received: demo
+2025-02-28 15:37:33,896 - app.factory - INFO - Username received: demo
+2025-02-28 15:42:54,806 - app.factory - INFO - Username received: demo
+2025-02-28 15:46:25,011 - app.factory - INFO - Username received: demo
+2025-02-28 16:11:24,427 - app.factory - INFO - Username received: demo
+2025-02-28 16:12:42,974 - app.factory - INFO - Username received: demo
+2025-02-28 16:14:45,415 - app.factory - INFO - Username received: demo
+2025-02-28 16:18:58,781 - app.factory - INFO - Username received: demo
+2025-02-28 16:23:48,315 - app.factory - INFO - Username received: demo
+2025-02-28 16:28:39,774 - app.factory - INFO - Username received: demo
+2025-02-28 16:34:30,986 - app.factory - INFO - Username received: demo
+2025-02-28 16:37:06,078 - app.factory - INFO - Username received: demo
+2025-02-28 16:41:01,859 - app.factory - INFO - Username received: demo
+2025-02-28 16:45:19,606 - app.factory - INFO - Username received: demo
+2025-02-28 17:06:07,407 - app.factory - INFO - Username received: demo
+2025-02-28 17:11:46,890 - app.factory - INFO - Username received: demo
+2025-02-28 17:12:19,546 - app.factory - INFO - Username received: demo
+2025-02-28 17:13:17,571 - app.factory - INFO - Username received: demo
+2025-02-28 17:13:46,405 - app.factory - INFO - Username received: demo
+2025-02-28 17:16:39,735 - app.factory - INFO - Username received: demo
+2025-02-28 17:18:04,505 - app.factory - INFO - Username received: demo
+2025-02-28 17:33:40,351 - app.factory - INFO - Username received: demo
+2025-02-28 17:36:06,398 - app.factory - INFO - Username received: demo
+2025-02-28 17:43:31,468 - app.factory - INFO - Username received: demo
+2025-02-28 17:59:30,361 - app.factory - INFO - Username received: demo
+2025-02-28 18:03:35,643 - app.factory - INFO - Username received: âóüù
+2025-02-28 18:03:39,876 - app.factory - INFO - Username received: demo
+2025-02-28 18:13:20,142 - app.factory - INFO - Username received: demo
+2025-02-28 18:16:06,837 - app.factory - INFO - Username received: demo
+2025-02-28 18:18:46,337 - app.factory - INFO - Username received: demo
+2025-02-28 18:20:33,718 - app.factory - INFO - Username received: demo
+2025-02-28 18:28:17,415 - app.factory - INFO - Username received: demo
+2025-02-28 18:38:18,654 - app.factory - INFO - Username received: demo
+2025-02-28 18:49:27,376 - app.factory - INFO - Username received: demo
+2025-02-28 18:52:47,177 - app.factory - INFO - Username received: demo
+2025-02-28 18:58:16,236 - app.factory - INFO - Username received: demo
+2025-02-28 18:59:48,847 - app.factory - INFO - Username received: demo
+2025-03-01 13:51:16,726 - app.factory - INFO - Username received: demo
+2025-03-01 14:06:07,408 - app.factory - INFO - Username received: demo
+2025-03-01 14:06:32,881 - app.factory - INFO - Username received: demo
+2025-03-01 14:16:10,569 - app.factory - INFO - Username received: demo
+2025-03-01 14:33:23,659 - app.factory - INFO - Username received: demo
+2025-03-01 14:34:07,712 - app.factory - INFO - Username received: demo
+2025-03-01 14:46:20,050 - app.factory - INFO - Username received: demo
+2025-03-01 14:53:35,876 - app.factory - INFO - Username received: demo
+2025-03-01 15:00:54,605 - app.factory - INFO - Username received: demo
+2025-03-01 15:01:50,860 - app.factory - INFO - Username received: demo
+2025-03-01 15:14:07,991 - app.factory - INFO - Username received: demo
+2025-03-01 15:25:31,828 - app.factory - INFO - Username received: demo
+2025-03-01 15:35:36,645 - app.factory - INFO - Username received: demo
+2025-03-01 15:43:10,727 - app.factory - INFO - Username received: demo
+2025-03-01 15:48:55,988 - app.factory - INFO - Username received: demo
+2025-03-01 15:58:43,234 - app.factory - INFO - Username received: demo
+2025-03-01 16:14:17,754 - app.factory - INFO - Username received: demo
+2025-03-01 16:21:31,112 - app.factory - INFO - Username received: demo
+2025-03-01 16:34:06,420 - app.factory - INFO - Username received: demo
+2025-03-01 16:35:59,422 - app.factory - INFO - Username received: demo
+2025-03-01 16:43:58,099 - app.factory - INFO - Username received: demo
+2025-03-01 16:48:53,536 - app.factory - INFO - Username received: demo
+2025-03-01 16:50:39,513 - app.factory - INFO - Username received: demo
+2025-03-01 16:51:02,651 - app.factory - INFO - Username received: demo
+2025-03-01 16:56:31,960 - app.factory - INFO - Username received: demo
+2025-03-01 16:58:21,524 - app.factory - INFO - Username received: demo'
+2025-03-01 16:58:24,685 - app.factory - INFO - Username received: demo
+2025-03-01 16:59:15,542 - app.factory - INFO - Username received: demo
+2025-03-01 17:01:57,384 - app.factory - INFO - Username received: demo
+2025-03-01 17:02:58,945 - app.factory - INFO - Username received: demo
+2025-03-01 17:06:58,702 - app.factory - INFO - Username received: demo
+2025-03-01 17:08:45,990 - app.factory - INFO - Username received: demo
+2025-03-01 17:09:14,825 - app.factory - INFO - Username received: demo
+2025-03-01 17:14:09,704 - app.factory - INFO - Username received: demo
+2025-03-01 17:14:56,621 - app.factory - INFO - Username received: demo'
+2025-03-01 17:14:59,495 - app.factory - INFO - Username received: demo
+2025-03-01 17:15:43,412 - app.factory - INFO - Username received: demo
+2025-03-01 17:22:27,251 - app.factory - INFO - Username received: demo
+2025-03-01 17:32:59,205 - app.factory - INFO - Username received: demo
+2025-03-01 17:33:52,817 - app.factory - INFO - Username received: demo
+2025-03-01 17:35:55,816 - app.factory - INFO - Username received: demo
+2025-03-01 17:37:17,733 - app.factory - INFO - Username received: demo
+2025-03-01 17:39:18,041 - app.factory - INFO - Username received: demo
+2025-03-01 17:43:09,943 - app.factory - INFO - Username received: demo
+2025-03-01 17:54:45,049 - app.factory - INFO - Username received: demo
+2025-03-01 17:56:13,659 - app.factory - INFO - Username received: demo
+2025-03-01 18:06:51,765 - app.factory - INFO - Username received: demo
+2025-03-01 18:09:55,027 - app.factory - INFO - Username received: demo
+2025-03-01 18:10:19,447 - app.factory - INFO - Username received: demo

@@ -24,6 +24,31 @@ def copy_styles_file_to_static(app):
     print(f"Copied {source_path} to {destination_path}")
 
 
+def copy_js_files_to_static(app):
+    """
+    Copies JavaScript files from the 'templates/js' folder to the 'static/js' folder.
+    """
+    # Define source and destination directory
+    source_dir = os.path.join(app.root_path, 'templates/js')
+    destination_dir = os.path.join(app.root_path, app.config['STATIC_FOLDER'], 'js')
+
+    # Ensure the static js folder exists
+    os.makedirs(destination_dir, exist_ok=True)
+
+    # List of JavaScript files to copy
+    js_files = ['bbox-editor.js', 'bbox-editor-ui.js', 'bbox-init.js']
+
+    # Copy each JavaScript file
+    for js_file in js_files:
+        source_path = os.path.join(source_dir, js_file)
+        destination_path = os.path.join(destination_dir, js_file)
+
+        if os.path.exists(source_path):
+            shutil.copyfile(source_path, destination_path)
+            print(f"Copied {source_path} to {destination_path}")
+        else:
+            print(f"Warning: Source file {source_path} not found")
+
 def copy_sample_files_to_static(source, destination):
     """
     This function copies sample files from source to destination, preserving subdirectory structure,
@@ -35,8 +60,7 @@ def copy_sample_files_to_static(source, destination):
     """
 
     # Walk through the source directory
-    for dirpath, dirnames, filenames in tqdm(os.walk(source),
-                                             desc=f"Copying sample images to the static folder"):
+    for dirpath, dirnames, filenames in tqdm(os.walk(source), desc="Copying sample images to the static folder"):
         # Compute the relative path from the source directory
         relative_path = os.path.relpath(dirpath, source)
 
@@ -46,8 +70,9 @@ def copy_sample_files_to_static(source, destination):
         # Ensure the destination directory exists
         os.makedirs(dest_dir, exist_ok=True)
 
-        # Copy files from the source directory to the corresponding destination directory
-        for file in filenames:
+        # Copy only one file (if available) from the source directory
+        if filenames:
+            file = filenames[0]  # Take the first file only
             source_file = os.path.join(dirpath, file)
             dest_file = os.path.join(dest_dir, file)
 
@@ -240,6 +265,7 @@ def check_that_needed_files_exist(app):
 
     # Copy styles.css from templates directory to static directory
     copy_styles_file_to_static(app)
+    copy_js_files_to_static(app)
 
     if not os.path.isdir(app.config['ANNOTATORS_ROOT_DIRECTORY']):
         app.logger.error(f"Annotation task root directory does not exist: {app.config['ANNOTATORS_ROOT_DIRECTORY']}")

@@ -16,12 +16,16 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'JPEG', 'png', 'webp', 'avif'}
 # A file named predictions_<username>.json and sample_images_info.json
 ANNOTATORS_ROOT_DIRECTORY = os.path.join(APP_ROOT_FOLDER, "demo_data", "annotator_dirs")
 
+# THRESHOLD for the bounding boxes
+THRESHOLD = 0.5
+
 # Annotations root folder
 # For this demo, it would be the root directory of the ImageNetV2 dataset. Class names should be in wordnet IDs.
-ANNOTATIONS_ROOT_FOLDER = "/media/esla/nvme1/dataset/imagenet/external/imagenetv2_matched_frequency_wordnetIDs"
+#ANNOTATIONS_ROOT_FOLDER = "/media/esla/nvme1/dataset/imagenet/external/imagenetv2_matched_frequency_wordnetIDs"
+ANNOTATIONS_ROOT_FOLDER = "D:\imagenet_val"
 
 # Number of per class examples shown to the user
-NUM_EXAMPLES_PER_CLASS = 10
+NUM_EXAMPLES_PER_CLASS = 1
 
 # Dataset classes
 NUM_CLASSES = 1000
@@ -29,7 +33,8 @@ NUM_CLASSES = 1000
 # The dataset were the examples for each proposed class label are taken from
 # Folder names in EXAMPLES_DATASET_ROOT_DIR and ANNOTATIONS_ROOT_FOLDER must match.
 # For the demo, we use the ImageNet Validation set. The class names are in WordNet IDs.
-EXAMPLES_DATASET_ROOT_DIR = "/media/esla/nvme1/dataset/imagenet/full/val"
+#EXAMPLES_DATASET_ROOT_DIR = "/media/esla/nvme1/dataset/imagenet/full/val"
+EXAMPLES_DATASET_ROOT_DIR = "D:\imagenet_val"
 
 # Provide the JSON file that maps class indices (integers) to their corresponding class names
 LABEL_INDICES_TO_LABEL_NAMES_JSONFILE = f"./required_files/imagenet_v2/label_indices_to_wordnet_ids.json"

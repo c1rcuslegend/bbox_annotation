@@ -37,21 +37,32 @@
         };
 
         function show_image(img) {
-            document.getElementById("modal-container").classList.add('show-modal');
-            document.getElementById("modal-image").src = img.src;
+            // Only show modal for images that are not in the bbox container
+            if (!img.closest('#image-with-bboxes')) {
+                document.getElementById("modal-container").classList.add('show-modal');
+                document.getElementById("modal-image").src = img.src;
+            }
         }
     </script>
+    <script src="{{ url_for('static', filename='js/bbox-editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bbox-editor-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bbox-init.js') }}"></script>
 </head>
 
 <body>
     <div class="row">
-        <div class="column-main">
+        <div class="column-main1 first-column">
             <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
         </div>
 
-        <div class="column-main">
+        <div class="column-main1">
             <div class="caption">Image to Annotate</div>
-            <img class="thumbnail-main" src="{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
+            <div style="display: flex; justify-content: center; align-items: baseline; gap: 20px; margin: 30px 0;">
+                <div id="image-with-bboxes">
+                    <img class="thumbnail-main" src="{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
+                </div>
+                <img class="thumbnail-main" src="{{ predicted_image }}" alt="Additional Image" onclick="show_image(this)">
+            </div>
             <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
             <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
             <div>Current Image Index: {{ current_image_index }}</div>
@@ -61,7 +72,7 @@
             </div>
         </div>
 
-        <div class="column-main last-column">
+        <div class="column-main1 last-column">
             <div class="refresh-btn" onclick="change('next'); document.getElementById('save').submit();">&#9654;</div>
         </div>
     </div>
@@ -95,8 +106,8 @@
                             {% for img_url in images %}
                                 <img class="thumbnail" src="{{ img_url }}" alt="Class Image" onclick="show_image(this)">
                                 {% if loop.index is divisibleby num_similar_images and not loop.last %}
-                                    </div><div class="right">
                                 {% endif %}
+                                    </div><div class="right">
                             {% endfor %}
                         </div>
                     </div>
@@ -104,11 +115,6 @@
             {% endfor %}
     </div>
 
-    <div id="modal-container" class="modal-container">
-        <div id="modal" class="modal">
-            <img id="modal-image" class="modal-image">
-        </div>
-    </div>
 
     <div id="modal-container" class="modal-container">
         <div id="modal" class="modal">
@@ -116,5 +122,57 @@
             <img id="modal-image" class="modal-image">
         </div>
     </div>
+
+    <div id="bbox-modal-container" class="bbox-editor-modal">
+        <div class="bbox-editor-content">
+            <span class="bbox-editor-close">&times;</span>
+            <div class="bbox-editor-layout">
+                <div class="bbox-editor-controls">
+                    <h3>Edit Bounding Box</h3>
+                    <select id="bbox-selector" class="bbox-editor-selector"></select>
+
+                    <!-- Add class selector dropdown -->
+                    <div class="bbox-editor-input-group">
+                        <label for="bbox-class-selector">Class:</label>
+                        <select id="bbox-class-selector" class="bbox-editor-selector">
+                            <!-- Here will be 1000 class options (0-999) -->
+                        </select>
+                    </div>
+
+                    <div class="bbox-editor-inputs">
+                        <div class="bbox-editor-input-group">
+                            <label for="bbox-x1">X1</label>
+                            <input type="number" id="bbox-x1" min="0">
+                        </div>
+                        <div class="bbox-editor-input-group">
+                            <label for="bbox-y1">Y1</label>
+                            <input type="number" id="bbox-y1" min="0">
+                        </div>
+                        <div class="bbox-editor-input-group">
+                            <label for="bbox-x2">X2</label>
+                            <input type="number" id="bbox-x2" min="0">
+                        </div>
+                        <div class="bbox-editor-input-group">
+                            <label for="bbox-y2">Y2</label>
+                            <input type="number" id="bbox-y2" min="0">
+                        </div>
+                    </div>
+                    <div class="bbox-editor-actions">
+                        <button id="bbox-update" class="bbox-editor-button bbox-editor-button-update">Save</button>
+                        <button id="bbox-delete" class="bbox-editor-button bbox-editor-button-delete">Delete</button>
+                        <button id="bbox-cancel" class="bbox-editor-button bbox-editor-button-cancel">Cancel</button>
+                    </div>
+                </div>
+                <div class="bbox-editor-preview">
+                    <canvas id="bbox-preview-canvas" class="bbox-editor-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden elements for passing data to JavaScript -->
+    <script id="bbox-data" type="application/json">{{ bboxes|tojson }}</script>
+    <script id="threshold" type="application/json">{{ threshold }}</script>
+    <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
 </body>
 </html>
