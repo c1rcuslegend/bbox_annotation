@@ -36,7 +36,7 @@ def copy_js_files_to_static(app):
     os.makedirs(destination_dir, exist_ok=True)
 
     # List of JavaScript files to copy
-    js_files = ['bbox-editor.js', 'bbox-editor-ui.js', 'bbox-init.js']
+    js_files = ['bbox-editor.js', 'bbox-editor-patch.js', 'bbox-editor-ui.js', 'bbox-init.js', 'auto-select-class.js', 'inline-bbox-editor.js']
 
     # Copy each JavaScript file
     for js_file in js_files:
@@ -71,8 +71,8 @@ def copy_sample_files_to_static(source, destination):
         os.makedirs(dest_dir, exist_ok=True)
 
         # Copy only one file (if available) from the source directory
-        if filenames:
-            file = filenames[0]  # Take the first file only
+        for file in filenames:
+            # file = filenames[0]  # Take the first file only
             source_file = os.path.join(dirpath, file)
             dest_file = os.path.join(dest_dir, file)
 

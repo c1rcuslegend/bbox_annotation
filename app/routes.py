@@ -1,14 +1,12 @@
 import os
-import pickle
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from PIL import Image
 import json
-from flask import render_template, request, redirect, url_for, send_from_directory, jsonify
-from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict, read_json_file
+import time
+from flask import render_template, request, redirect, url_for, jsonify
+from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
-    get_label_indices_to_label_names_dicts, load_json_data, save_json_data
+    get_label_indices_to_label_names_dicts, save_json_data
+from class_mapping.class_loader import ClassDictionary
 
 
 def convert_bboxes_to_serializable(bboxes):
@@ -38,20 +36,54 @@ def convert_bboxes_to_serializable(bboxes):
     return bboxes  # Return as is if not in expected format
 
 
+def extract_checked_categories(data, label_indices_to_label_names):
+    """Extract checked categories from bbox labels or checkbox data"""
+    checked_categories = set()
+
+    # Handle new data structure
+    if isinstance(data, dict):
+        # If we have label data in a dict with 'labels' key
+        if 'labels' in data and len(data['labels']) > 0:
+            for label in data['labels']:
+                label_id = str(label)
+                if label_id in label_indices_to_label_names:
+                    checked_categories.add(label_id)
+        # Special case for uncertain label type
+        elif 'label_type' in data and data['label_type'] == 'uncertain' and 'selected_classes' in data:
+            for class_id in data['selected_classes'].keys():
+                checked_categories.add(class_id)
+    # Handle case where data is a list (old format)
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict) and 'label' in item:
+                # This is a bbox with a label
+                label_id = str(item['label'])
+                if label_id in label_indices_to_label_names:
+                    checked_categories.add(label_id)
+
+    return list(checked_categories)
+
+
+def get_bboxes_from_file(file_path, image_name=None):
+    """Load bboxes directly from file without caching"""
+    try:
+        with open(file_path, 'r') as f:
+            bbox_data = json.load(f)
+
+        # If we're looking for a specific image, extract just that image's data
+        if image_name and bbox_data and isinstance(bbox_data, dict):
+            result = bbox_data.get(image_name, {'boxes': [], 'scores': [], 'labels': [], 'gt': []})
+            return result
+        return bbox_data
+    except (IOError, json.JSONDecodeError) as e:
+        print(f"Error loading file {file_path}: {e}")
+        return {}
+
+
 def register_routes(app):
     @app.route('/', methods=['GET', 'POST'])
     def index():
-        """
-        Handles the index page requests of the web application.
-
-        For a GET request, renders and returns the homepage ('index.html').
-        For a POST request, extracts the 'username' from the form data, logs it,
-        and redirects to the 'label_image' route with the username.
-
-        Returns:
-            Rendered template ('index.html') on GET request or redirection to
-            'label_image' route on POST request with the username parameter.
-        """
+        """Handle the index page requests"""
         if request.method == 'POST':
             username = request.form.get('username')
             app.logger.info(f"Username received: {username}")
@@ -61,19 +93,11 @@ def register_routes(app):
 
     @app.route('/<username>')
     def label_image(username):
-        """
-        Renders the image labeling page for a given user.
+        """Render the image labeling page for a given user."""
+        import timeit
+        start_time = timeit.default_timer()
+        print(f"Started loading page at: {time.strftime('%H:%M:%S')}")
 
-        Validates the user from the cached data and processes image data for labeling.
-        Returns an error message if the user does not exist or data is unavailable.
-
-        Args:
-            username (str): The username of the user.
-
-        Returns:
-            Rendered 'user_label.html' template with relevant image data
-            if user exists and data is available, otherwise a string error message.
-        """
         if username not in app.user_cache:
             return "No such user exists. Please check it again."
 
@@ -81,20 +105,20 @@ def register_routes(app):
         if any(value is None for value in user_data.values()):
             return "Error loading data."
 
-        # Cached data is being used here
+        # Get data from user cache
         proposals_info = user_data['proposals_info']
         all_sample_images = user_data['all_sample_images']
         app.num_predictions_per_user[username] = user_data['num_predictions']
 
-        # get class names and mappings
+        # Get class names and mappings
         label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
-        # assert both are not None
         assert label_indices_to_label_names is not None and label_indices_to_human_readable is not None
 
         image_softmax_dict = get_image_softmax_dict(proposals_info)
 
         # Set current image index
         current_image_index = app.current_image_index_dct.get(username, 0)
+        print(f"Current image index: {current_image_index}")
 
         current_image_data = proposals_info[current_image_index]
         current_image = current_image_data['image_name']
@@ -116,12 +140,17 @@ def register_routes(app):
 
         # Get the image name without the path prefix for lookups
         image_name_for_lookup = current_imagepath[0].lstrip('static/images/')
-
-        # Also get the base image name without the class prefix for demo bboxes lookup
+        # Also get just the base filename for certain lookups
         base_image_name = os.path.basename(image_name_for_lookup)
+        print(f"Looking up data for image: {image_name_for_lookup} / {base_image_name}")
 
-        # Load user data (comments and checkbox_selections)
-        comments_json, checkbox_selections = load_user_data(app, username)
+        # Load user data directly from file every time (no caching)
+        try:
+            comments_json, checkbox_selections = load_user_data(app, username)
+        except Exception as e:
+            app.logger.error(f"Error loading user data for {username}: {str(e)}")
+            comments_json = {}
+            checkbox_selections = {}
 
         # Get comments
         comments = comments_json.get(image_name_for_lookup, '')
@@ -130,69 +159,127 @@ def register_routes(app):
         checked_categories = []
         bboxes = None
         bboxes_source = None  # Track where we got the bboxes from
+        label_type = "basic"  # Default label type
+        selected_classes = {}  # For uncertain type
 
-        # First check if we have bboxes in checkbox_selections
+        # First try checkbox_selections (newer data format)
         if image_name_for_lookup in checkbox_selections:
-            print(f"Found bboxes for {current_image} in user bboxes file")
             data = checkbox_selections[image_name_for_lookup]
+            print(f"Found data in checkbox_selections for {image_name_for_lookup}")
 
-            # If the data is a list of dicts with coordinates, it's bboxes data
-            if (isinstance(data, list) and len(data) > 0 and
-                    isinstance(data[0], dict) and 'coordinates' in data[0]):
+            # Handle new data structure with label_type
+            if isinstance(data, dict) and 'label_type' in data:
+                label_type = data.get('label_type', 'basic')
 
-                # Convert to the format expected by the front-end
+                # Get selected classes for uncertain type
+                if label_type == 'uncertain' and 'selected_classes' in data:
+                    selected_classes = data.get('selected_classes', {})
+                    # Use selected_classes for checked categories in uncertain mode
+                    checked_categories = list(selected_classes.keys())
+
+                # If bboxes exist in the new structure
+                if 'bboxes' in data and isinstance(data['bboxes'], list) and len(data['bboxes']) > 0:
+                    # Convert bboxes to the format expected by the template
+                    boxes = []
+                    scores = []
+                    labels = []
+                    # Track unique labels for checked categories
+                    checked_labels = set()
+
+                    for bbox in data['bboxes']:
+                        boxes.append(bbox['coordinates'])
+                        label = bbox.get('label', 0)
+                        labels.append(label)
+                        scores.append(1.0)
+
+                        # Track unique labels
+                        checked_labels.add(str(label))
+
+                    # FIXED: Always use bbox labels for checked categories (unless uncertain mode)
+                    if label_type == "basic" and checked_labels:
+                        checked_categories = [label_id for label_id in checked_labels if
+                                              label_id in label_indices_to_label_names]
+
+                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels}
+                    bboxes_source = 'checkbox_selections_new_format'
+                    print(f"Found {len(boxes)} bboxes in checkbox_selections")
+
+            # Handle legacy format with bboxes as list of dicts
+            elif (isinstance(data, list) and len(data) > 0 and
+                  isinstance(data[0], dict) and 'coordinates' in data[0]):
+
+                # Converting bbox format
                 boxes = []
                 scores = []
                 labels = []
+                checked_labels = set()
 
                 for bbox in data:
                     boxes.append(bbox['coordinates'])
-                    labels.append(bbox.get('label', 0))
-                    scores.append(1.0)  # Default high confidence score for human-verified boxes
+                    label = bbox.get('label', 0)
+                    labels.append(label)
+                    scores.append(1.0)  # Default high confidence score
 
-                    # Add the label to checked categories
-                    label_id = str(bbox.get('label', 0))
-                    if label_id in label_indices_to_label_names:
-                        checked_categories.append(label_indices_to_label_names[label_id])
+                    # Track unique labels for checked categories
+                    checked_labels.add(str(label))
+
+                # Get checked categories from unique labels
+                checked_categories = [label_id for label_id in checked_labels if
+                                      label_id in label_indices_to_label_names]
 
                 bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels}
-                bboxes_source = 'checkbox_selections'
-            else:
-                # Regular checkbox selections
-                checked_categories = data
+                bboxes_source = 'checkbox_selections_legacy'
+                print(f"Found {len(boxes)} bboxes in legacy format")
 
-        # If no bboxes found in checkbox_selections, try loading from bboxes file
+        # If no bboxes found in checkbox_selections, try loading from user-specific bboxes file
         if bboxes is None:
-            # First try user-specific bboxes file
-            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json')
-            bbox_data = load_json_data(bbox_file_path) or {}
-            #print(f"bbox_data: {bbox_data}")
+            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
+                                          f'bboxes_{username}.json')
 
-            if current_image in bbox_data:
-                print(f"Found bboxes for {current_image} in general bboxes file")
-                bboxes = bbox_data.get(current_image, {'boxes': [], 'scores': [], 'labels': [], 'gt': []})
+            # Try both the full path and base filename
+            bbox_data = get_bboxes_from_file(bbox_file_path, current_image)
+            if not bbox_data or not bbox_data.get('boxes'):
+                bbox_data = get_bboxes_from_file(bbox_file_path, base_image_name)
+
+            # Check if we got valid bbox data
+            if bbox_data and 'boxes' in bbox_data and bbox_data['boxes']:
+                print(f"Found {len(bbox_data['boxes'])} bboxes in bboxes file")
+                bboxes = bbox_data
                 bboxes_source = 'general_bboxes'
 
-                # Add the labels to checked categories
-                if 'labels' in bboxes and len(bboxes['labels']) > 0:
-                    for label in bboxes['labels']:
-                        label_id = str(label)
-                        if label_id in label_indices_to_label_names:
-                            checked_categories.append(label_indices_to_label_names[label_id])
+                # FIXED: Extract checked categories from bbox labels
+                if 'labels' in bbox_data and bbox_data['labels']:
+                    checked_labels = set()
+                    for label in bbox_data['labels']:
+                        checked_labels.add(str(label))
+
+                    checked_categories = [label_id for label_id in checked_labels if
+                                          label_id in label_indices_to_label_names]
+
+                    print(f"Extracted {len(checked_categories)} checked categories from bbox labels")
 
         # If still no bboxes, create empty structure
         if bboxes is None:
             bboxes = {'boxes': [], 'scores': [], 'labels': []}
             bboxes_source = 'empty'
+            print(f"No bboxes found for {image_name_for_lookup} or {current_image}")
 
         # Ensure bboxes is properly serializable
         bboxes = convert_bboxes_to_serializable(bboxes)
         threshold = app.config['THRESHOLD']
 
+        # Get the ground truth class
+        class_dict = ClassDictionary()
+
+        end_time = timeit.default_timer()
+        print(f"Total page load time: {end_time - start_time:.4f} seconds")
+
         return render_template('user_label.html',
                                predicted_image=current_imagepath[0],
                                similar_images=similar_images,
                                username=username,
+                               ground_truth_label=class_dict.get_class_name(
+                                   class_dict.get_val_img_class(base_image_name)),
                                checked_categories=checked_categories,
                                comments=comments,
                                human_readable_classes_map=label_indices_to_human_readable,
@@ -201,7 +288,9 @@ def register_routes(app):
                                bboxes=bboxes,
                                threshold=threshold,
                                image_name=image_name_for_lookup,
-                               bboxes_source=bboxes_source)  # Pass source for debugging if needed
+                               bboxes_source=bboxes_source,
+                               label_type=label_type,
+                               selected_classes=selected_classes)
 
     @app.route('/<username>/save', methods=['POST'])
     def save(username):
@@ -211,26 +300,160 @@ def register_routes(app):
         # Get form data
         image_name, checkbox_values, direction, comments = get_form_data()
 
+        # Get new label_type field (default to "basic")
+        label_type = request.form.get('label_type', 'basic')
+
+        # Get selected_classes if label_type is "uncertain"
+        selected_classes = {}
+        if label_type == "uncertain":
+            selected_classes_json = request.form.get('selected_classes', '{}')
+            try:
+                selected_classes = json.loads(selected_classes_json)
+            except json.JSONDecodeError:
+                app.logger.error(f"Invalid JSON for selected_classes: {selected_classes_json}")
+                selected_classes = {}
+
+        # Check for bboxes_data field
+        bboxes_data = request.form.get('bboxes_data')
+        bboxes = []
+        if bboxes_data:
+            try:
+                bboxes = json.loads(bboxes_data)
+                app.logger.info(f"Loaded {len(bboxes)} bboxes from form data")
+            except json.JSONDecodeError:
+                app.logger.error(f"Invalid JSON for bboxes_data: {bboxes_data}")
+                bboxes = []
+
         # Load and update user data
         comments_json, checkbox_selections = load_user_data(app, username)
         comments_json[image_name] = comments
 
-        # We don't update bboxes here, only regular checkbox selections
-        # If there are already bboxes for this image, preserve them
-        if (image_name in checkbox_selections and isinstance(checkbox_selections[image_name], list) and
-                len(checkbox_selections[image_name]) > 0 and
-                isinstance(checkbox_selections[image_name][0], dict) and
-                'coordinates' in checkbox_selections[image_name][0]):
-            # Keep the existing bboxes data
-            pass
+        # Process checkbox values to apply them to bboxes
+        # Add a new bbox for each checked category if it doesn't exist yet
+        if checkbox_values and label_type == "basic" and not selected_classes:
+            # Get existing bboxes or create new array
+            existing_bboxes = []
+
+            if bboxes:
+                existing_bboxes = bboxes
+            elif (image_name in checkbox_selections and isinstance(checkbox_selections[image_name], dict)
+                  and 'bboxes' in checkbox_selections[image_name]):
+                existing_bboxes = checkbox_selections[image_name]['bboxes']
+
+            # Extract existing labels
+            existing_labels = set()
+            for bbox in existing_bboxes:
+                if 'label' in bbox:
+                    existing_labels.add(str(bbox['label']))
+
+            # For each checkbox that doesn't have a bbox already, create one
+            for checkbox_value in checkbox_values:
+                if checkbox_value not in existing_labels:
+                    # Create a new bbox for this class
+                    # Using a placeholder position (could be refined in future)
+                    new_bbox = {
+                        'coordinates': [10, 10, 50, 50],
+                        'label': int(checkbox_value)
+                    }
+                    existing_bboxes.append(new_bbox)
+
+            # Use the updated bboxes
+            bboxes = existing_bboxes
+
+        # Create or update the image data structure
+        # If there are bboxes, use those
+        if bboxes:
+            # Create new image data with bboxes and label type info
+            image_data = {
+                "bboxes": bboxes,
+                "label_type": label_type
+            }
+
+            # Add selected_classes if uncertain
+            if label_type == "uncertain":
+                image_data["selected_classes"] = selected_classes
+
+            # Update the checkbox_selections
+            checkbox_selections[image_name] = image_data
+
+        # If no bboxes but we have selected classes for uncertain mode
+        elif label_type == "uncertain" and selected_classes:
+            # Create new image data with just label type info and selected classes
+            image_data = {
+                "bboxes": [],
+                "label_type": label_type,
+                "selected_classes": selected_classes
+            }
+
+            # Update the checkbox_selections
+            checkbox_selections[image_name] = image_data
+
+        # If no bboxes or selected classes, but we have checkbox values
+        elif checkbox_values:
+            # Convert checkbox values to bboxes
+            new_bboxes = []
+            for checkbox_value in checkbox_values:
+                new_bbox = {
+                    'coordinates': [10, 10, 50, 50],
+                    'label': int(checkbox_value)
+                }
+                new_bboxes.append(new_bbox)
+
+            # Create new image data
+            image_data = {
+                "bboxes": new_bboxes,
+                "label_type": label_type
+            }
+
+            # Update the checkbox_selections
+            checkbox_selections[image_name] = image_data
         else:
-            # No bboxes yet, just use the checkbox values
-            checkbox_selections[image_name] = checkbox_values
+            # No bboxes, no selected classes, no checkboxes - create empty structure
+            image_data = {
+                "bboxes": [],
+                "label_type": label_type
+            }
+
+            # Update the checkbox_selections
+            checkbox_selections[image_name] = image_data
 
         try:
             total_num_predictions = app.num_predictions_per_user[username]
             update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct)
             save_user_data(app, username, comments_json, checkbox_selections)
+
+            # Extract the base image name if needed
+            base_image_name = os.path.basename(image_name)
+
+            # Update the general bboxes file as well
+            if bboxes:
+                bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
+                                              f'bboxes_{username}.json')
+
+                # Convert bboxes to the format expected by the bboxes file
+                box_data = {'boxes': [], 'scores': [], 'labels': []}
+
+                for bbox in bboxes:
+                    box_data['boxes'].append(bbox['coordinates'])
+                    box_data['labels'].append(bbox.get('label', 0))
+                    box_data['scores'].append(1.0)
+
+                # Update the bboxes file with the new data for this image
+                # Read existing file
+                try:
+                    with open(bbox_file_path, 'r') as f:
+                        all_bboxes = json.load(f)
+                except (IOError, json.JSONDecodeError):
+                    all_bboxes = {}
+
+                # Update with new data using both keys for compatibility
+                all_bboxes[image_name] = box_data
+                all_bboxes[base_image_name] = box_data
+
+                # Save updated file
+                with open(bbox_file_path, 'w') as f:
+                    json.dump(all_bboxes, f)
+
         except Exception as e:
             app.logger.error(f"Error in save function for user {username}: {e}")
             return "An error occurred"
@@ -245,6 +468,7 @@ def register_routes(app):
             data = request.get_json()
             image_name = data.get('image_name')
             bboxes = data.get('bboxes', [])
+            timestamp = data.get('timestamp', time.time())  # For debugging
 
             if not image_name:
                 return jsonify({'error': 'Image name is required'}), 400
@@ -253,16 +477,70 @@ def register_routes(app):
             if image_name.startswith('static/images/'):
                 image_name = image_name.lstrip('static/images/')
 
+            # Extract the base image name for saving
+            base_image_name = os.path.basename(image_name)
+
             # Load existing checkbox selections
             _, checkbox_selections = load_user_data(app, username)
 
-            # Update the checkbox_selections with the new bboxes
-            checkbox_selections[image_name] = bboxes
+            # Check if we already have label_type info for this image
+            label_type = "basic"
+            selected_classes = {}
 
-            # Save the updated data
+            if image_name in checkbox_selections:
+                existing_data = checkbox_selections[image_name]
+
+                # Handle existing data structure with label_type
+                if isinstance(existing_data, dict) and "label_type" in existing_data:
+                    label_type = existing_data.get("label_type", "basic")
+                    selected_classes = existing_data.get("selected_classes", {})
+
+            # Update with new bboxes while preserving label type info
+            checkbox_selections[image_name] = {
+                "bboxes": bboxes,
+                "label_type": label_type
+            }
+
+            # Add selected_classes if uncertain
+            if label_type == "uncertain":
+                checkbox_selections[image_name]["selected_classes"] = selected_classes
+
+            # Save the updated checkbox selections
             checkbox_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
                                          f"checkbox_selections_{username}.json")
             save_json_data(checkbox_path, checkbox_selections)
+
+            # Update bboxes in the general bboxes file
+            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
+                                          f'bboxes_{username}.json')
+
+            try:
+                # Convert bboxes to the format expected by the bboxes file
+                box_data = {'boxes': [], 'scores': [], 'labels': []}
+
+                for bbox in bboxes:
+                    box_data['boxes'].append(bbox['coordinates'])
+                    box_data['labels'].append(bbox.get('label', 0))
+                    box_data['scores'].append(1.0)
+
+                # Read existing file
+                try:
+                    with open(bbox_file_path, 'r') as f:
+                        all_bboxes = json.load(f)
+                except (IOError, json.JSONDecodeError):
+                    all_bboxes = {}
+
+                # Update with new data - use both keys for compatibility
+                all_bboxes[image_name] = box_data
+                all_bboxes[base_image_name] = box_data
+
+                # Save updated file
+                with open(bbox_file_path, 'w') as f:
+                    json.dump(all_bboxes, f)
+
+                print(f"Updated bboxes file for {username} with {len(box_data['boxes'])} boxes for {base_image_name}")
+            except Exception as e:
+                print(f"Warning: Could not update general bboxes file: {e}")
 
             return jsonify({'success': True, 'message': 'Bboxes saved successfully'})
 

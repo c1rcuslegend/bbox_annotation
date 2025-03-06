@@ -34,6 +34,52 @@
             closeModal.addEventListener('click', function() {
                 modal.classList.remove('show-modal');
             });
+
+            // Setup uncertainty modal
+            const uncertaintyModal = document.getElementById('uncertainty-modal-container');
+            const closeUncertaintyModal = document.getElementById('close-uncertainty-modal');
+
+            if (closeUncertaintyModal) {
+                closeUncertaintyModal.addEventListener('click', function() {
+                    uncertaintyModal.classList.remove('show-modal');
+                });
+            }
+
+            // Setup buttons for label types
+            document.getElementById('none-proposed-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('label_type').value = 'ood';
+                document.getElementById('save').submit();
+            });
+
+            document.getElementById('not-sure-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                uncertaintyModal.classList.add('show-modal');
+            });
+
+            // Setup confirm button for uncertainty modal
+            document.getElementById('confirm-uncertainty').addEventListener('click', function() {
+                const selectedClasses = {};
+                const checkboxes = document.querySelectorAll('.uncertainty-class-checkbox:checked');
+
+                checkboxes.forEach(checkbox => {
+                    const classId = checkbox.value;
+                    const className = checkbox.getAttribute('data-class-name');
+                    selectedClasses[classId] = className;
+                });
+
+                // Store the selected classes as JSON in the hidden input
+                document.getElementById('selected_classes').value = JSON.stringify(selectedClasses);
+
+                // Set the label type
+                document.getElementById('label_type').value = 'uncertain';
+
+                // Submit the form
+                document.getElementById('save').submit();
+
+                // Hide the modal
+                uncertaintyModal.classList.remove('show-modal');
+            });
         };
 
         function show_image(img) {
@@ -43,32 +89,105 @@
                 document.getElementById("modal-image").src = img.src;
             }
         }
+
+        /**
+         * Search functionality for the uncertainty modal
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('uncertainty-search-input');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const classItems = document.querySelectorAll('.uncertainty-class-item');
+
+                    classItems.forEach(item => {
+                        const text = item.querySelector('.uncertainty-class-text').textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            item.classList.remove('hidden');
+                        } else {
+                            item.classList.add('hidden');
+                        }
+                    });
+                });
+            }
+        });
     </script>
     <script src="{{ url_for('static', filename='js/bbox-editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bbox-editor-ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bbox-init.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto-select-class.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bbox-editor-patch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/inline-bbox-editor.js') }}"></script>
 </head>
 
 <body>
+    <div class="top-nav">
+        <a href="{{ url_for('index', username=username) }}" class="nav-btn back-btn">
+            <i class="nav-icon">◀</i> All images
+        </a>
+        <div class="title-placeholder"></div>
+    </div>
+
     <div class="row">
         <div class="column-main1 first-column">
             <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
         </div>
 
-        <div class="column-main1">
-            <div class="caption">Image to Annotate</div>
-            <div style="display: flex; justify-content: center; align-items: baseline; gap: 20px; margin: 30px 0;">
-                <div id="image-with-bboxes">
-                    <img class="thumbnail-main" src="{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
+        <div class="image-editor-container">
+            <!-- Left column with controls -->
+            <div class="image-editor-left">
+                <!-- BBox Controls -->
+                <div class="bbox-editor-inline">
+
+                    <!-- Box selector -->
+                    <div class="control-group">
+                        <label for="inline-bbox-selector">Select Box:</label>
+                        <select id="inline-bbox-selector" class="editor-selector"></select>
+                    </div>
+
+                    <!-- Class selector with search -->
+                    <div class="control-group">
+                        <label for="inline-class-search">Class:</label>
+                        <input type="text" id="inline-class-search" placeholder="Search for class..."
+                               class="editor-selector">
+                        <select id="inline-class-selector" class="editor-selector"></select>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="control-buttons">
+                        <button id="inline-bbox-delete" class="editor-button delete-btn">Delete Box</button>
+                        <button id="inline-bbox-cancel" class="editor-button cancel-btn">Cancel Changes</button>
+                    </div>
+
+                    <!-- Open advanced editor button -->
+                    <button id="open-popup-editor" class="editor-button popup-btn">
+                        Advanced Editor
+                    </button>
                 </div>
-                <img class="thumbnail-main" src="{{ predicted_image }}" alt="Additional Image" onclick="show_image(this)">
+
+                <!-- Comments and feedback buttons -->
+                <div class="comments-container">
+                    <textarea form="save" name="comments" placeholder="Leave your comments here..." rows="2">{{ comments }}</textarea>
+                    <div class="feedback-buttons">
+                        <button id="not-sure-btn" class="feedback-btn not-sure-btn">Not sure</button>
+                        <button id="none-proposed-btn" class="feedback-btn none-proposed-btn">None of the proposed</button>
+                    </div>
+                </div>
             </div>
-            <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
-            <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
-            <div>Current Image Index: {{ current_image_index }}</div>
-            <br>
-            <div style="width:100%; display:flex;">
-                <textarea form="save" style="width:70%; margin:auto;" name="comments" placeholder="Leave your comments here..." rows="3">{{ comments }}</textarea>
+
+            <!-- Right column with image -->
+            <div class="image-editor-right">
+                <div id="image-with-bboxes" class="enlarged-image-container">
+                    <img class="thumbnail-main enlarged-image" src="{{ predicted_image }}" alt="Input Image">
+                </div>
+
+                <!-- Ground truth label -->
+                <div class="gt-label">Ground Truth: {{ ground_truth_label|default('Unknown') }}</div>
+
+                <!-- Hidden inputs for form submission -->
+                <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
+                <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
             </div>
         </div>
 
@@ -87,7 +206,11 @@
 
     <div class="row">
         <p>
-            <form id="save" action="{{ url_for('save', username=username) }}" method="post"></form>
+            <form id="save" action="{{ url_for('save', username=username) }}" method="post">
+                <!-- Hidden inputs for label type and selected classes -->
+                <input type="hidden" id="label_type" name="label_type" value="basic">
+                <input type="hidden" id="selected_classes" name="selected_classes" value="{}">
+            </form>
 
             {% for pred_info, images in similar_images.items() %}
                 {% if loop.index < 21 %}
@@ -115,7 +238,7 @@
             {% endfor %}
     </div>
 
-
+    <!-- Image Modal -->
     <div id="modal-container" class="modal-container">
         <div id="modal" class="modal">
             <span id="close-modal" class="close-modal">&times;</span> <!-- Close button -->
@@ -123,6 +246,34 @@
         </div>
     </div>
 
+    <!-- Uncertainty Modal -->
+    <div id="uncertainty-modal-container" class="modal-container">
+        <div id="uncertainty-modal" class="modal uncertainty-modal">
+            <span id="close-uncertainty-modal" class="close-modal">&times;</span>
+            <div class="uncertainty-content">
+                <h2>Select Possible Classes</h2>
+                <div class="uncertainty-search">
+                    <input type="text" id="uncertainty-search-input" placeholder="Search classes...">
+                </div>
+                <div class="uncertainty-class-list">
+                    {% for class_id, class_name in human_readable_classes_map.items() %}
+                    <div class="uncertainty-class-item">
+                        <label class="uncertainty-class-label">
+                            <input type="checkbox" class="uncertainty-class-checkbox" value="{{ class_id }}" data-class-name="{{ class_name }}">
+                            <span class="uncertainty-class-text">{{ class_id }} - {{ class_name }}</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="uncertainty-actions">
+                    <button id="confirm-uncertainty" class="uncertainty-btn confirm-btn">Confirm Selection</button>
+                    <button onclick="document.getElementById('uncertainty-modal-container').classList.remove('show-modal')" class="uncertainty-btn cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BBox Modal -->
     <div id="bbox-modal-container" class="bbox-editor-modal">
         <div class="bbox-editor-content">
             <span class="bbox-editor-close">&times;</span>
@@ -158,9 +309,9 @@
                         </div>
                     </div>
                     <div class="bbox-editor-actions">
-                        <button id="bbox-update" class="bbox-editor-button bbox-editor-button-update">Save</button>
-                        <button id="bbox-delete" class="bbox-editor-button bbox-editor-button-delete">Delete</button>
-                        <button id="bbox-cancel" class="bbox-editor-button bbox-editor-button-cancel">Cancel</button>
+                        <button id="bbox-update" class="bbox-editor-button bbox-editor-button-update">Save Changes</button>
+                        <button id="bbox-delete" class="bbox-editor-button bbox-editor-button-delete">Delete Box</button>
+                        <button id="bbox-cancel" class="bbox-editor-button bbox-editor-button-cancel">Cancel Changes</button>
                     </div>
                 </div>
                 <div class="bbox-editor-preview">

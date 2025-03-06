@@ -1,5 +1,9 @@
 /**
  * Handles the UI for the bounding box editor modal
+ * Created: 2025-03-06 17:06:06
+ * Author: c1rcuslegend
+ *
+ * Fixed version with improved search and deletion functionality
  */
 class BBoxEditorUI {
     static openModal(box, boxIndex, bboxes, editor) {
@@ -116,6 +120,19 @@ class BBoxEditorUI {
                     if (matchesSearch && !firstMatchFound) {
                         option.selected = true;
                         firstMatchFound = true;
+
+                        // FIX 1: Immediately apply the class change to the selected box
+                        if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
+                            bboxes.labels[this.currentBoxIndex] = parseInt(option.value);
+
+                            // Update the preview canvas to show the class change
+                            this.updatePreviewCanvas();
+
+                            // Update the main editor if available
+                            if (this.editor) {
+                                this.editor.redrawCanvas();
+                            }
+                        }
                     }
                 });
             }
@@ -161,8 +178,7 @@ class BBoxEditorUI {
 
                     // Get selected class
                     const classSelector = document.getElementById('bbox-class-selector');
-                    const selectedClass = parseInt(classSelector.value);
-                    bboxes.labels[this.currentBoxIndex] = selectedClass;
+                    bboxes.labels[this.currentBoxIndex] = parseInt(classSelector.value);
 
                     // Update coordinates
                     bboxes.boxes[this.currentBoxIndex] = [
@@ -207,8 +223,9 @@ class BBoxEditorUI {
                     // Update the dropdown selector
                     this.updateBboxSelector(bboxes, -1, editor.threshold, editor.classLabels);
 
-                    // Reset the form fields
+                    // FIX 2: Immediately clear form fields and redraw the canvas
                     this.resetFormFields();
+                    this.updatePreviewCanvas();
                 }
             };
         }
@@ -255,6 +272,12 @@ class BBoxEditorUI {
         const classSelector = document.getElementById('bbox-class-selector');
         if (classSelector && classSelector.options.length > 0) {
             classSelector.selectedIndex = 0;
+        }
+
+        // Clear box details display
+        const boxDisplay = document.getElementById('box-details');
+        if (boxDisplay) {
+            boxDisplay.innerHTML = '<div class="no-box-selected">No box selected</div>';
         }
     }
 
@@ -383,8 +406,7 @@ class BBoxEditorUI {
     }
 
     static initPreviewCanvas(previewCanvas, img, bboxes, selectedIndex, threshold) {
-        const ctx = previewCanvas.getContext('2d');
-        this.previewCtx = ctx;
+        this.previewCtx = previewCanvas.getContext('2d');
         this.bboxes = bboxes;
         this.selectedIndex = selectedIndex;
         this.img = img;
@@ -445,36 +467,86 @@ class BBoxEditorUI {
         // Draw existing boxes
         this.bboxes.boxes.forEach((box, i) => {
             if (this.bboxes.scores[i] >= this.threshold) {
-                ctx.strokeStyle = i === this.selectedIndex ? '#2196F3' : '#e74c3c';
-                ctx.lineWidth = i === this.selectedIndex ? 3 : 2;
+                // Determine if this box is selected
+                const isSelected = i === this.selectedIndex;
+
+                // Set box styles
+                ctx.strokeStyle = isSelected ? '#2196F3' : '#e74c3c';
+                ctx.lineWidth = isSelected ? 3 : 2;
 
                 const x = box[0] * this.scale + this.offsetX;
                 const y = box[1] * this.scale + this.offsetY;
                 const width = (box[2] - box[0]) * this.scale;
                 const height = (box[3] - box[1]) * this.scale;
 
+                // Draw the box
                 ctx.strokeRect(x, y, width, height);
 
                 // Draw handles for selected box
-                if (i === this.selectedIndex) {
+                if (isSelected) {
                     this.drawHandles(ctx, x, y, width, height);
                 }
 
-                // Draw label
-                ctx.fillStyle = i === this.selectedIndex ? '#2196F3' : '#e74c3c';
-                ctx.font = '16px Arial';
+                // Prepare label text
                 let labelText = `Box ${i + 1}`;
-
                 if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
                     const labelId = this.bboxes.labels[i];
                     const classLabels = this.editor ? this.editor.classLabels : {};
                     const labelName = classLabels[labelId] || `Class ${labelId}`;
-                    labelText += ` (${labelId} - ${labelName})`;
+                    labelText = `${labelId} - ${labelName}`; // Simplified format
                 } else {
                     labelText += ` (${this.bboxes.scores[i].toFixed(2)})`;
                 }
 
-                ctx.fillText(labelText, x, y - 5);
+                // Save context before label rendering
+                ctx.save();
+
+                // Text styling
+                const fontSize = 16;
+                const padding = 6;
+                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+
+                // Calculate text metrics for background
+                const textMetrics = ctx.measureText(labelText);
+                const textWidth = textMetrics.width;
+
+                // Position label above the box
+                const labelX = x;
+                const labelY = y - 8;
+
+                // Draw background with rounded corners
+                ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
+
+                // Create rounded rectangle path
+                const cornerRadius = 4;
+                ctx.beginPath();
+                ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+                ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+                ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+                ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+                ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+                ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+                ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+                ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+                ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+                ctx.closePath();
+                ctx.fill();
+
+                // Add subtle border
+                ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw text with shadow for better visibility
+                ctx.fillStyle = 'white';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 2;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                ctx.fillText(labelText, labelX, labelY);
+
+                // Restore context
+                ctx.restore();
             }
         });
 
@@ -647,7 +719,7 @@ class BBoxEditorUI {
                 const searchInput = document.getElementById('class-search-input');
 
                 if (classSelector && this.bboxes.labels && this.bboxes.labels[clickedBoxIndex] !== undefined) {
-                    const labelId = this.bboxes.labels[clickedBoxIndex];
+                                        const labelId = this.bboxes.labels[clickedBoxIndex];
                     classSelector.value = labelId;
 
                     // Update search input too
@@ -736,209 +808,213 @@ class BBoxEditorUI {
                     case 'bottomRight':
                         box[2] = Math.max(box[0] + 1, Math.min(this.img.naturalWidth, imgCoords.x));
                         box[3] = Math.max(box[1] + 1, Math.min(this.img.naturalHeight, imgCoords.y));
-                    break;
-            }
-
-            // Update input fields
-            this.updateBoxValues(box);
-            this.updatePreviewCanvas();
-            return;
-        }
-
-        // Handle dragging existing boxes
-        if (isDragging && this.selectedIndex >= 0) {
-            const box = this.bboxes.boxes[this.selectedIndex];
-            const dx = (x - startX) / this.scale;
-            const dy = (y - startY) / this.scale;
-
-            // Calculate new box position
-            const width = box[2] - box[0];
-            const height = box[3] - box[1];
-
-            // Constrain to image bounds
-            let newX1 = Math.max(0, Math.min(this.img.naturalWidth - width, box[0] + dx));
-            let newY1 = Math.max(0, Math.min(this.img.naturalHeight - height, box[1] + dy));
-
-            box[0] = newX1;
-            box[1] = newY1;
-            box[2] = newX1 + width;
-            box[3] = newY1 + height;
-
-            // Update start position for next move
-            startX = x;
-            startY = y;
-
-            // Update input fields
-            this.updateBoxValues(box);
-            this.updatePreviewCanvas();
-            return;
-        }
-
-        // Handle drawing a new box
-        if (isDrawingNew) {
-            const imgCoords = toImageCoords(x, y);
-
-            // Create a temporary box for visualization
-            this.tempBox = [
-                Math.min(newBoxStart.x, imgCoords.x),
-                Math.min(newBoxStart.y, imgCoords.y),
-                Math.max(newBoxStart.x, imgCoords.x),
-                Math.max(newBoxStart.y, imgCoords.y)
-            ];
-
-            // Redraw with the temporary box
-            this.updatePreviewCanvas(true); // true = show temporary box
-            return;
-        }
-
-        // Update cursor based on mouse position
-        if (this.selectedIndex >= 0) {
-            const box = this.bboxes.boxes[this.selectedIndex];
-            const corner = isNearCorner(x, y, box);
-            const border = isNearBorder(x, y, box);
-
-            if (corner) {
-                switch (corner) {
-                    case 'topLeft':
-                    case 'bottomRight':
-                        canvas.style.cursor = 'nwse-resize';
-                        break;
-                    case 'topRight':
-                    case 'bottomLeft':
-                        canvas.style.cursor = 'nesw-resize';
                         break;
                 }
-            } else if (border) {
-                // Changed to move cursor for borders
-                canvas.style.cursor = 'move';
+
+                // Update input fields
+                this.updateBoxValues(box);
+                this.updatePreviewCanvas();
+                return;
+            }
+
+            // Handle dragging existing boxes
+            if (isDragging && this.selectedIndex >= 0) {
+                const box = this.bboxes.boxes[this.selectedIndex];
+                const dx = (x - startX) / this.scale;
+                const dy = (y - startY) / this.scale;
+
+                // Calculate new box position
+                const width = box[2] - box[0];
+                const height = box[3] - box[1];
+
+                // Constrain to image bounds
+                let newX1 = Math.max(0, Math.min(this.img.naturalWidth - width, box[0] + dx));
+                let newY1 = Math.max(0, Math.min(this.img.naturalHeight - height, box[1] + dy));
+
+                box[0] = newX1;
+                box[1] = newY1;
+                box[2] = newX1 + width;
+                box[3] = newY1 + height;
+
+                // Update start position for next move
+                startX = x;
+                startY = y;
+
+                // Update input fields
+                this.updateBoxValues(box);
+                this.updatePreviewCanvas();
+                return;
+            }
+
+            // Handle drawing a new box
+            if (isDrawingNew) {
+                const imgCoords = toImageCoords(x, y);
+
+                // Create a temporary box for visualization
+                this.tempBox = [
+                    Math.min(newBoxStart.x, imgCoords.x),
+                    Math.min(newBoxStart.y, imgCoords.y),
+                    Math.max(newBoxStart.x, imgCoords.x),
+                    Math.max(newBoxStart.y, imgCoords.y)
+                ];
+
+                // Redraw with the temporary box
+                this.updatePreviewCanvas(true); // true = show temporary box
+                return;
+            }
+
+            // Update cursor based on mouse position
+            if (this.selectedIndex >= 0) {
+                const box = this.bboxes.boxes[this.selectedIndex];
+                const corner = isNearCorner(x, y, box);
+                const border = isNearBorder(x, y, box);
+
+                if (corner) {
+                    switch (corner) {
+                        case 'topLeft':
+                        case 'bottomRight':
+                            canvas.style.cursor = 'nwse-resize';
+                            break;
+                        case 'topRight':
+                        case 'bottomLeft':
+                            canvas.style.cursor = 'nesw-resize';
+                            break;
+                    }
+                } else if (border) {
+                    // Changed to move cursor for borders
+                    canvas.style.cursor = 'move';
+                } else {
+                    canvas.style.cursor = 'crosshair'; // Crosshair for drawing new boxes
+                }
             } else {
                 canvas.style.cursor = 'crosshair'; // Crosshair for drawing new boxes
             }
-        } else {
-            canvas.style.cursor = 'crosshair'; // Crosshair for drawing new boxes
-        }
-    });
+        });
 
-    canvas.addEventListener('mouseup', (e) => {
-        // If we were drawing a new box, finalize it
-        if (isDrawingNew && this.tempBox) {
-            const width = this.tempBox[2] - this.tempBox[0];
-            const height = this.tempBox[3] - this.tempBox[1];
+        canvas.addEventListener('mouseup', (e) => {
+            // If we were drawing a new box, finalize it
+            if (isDrawingNew && this.tempBox) {
+                const width = this.tempBox[2] - this.tempBox[0];
+                const height = this.tempBox[3] - this.tempBox[1];
 
-            // Only create the box if it has some minimum size
-            if (width > 5 && height > 5) {
-                // Add the new box with a default score
-                this.bboxes.boxes.push([...this.tempBox]);
-                this.bboxes.scores.push(1.0); // 100% confidence for user-drawn boxes
+                // Only create the box if it has some minimum size
+                if (width > 5 && height > 5) {
+                    // Add the new box with a default score
+                    this.bboxes.boxes.push([...this.tempBox]);
+                    this.bboxes.scores.push(1.0); // 100% confidence for user-drawn boxes
 
-                // Add label (default to 0)
-                if (!this.bboxes.labels) {
-                    this.bboxes.labels = Array(this.bboxes.boxes.length - 1).fill(0);
+                    // Add label (default to 0)
+                    if (!this.bboxes.labels) {
+                        this.bboxes.labels = Array(this.bboxes.boxes.length - 1).fill(0);
+                    }
+                    this.bboxes.labels.push(0);
+
+                    // Select the new box
+                    this.selectedIndex = this.bboxes.boxes.length - 1;
+                    this.currentBoxIndex = this.selectedIndex;
+
+                    if (this.editor) {
+                        this.editor.selectedBboxIndex = this.selectedIndex;
+                    }
+
+                    // Update UI
+                    this.updateBoxValues(this.tempBox);
+
+                    // Update bbox selector dropdown
+                    this.updateBboxSelector(this.bboxes, this.selectedIndex, this.threshold, this.editor ? this.editor.classLabels : {});
+
+                    // Update class selector
+                    const classSelector = document.getElementById('bbox-class-selector');
+                    if (classSelector) {
+                        classSelector.value = 0; // Default to class 0
+                    }
+
+                    // Update the editor's canvas
+                    if (this.editor) {
+                        this.editor.redrawCanvas();
+                    }
                 }
-                this.bboxes.labels.push(0);
 
-                // Select the new box
-                this.selectedIndex = this.bboxes.boxes.length - 1;
-                this.currentBoxIndex = this.selectedIndex;
-
-                if (this.editor) {
-                    this.editor.selectedBboxIndex = this.selectedIndex;
-                }
-
-                // Update UI
-                this.updateBoxValues(this.tempBox);
-
-                // Update bbox selector dropdown
-                this.updateBboxSelector(this.bboxes, this.selectedIndex, this.threshold, this.editor ? this.editor.classLabels : {});
-
-                // Update class selector
-                const classSelector = document.getElementById('bbox-class-selector');
-                if (classSelector) {
-                    classSelector.value = 0; // Default to class 0
-                }
-
-                // Update the editor's canvas
-                if (this.editor) {
-                    this.editor.redrawCanvas();
-                }
+                delete this.tempBox;
             }
 
+            if ((isDragging || isResizing) && this.editor) {
+                this.editor.redrawCanvas(); // Update the main canvas too
+            }
+
+            isDragging = false;
+            isResizing = false;
+            isDrawingNew = false;
+            resizeCorner = null;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            if ((isDragging || isResizing || isDrawingNew) && this.editor) {
+                this.editor.redrawCanvas(); // Update the main canvas too
+            }
+
+            isDragging = false;
+            isResizing = false;
+            isDrawingNew = false;
+            resizeCorner = null;
             delete this.tempBox;
-        }
-
-        if ((isDragging || isResizing) && this.editor) {
-            this.editor.redrawCanvas(); // Update the main canvas too
-        }
-
-        isDragging = false;
-        isResizing = false;
-        isDrawingNew = false;
-        resizeCorner = null;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-        if ((isDragging || isResizing || isDrawingNew) && this.editor) {
-            this.editor.redrawCanvas(); // Update the main canvas too
-        }
-
-        isDragging = false;
-        isResizing = false;
-        isDrawingNew = false;
-        resizeCorner = null;
-        delete this.tempBox;
-        canvas.style.cursor = 'default';
-    });
-}
+            canvas.style.cursor = 'default';
+        });
+    }
 
     // Method to save bboxes directly via AJAX
     static saveBboxes(bboxes, threshold) {
-    // Get the current image name
-    const imageNameInput = document.querySelector('input[name="image_name"]');
-    const imageName = imageNameInput ? imageNameInput.value : 'unknown';
+        // Get the current image name
+        const imageNameInput = document.querySelector('input[name="image_name"]');
+        const imageName = imageNameInput ? imageNameInput.value : 'unknown';
 
-    // Get the username from the URL
-    const pathParts = window.location.pathname.split('/');
-    const username = pathParts[1]; // Assuming URL structure is /<username>/label
+        // Get the username from the URL
+        const pathParts = window.location.pathname.split('/');
+        const username = pathParts[1]; // Assuming URL structure is /<username>/label
 
-    // Format the data as required: only including bboxes above threshold
-    let bboxDataArray = [];
-    bboxes.boxes.forEach((box, i) => {
-        // Only include boxes above threshold
-        if (bboxes.scores[i] >= threshold) {
-            const label = bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0;
-            bboxDataArray.push({
-                coordinates: box,
-                label: label
-            });
-        }
-    });
+        // Format the data as required: only including bboxes above threshold
+        let bboxDataArray = [];
+        bboxes.boxes.forEach((box, i) => {
+            // Only include boxes above threshold
+            if (bboxes.scores[i] >= threshold) {
+                const label = bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0;
+                bboxDataArray.push({
+                    coordinates: box,
+                    label: label
+                });
+            }
+        });
 
-    // Create the object for the request
-    const saveData = {
-        image_name: imageName,
-        bboxes: bboxDataArray
-    };
+        // Create the object for the request
+        const saveData = {
+            image_name: imageName,
+            bboxes: bboxDataArray
+        };
 
-    // Make AJAX call to save the bboxes
-    fetch(`/${username}/save_bboxes`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(saveData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to save bboxes');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Bboxes saved successfully:', data);
-    })
-    .catch(error => {
-        console.error('Error saving bboxes:', error);
-    });
+        // Make AJAX call to save the bboxes
+        fetch(`/${username}/save_bboxes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(saveData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to save bboxes');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Bboxes saved successfully:', data);
+        })
+        .catch(error => {
+            console.error('Error saving bboxes:', error);
+        });
+    }
 }
 
-}
+// Export the module for use in other scripts
+window.BBoxEditorUI = BBoxEditorUI;
+
+console.log('BBox Editor UI loaded with fixed class search and improved deletion');

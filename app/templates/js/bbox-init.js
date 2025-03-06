@@ -22,15 +22,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Create the editor instance
-    const editor = new BBoxEditor({
+    new BBoxEditor({
         bboxes: bboxes,
         threshold: threshold,
         img: img,
         canvas: canvas,
         classLabels: classLabels
     });
-
-    // Save button to explicitly save bboxes
+// Save button to explicitly save bboxes
     const saveBboxButton = document.getElementById('save-bboxes');
     if (saveBboxButton) {
         saveBboxButton.addEventListener('click', function() {
