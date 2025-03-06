@@ -45,13 +45,20 @@
 
 <body>
     <div class="row">
+        <form id="back2gridForm" action="{{ url_for('back2grid', username=username) }}" method="post" style="position: absolute; top: 10px; left: 10px;">
+            <input type="hidden" name="image_index" value="{{ current_image_index }}">
+            <div class="action-row">
+                <button type="submit">Back to the Grid</button>
+            </div>
+        </form>
+
         <div class="column-main">
             <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
         </div>
 
         <div class="column-main">
             <div class="caption">Image to Annotate</div>
-            <img class="thumbnail-main" src="{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
+            <img class="thumbnail-main" src="/{{ predicted_image }}" alt="Input Image" onclick="show_image(this)">
             <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
             <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
             <div>Current Image Index: {{ current_image_index }}</div>
@@ -93,7 +100,7 @@
                         </label>
                         <div class="right">
                             {% for img_url in images %}
-                                <img class="thumbnail" src="{{ img_url }}" alt="Class Image" onclick="show_image(this)">
+                                <img class="thumbnail" src="/{{ img_url }}" alt="Class Image" onclick="show_image(this)">
                                 {% if loop.index is divisibleby num_similar_images and not loop.last %}
                                     </div><div class="right">
                                 {% endif %}

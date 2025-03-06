@@ -24,36 +24,36 @@ def copy_styles_file_to_static(app):
     print(f"Copied {source_path} to {destination_path}")
 
 
-def copy_sample_files_to_static(source, destination):
+def copy_sample_files_to_static(source, destination, images_per_dir=10):
     """
-    This function copies sample files from source to destination, preserving subdirectory structure,
-    while avoiding copying files that already exist.
+    This function copies a specified number of image files from each subdirectory in source to destination,
+    preserving subdirectory structure, while avoiding copying files that already exist.
 
     :param source: Root directory containing subdirectories and sample files.
     :param destination: Root destination where the structure and files should be copied.
+    :param images_per_dir: Number of images to copy from each directory (default=5).
     :return: None
     """
+    for dirpath, dirnames, filenames in tqdm(os.walk(source), desc=f"Copying sample images to the static folder"):
+        if not filenames:
+            continue
 
-    # Walk through the source directory
-    for dirpath, dirnames, filenames in tqdm(os.walk(source), desc="Copying sample images to the static folder"):
-        # Compute the relative path from the source directory
         relative_path = os.path.relpath(dirpath, source)
-
-        # Define the destination path
         dest_dir = os.path.join(destination, relative_path)
-
-        # Ensure the destination directory exists
         os.makedirs(dest_dir, exist_ok=True)
 
-        # Copy only one file (if available) from the source directory
-        if filenames:
-            file = filenames[0]  # Take the first file only
-            source_file = os.path.join(dirpath, file)
-            dest_file = os.path.join(dest_dir, file)
+        copied_count = 0
+        for file in filenames:
+            if copied_count >= images_per_dir:
+                break
 
-            # Only copy if the file doesn't already exist in the destination
-            if not os.path.exists(dest_file):
-                shutil.copy2(source_file, dest_file)
+            if any(file.lower().endswith(ext.lower()) for ext in {'jpg', 'jpeg', 'png', 'webp', 'avif'}):
+                source_file = os.path.join(dirpath, file)
+                dest_file = os.path.join(dest_dir, file)
+
+                if not os.path.exists(dest_file):
+                    shutil.copy2(source_file, dest_file)
+                    copied_count += 1
 
 
 def setup_logging(app):
@@ -167,24 +167,34 @@ def get_total_num_predictions(app, username):
     return len(predictions_data)
 
 
-def update_current_image_index(app, username, direction, total_num_predictions, current_image_index_dct):
+def update_current_image_index(app, username, direction, total_num_predictions, current_image_index_dct, step=1):
     # global current_image_index_dct
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
     if direction == 'next':
-        current_image_index_dct[username] = min(current_image_index_dct.get(username, 0) + 1, total_num_predictions - 1)
+        current_image_index_dct[username] = min(current_image_index_dct.get(username, 0) + step, total_num_predictions - step)
     elif direction == 'prev':
-        current_image_index_dct[username] = max(current_image_index_dct.get(username, 0) - 1, 0)
+        current_image_index_dct[username] = max(current_image_index_dct.get(username, 0) - step, 0)
+
+    index_file_path = os.path.join(results_dir, username, 'current_image_index_{}.txt'.format(username))
+    with open(index_file_path, 'w') as f:
+        f.write(str(current_image_index_dct[username]))
+
+def update_current_image_index_simple(app, username, current_image_index_dct, current_index):
+    results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
+    current_image_index_dct[username] = current_index
 
     index_file_path = os.path.join(results_dir, username, 'current_image_index_{}.txt'.format(username))
     with open(index_file_path, 'w') as f:
         f.write(str(current_image_index_dct[username]))
 
 
-def save_user_data(app, username, comments_json, checkbox_selections):
+def save_user_data(app, username, comments_json=None, checkbox_selections=None):
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
-    save_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)), comments_json)
-    save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
-                   checkbox_selections)
+    if comments_json is not None:
+        save_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)), comments_json)
+    if checkbox_selections is not None:
+        save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
+                       checkbox_selections)
 
 
 def save_json_data(file_path, data):
