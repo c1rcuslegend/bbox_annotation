@@ -422,37 +422,6 @@ def register_routes(app):
             update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct)
             save_user_data(app, username, comments_json, checkbox_selections)
 
-            # Extract the base image name if needed
-            base_image_name = os.path.basename(image_name)
-
-            # Update the general bboxes file as well
-            if bboxes:
-                bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
-                                              f'bboxes_{username}.json')
-
-                # Convert bboxes to the format expected by the bboxes file
-                box_data = {'boxes': [], 'scores': [], 'labels': []}
-
-                for bbox in bboxes:
-                    box_data['boxes'].append(bbox['coordinates'])
-                    box_data['labels'].append(bbox.get('label', 0))
-                    box_data['scores'].append(1.0)
-
-                # Update the bboxes file with the new data for this image
-                # Read existing file
-                try:
-                    with open(bbox_file_path, 'r') as f:
-                        all_bboxes = json.load(f)
-                except (IOError, json.JSONDecodeError):
-                    all_bboxes = {}
-
-                # Update with new data using both keys for compatibility
-                all_bboxes[image_name] = box_data
-                all_bboxes[base_image_name] = box_data
-
-                # Save updated file
-                with open(bbox_file_path, 'w') as f:
-                    json.dump(all_bboxes, f)
 
         except Exception as e:
             app.logger.error(f"Error in save function for user {username}: {e}")
@@ -476,9 +445,6 @@ def register_routes(app):
             # Remove 'static/images/' prefix if present
             if image_name.startswith('static/images/'):
                 image_name = image_name.lstrip('static/images/')
-
-            # Extract the base image name for saving
-            base_image_name = os.path.basename(image_name)
 
             # Load existing checkbox selections
             _, checkbox_selections = load_user_data(app, username)
@@ -510,37 +476,6 @@ def register_routes(app):
                                          f"checkbox_selections_{username}.json")
             save_json_data(checkbox_path, checkbox_selections)
 
-            # Update bboxes in the general bboxes file
-            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
-                                          f'bboxes_{username}.json')
-
-            try:
-                # Convert bboxes to the format expected by the bboxes file
-                box_data = {'boxes': [], 'scores': [], 'labels': []}
-
-                for bbox in bboxes:
-                    box_data['boxes'].append(bbox['coordinates'])
-                    box_data['labels'].append(bbox.get('label', 0))
-                    box_data['scores'].append(1.0)
-
-                # Read existing file
-                try:
-                    with open(bbox_file_path, 'r') as f:
-                        all_bboxes = json.load(f)
-                except (IOError, json.JSONDecodeError):
-                    all_bboxes = {}
-
-                # Update with new data - use both keys for compatibility
-                all_bboxes[image_name] = box_data
-                all_bboxes[base_image_name] = box_data
-
-                # Save updated file
-                with open(bbox_file_path, 'w') as f:
-                    json.dump(all_bboxes, f)
-
-                print(f"Updated bboxes file for {username} with {len(box_data['boxes'])} boxes for {base_image_name}")
-            except Exception as e:
-                print(f"Warning: Could not update general bboxes file: {e}")
 
             return jsonify({'success': True, 'message': 'Bboxes saved successfully'})
 
