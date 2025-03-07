@@ -70,9 +70,8 @@ def copy_sample_files_to_static(source, destination):
         # Ensure the destination directory exists
         os.makedirs(dest_dir, exist_ok=True)
 
-        # Copy only one file (if available) from the source directory
+        # Copy files from the source directory
         for file in filenames:
-            # file = filenames[0]  # Take the first file only
             source_file = os.path.join(dirpath, file)
             dest_file = os.path.join(dest_dir, file)
 
@@ -107,7 +106,6 @@ def load_users_data(app):
     --------
     If the `ANNOTATORS_ROOT_DIRECTORY` contains directories for users "user1" and "user2", this function will
     read or initialize their image indices and load any additional data required for each user.
-    TODO: Use SQLite database to store user-specific data.
     """
     for username in os.listdir(app.config['ANNOTATORS_ROOT_DIRECTORY']):
         # Perform initial setup for each user
@@ -192,24 +190,34 @@ def get_total_num_predictions(app, username):
     return len(predictions_data)
 
 
-def update_current_image_index(app, username, direction, total_num_predictions, current_image_index_dct):
+def update_current_image_index(app, username, direction, total_num_predictions, current_image_index_dct, step=1):
     # global current_image_index_dct
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
     if direction == 'next':
-        current_image_index_dct[username] = min(current_image_index_dct.get(username, 0) + 1, total_num_predictions - 1)
+        current_image_index_dct[username] = min(current_image_index_dct.get(username, 0) + step, total_num_predictions - step)
     elif direction == 'prev':
-        current_image_index_dct[username] = max(current_image_index_dct.get(username, 0) - 1, 0)
+        current_image_index_dct[username] = max(current_image_index_dct.get(username, 0) - step, 0)
+
+    index_file_path = os.path.join(results_dir, username, 'current_image_index_{}.txt'.format(username))
+    with open(index_file_path, 'w') as f:
+        f.write(str(current_image_index_dct[username]))
+
+def update_current_image_index_simple(app, username, current_image_index_dct, current_index):
+    results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
+    current_image_index_dct[username] = current_index
 
     index_file_path = os.path.join(results_dir, username, 'current_image_index_{}.txt'.format(username))
     with open(index_file_path, 'w') as f:
         f.write(str(current_image_index_dct[username]))
 
 
-def save_user_data(app, username, comments_json, checkbox_selections):
+def save_user_data(app, username, comments_json=None, checkbox_selections=None):
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
-    save_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)), comments_json)
-    save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
-                   checkbox_selections)
+    if comments_json is not None:
+        save_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)), comments_json)
+    if checkbox_selections is not None:
+        save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
+                       checkbox_selections)
 
 
 def save_json_data(file_path, data):

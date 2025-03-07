@@ -25,7 +25,7 @@ THRESHOLD = 0.5
 ANNOTATIONS_ROOT_FOLDER = "D:\imagenet_val"
 
 # Number of per class examples shown to the user
-NUM_EXAMPLES_PER_CLASS = 2
+NUM_EXAMPLES_PER_CLASS = 5
 
 # Dataset classes
 NUM_CLASSES = 1000

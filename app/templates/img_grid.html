@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Annotation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <script>
+        let allChecked = false;
+        
+        function change(direction) {
+            document.getElementById("direction").value = direction;
+        }
+
+        window.onload = function() {
+            const modal = document.getElementById('modal-container');
+            const closeModal = document.getElementById('close-modal');
+
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('show-modal');
+                }
+            });
+
+            closeModal.addEventListener('click', function() {
+                modal.classList.remove('show-modal');
+            });
+        };
+
+        function show_image(img) {
+            document.getElementById("modal-container").classList.add('show-modal');
+            document.getElementById("modal-image").src = img.src;
+        }
+
+        function checkAllCheckboxes() {
+            const checkboxes = document.querySelectorAll('input[name="checkboxes"]');
+            allChecked = !allChecked;
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = allChecked;
+            });
+
+            const button = document.querySelector('.all-correct-btn');
+            button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
+        }
+    </script>
+</head>
+
+<body>
+    <form id="save" action="{{ url_for('save_grid', username=username) }}" method="post"></form>
+    <div class="layout-container">
+        <div class="image-navigation">
+            <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
+        </div>
+
+        <div class="image-display">
+            <div class="human-class-title">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</div>
+            <div class="image-wrapper">
+                {% for i in image_paths.keys() %}
+                    <div class="image-container">
+                        <img class="image-thumbnail" src="{{ image_paths[i] }}" alt="Input Image" onclick="show_image(this)">
+                        <div class="image-index">Image Index: {{ i }}</div>
+
+                        <div class="action-row">
+                            <label class="container">
+                                <input form="save" type="checkbox" id="checkbox_{{ i }}" name="checkboxes"
+                                       value="{{ image_paths[i].lstrip('static/images') }}|{{ label_indices[i] }}"
+                                       {% if label_indices[i]|string in checked_labels[i] %}checked{% endif %}>
+                                <div class="checkmark"></div>
+                            </label>
+                            <form id="review_form_{{ i }}" action="{{ url_for('review', username=username) }}" method="post">
+                                <input type="hidden" name="image" value="{{ image_paths[i] }}">
+                                <input type="hidden" name="image_index" value="{{ i }}">
+                                <button type="submit">Details</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <input form="save" style="display:none;" type="text" name="image_name" value="{{ '|'.join(image_paths.values()) }}">
+            <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
+            <br>
+        </div>
+
+        <div class="image-navigation align-right">
+            <div class="refresh-btn" onclick="change('next'); document.getElementById('save').submit();">&#9654;</div>
+        </div>
+
+        <div class="all-correct-wrapper">
+            <button type="button" class="all-correct-btn" onclick="checkAllCheckboxes()">EVERYTHING IS CORRECT</button>
+        </div>
+    </div>
+</body>
+</html>
