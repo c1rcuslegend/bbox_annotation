@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Image Classification Results</title>
+    <title>Image Annotation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
     <script>
@@ -179,7 +179,7 @@
             <!-- Right column with image -->
             <div class="image-editor-right">
                 <div id="image-with-bboxes" class="enlarged-image-container">
-                    <img class="thumbnail-main enlarged-image" src="{{ predicted_image }}" alt="Input Image">
+                    <img class="thumbnail-main enlarged-image" src="/{{ predicted_image }}" alt="Input Image">
                 </div>
 
                 <!-- Ground truth label -->
@@ -227,7 +227,7 @@
                         </label>
                         <div class="right">
                             {% for img_url in images %}
-                                <img class="thumbnail" src="{{ img_url }}" alt="Class Image" onclick="show_image(this)">
+                                <img class="thumbnail" src="/{{ img_url }}" alt="Class Image" onclick="show_image(this)">
                                 {% if loop.index is divisibleby num_similar_images and not loop.last %}
                                 {% endif %}
                                     </div><div class="right">

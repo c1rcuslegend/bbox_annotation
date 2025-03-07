@@ -36,7 +36,7 @@ def copy_js_files_to_static(app):
     os.makedirs(destination_dir, exist_ok=True)
 
     # List of JavaScript files to copy
-    js_files = ['bbox-editor.js', 'bbox-editor-patch.js', 'bbox-editor-ui.js', 'bbox-init.js', 'auto-select-class.js', 'inline-bbox-editor.js']
+    js_files = ['bbox-editor.js', 'bbox-editor-patch.js', 'bbox-editor-ui.js', 'bbox-init.js', 'auto-select-class.js', 'inline-bbox-editor.js', 'grid-view.js']
 
     # Copy each JavaScript file
     for js_file in js_files:

@@ -5,46 +5,10 @@
     <meta charset="UTF-8">
     <title>Image Annotation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bbox_styles.css') }}">
 
-    <script>
-        let allChecked = false;
-        
-        function change(direction) {
-            document.getElementById("direction").value = direction;
-        }
-
-        window.onload = function() {
-            const modal = document.getElementById('modal-container');
-            const closeModal = document.getElementById('close-modal');
-
-            window.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.classList.remove('show-modal');
-                }
-            });
-
-            closeModal.addEventListener('click', function() {
-                modal.classList.remove('show-modal');
-            });
-        };
-
-        function show_image(img) {
-            document.getElementById("modal-container").classList.add('show-modal');
-            document.getElementById("modal-image").src = img.src;
-        }
-
-        function checkAllCheckboxes() {
-            const checkboxes = document.querySelectorAll('input[name="checkboxes"]');
-            allChecked = !allChecked;
-
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = allChecked;
-            });
-
-            const button = document.querySelector('.all-correct-btn');
-            button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
-        }
-    </script>
+    <!-- Include external JavaScript file -->
+    <script src="{{ url_for('static', filename='js/grid-view.js') }}"></script>
 </head>
 
 <body>
@@ -58,19 +22,25 @@
             <div class="human-class-title">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</div>
             <div class="image-wrapper">
                 {% for i in image_paths.keys() %}
-                    <div class="image-container">
-                        <img class="image-thumbnail" src="{{ image_paths[i] }}" alt="Input Image" onclick="show_image(this)">
-                        <div class="image-index">Image Index: {{ i }}</div>
+                    <div class="image-container" data-index="{{ i }}">
+                        <div class="bbox-container">
+                            <!-- Removed onclick handler to disable image enlargement -->
+                            <img class="image-thumbnail" src="{{ image_paths[i] }}" alt="Input Image">
+                            <div class="bbox-overlay"></div>
+                            <!-- Store bbox data as embedded JSON -->
+                            <script class="bbox-data" type="application/json">
+                                {{ bbox_data[i] | tojson | safe if i in bbox_data else '{}' }}
+                            </script>
+                        </div>
 
                         <div class="action-row">
                             <label class="container">
                                 <input form="save" type="checkbox" id="checkbox_{{ i }}" name="checkboxes"
                                        value="{{ image_paths[i].lstrip('static/images') }}|{{ label_indices[i] }}"
-                                       {% if label_indices[i]|string in checked_labels[i] %}checked{% endif %}>
+                                       {% if image_paths[i].split('\\')[-1] in checked_labels %}checked{% endif %}>
                                 <div class="checkmark"></div>
                             </label>
                             <form id="review_form_{{ i }}" action="{{ url_for('review', username=username) }}" method="post">
-                                <input type="hidden" name="image" value="{{ image_paths[i] }}">
                                 <input type="hidden" name="image_index" value="{{ i }}">
                                 <button type="submit">Details</button>
                             </form>
@@ -91,5 +61,10 @@
             <button type="button" class="all-correct-btn" onclick="checkAllCheckboxes()">EVERYTHING IS CORRECT</button>
         </div>
     </div>
+
+    <!-- Global threshold configuration -->
+    <script id="threshold-data" type="application/json">
+        {"threshold": {{ threshold|default(0.5) }}}
+    </script>
 </body>
 </html>

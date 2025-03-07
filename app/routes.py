@@ -4,9 +4,11 @@ import json
 import time
 import timeit
 from flask import render_template, request, redirect, url_for, jsonify
+from holoviews.operation import threshold
+
 from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
-    get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple
+    get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
 
 
@@ -137,7 +139,6 @@ def register_routes(app):
         # Set current image index
         current_image_index = app.current_image_index_dct.get(username, 0)
         current_image_index = current_image_index - (current_image_index % 5)
-        print(current_image_index)
 
         NUM_IMG_TO_FETCH = 5
         selected_indices = []
@@ -156,24 +157,64 @@ def register_routes(app):
         copy_to_static_dir(selected_images, app.config['ANNOTATIONS_ROOT_FOLDER'],
                            os.path.join(app.config['APP_ROOT_FOLDER'], app.config['STATIC_FOLDER'], 'images'))
 
-        checkbox_selections_file = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
-                                                f"checkbox_selections_{username}.json")
-        checkbox_selections = read_json_file(checkbox_selections_file, app) or {}
+        # Load checkbox selections with bounding box data
+        man_annotated_bboxes_dict = read_json_file(
+            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
+            app) or {}
 
-        checked_labels = {}
+        # Initialize bbox_data to store bounding boxes for each image
+        bbox_data = {}
+        checked_labels = set()
         image_paths = {}
+
         for selected_index, image_path in zip(selected_indices, selected_images):
-            checked_labels[selected_index] = checkbox_selections[image_path] if image_path in checkbox_selections else []
+            image_basename = os.path.basename(image_path)
+
+            # Process bounding box data for this image
+            bboxes = {'boxes': [], 'scores': [], 'labels': []}
+            if image_basename in man_annotated_bboxes_dict:
+                checked_labels.add(image_basename)
+
+                # Extract bounding boxes from annotations
+                data = man_annotated_bboxes_dict[image_basename]
+                if isinstance(data, dict) and 'bboxes' in data and isinstance(data['bboxes'], list):
+                    for bbox in data['bboxes']:
+                        if 'coordinates' in bbox and 'label' in bbox:
+                            bboxes['boxes'].append(bbox['coordinates'])
+                            bboxes['labels'].append(bbox['label'])
+                            bboxes['scores'].append(100)  # Default high confidence score
+            else:
+                data = get_bboxes_from_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
+                                                              username, f'bboxes_{username}.json'), image_basename)
+
+                for box,label,score in zip(data['boxes'], data['gt'], data['scores']):
+                    bboxes['boxes'].append(box)
+                    bboxes['labels'].append(label)
+                    bboxes['scores'].append(score)
+
+            print(bboxes)
+            bbox_data[selected_index] = convert_bboxes_to_serializable(bboxes)
+
+            # Set image path
             image_paths[selected_index] = os.path.join(app.config['STATIC_FOLDER'], 'images', image_path)
-        assert len(image_paths) == len(label_indices) == len(checked_labels) == NUM_IMG_TO_FETCH
+
+        assert len(image_paths) == len(label_indices) == NUM_IMG_TO_FETCH
+
+        print(bbox_data)
+
+        threshold = app.config.get('THRESHOLD', 0.5)
 
         return render_template('img_grid.html',
                                image_paths=image_paths,
                                label_indices=label_indices,
                                checked_labels=checked_labels,
+                               bbox_data=bbox_data,  # Pass bbox data to template
+                               threshold=threshold,
                                username=username,
                                human_readable_classes_map=label_indices_to_human_readable,
                                current_image_index=current_image_index)
+
+
 
     @app.route('/<username>/label_image')
     def label_image(username):
@@ -223,8 +264,6 @@ def register_routes(app):
             except ValueError:
                 current_image_index = 0
 
-        print(f"label_image: {current_image_index}")
-
         current_image_data = proposals_info[current_image_index]
         current_image = current_image_data['image_name']
         current_gt_class = current_image_data['ground_truth']
@@ -243,11 +282,7 @@ def register_routes(app):
         similar_images = {key: [os.path.join(app.config['STATIC_FOLDER'], 'images', image)
                                 for image in value] for key, value in similar_images.items()}
 
-        # Get the image name without the path prefix for lookups
-        image_name_for_lookup = current_imagepath[0].lstrip('static/images/')
-        # Also get just the base filename for certain lookups
-        base_image_name = os.path.basename(image_name_for_lookup)
-        print(f"Looking up data for image: {image_name_for_lookup} / {base_image_name}")
+        print(f"Looking up data for image: {current_image}")
 
         # Load user data directly from file every time (no caching)
         try:
@@ -258,7 +293,7 @@ def register_routes(app):
             checkbox_selections = {}
 
         # Get comments
-        comments = comments_json.get(image_name_for_lookup, '')
+        comments = comments_json.get(current_image, '')
 
         # Get checked categories and bboxes
         checked_categories = []
@@ -267,10 +302,10 @@ def register_routes(app):
         label_type = "basic"  # Default label type
         selected_classes = {}  # For uncertain type
 
-        # First try checkbox_selections (newer data format)
-        if image_name_for_lookup in checkbox_selections:
-            data = checkbox_selections[image_name_for_lookup]
-            print(f"Found data in checkbox_selections for {image_name_for_lookup}")
+        # First try checkbox_selections (user annotated images)
+        if current_image in checkbox_selections:
+            data = checkbox_selections[current_image]
+            print(f"Found data in checkbox_selections for {current_image}")
 
             # Handle new data structure with label_type
             if isinstance(data, dict) and 'label_type' in data:
@@ -334,21 +369,18 @@ def register_routes(app):
 
                 bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels}
                 bboxes_source = 'checkbox_selections_legacy'
-                print(f"Found {len(boxes)} bboxes in legacy format")
+                print(f"Found {len(boxes)} bboxes in annotator format")
 
-        # If no bboxes found in checkbox_selections, try loading from user-specific bboxes file
+        # If no bboxes found in checkbox_selections, try loading from machine-generated bboxes file
         if bboxes is None:
             bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
                                           f'bboxes_{username}.json')
 
-            # Try both the full path and base filename
             bbox_data = get_bboxes_from_file(bbox_file_path, current_image)
-            if not bbox_data or not bbox_data.get('boxes'):
-                bbox_data = get_bboxes_from_file(bbox_file_path, base_image_name)
 
             # Check if we got valid bbox data
             if bbox_data and 'boxes' in bbox_data and bbox_data['boxes']:
-                print(f"Found {len(bbox_data['boxes'])} bboxes in bboxes file")
+                print(f"Found {len(bbox_data['boxes'])} bboxes in machine-generated bboxes file")
                 bboxes = bbox_data
                 bboxes_source = 'general_bboxes'
 
@@ -367,7 +399,7 @@ def register_routes(app):
         if bboxes is None:
             bboxes = {'boxes': [], 'scores': [], 'labels': []}
             bboxes_source = 'empty'
-            print(f"No bboxes found for {image_name_for_lookup} or {current_image}")
+            print(f"No bboxes found for {current_image}")
 
         # Ensure bboxes is properly serializable
         bboxes = convert_bboxes_to_serializable(bboxes)
@@ -384,7 +416,7 @@ def register_routes(app):
                                similar_images=similar_images,
                                username=username,
                                ground_truth_label=class_dict.get_class_name(
-                                   class_dict.get_val_img_class(base_image_name)),
+                                   class_dict.get_val_img_class(current_image)),
                                checked_categories=checked_categories,
                                comments=comments,
                                human_readable_classes_map=label_indices_to_human_readable,
@@ -392,75 +424,86 @@ def register_routes(app):
                                num_similar_images=app.config['NUM_EXAMPLES_PER_CLASS'],
                                bboxes=bboxes,
                                threshold=threshold,
-                               image_name=image_name_for_lookup,
+                               image_name=current_imagepath,
                                bboxes_source=bboxes_source,
                                label_type=label_type,
                                selected_classes=selected_classes)
 
     @app.route('/<username>/save_grid', methods=['POST'])
     def save_grid(username):
+        """
+        Save checkboxes from the grid view, using the new bbox-based format.
+        Always use base_image_name as the key for simplicity.
+        """
         import timeit
         start = timeit.default_timer()
 
         image_paths, checkbox_values, direction, _ = get_form_data()
-        image_names = image_paths.split('|')
-        image_names = list(map( lambda x: x.lstrip('static/images/'), image_names))
 
-        selected_images = {}
-        for checkbox in checkbox_values:
-            selected_image, label_index = checkbox.split('|')
-            selected_images[selected_image] = label_index
+        # Get base image names only
+        checked_image_base_labels = [os.path.basename(path) for path in [temp.split('|')[1] for temp in checkbox_values]]
+        checked_image_base_names = [os.path.basename(path) for path in [temp.split('|')[0] for temp in checkbox_values]]
 
-        label_indices_to_label_names, _ = get_label_indices_to_label_names_dicts(app)
+        # Load user data
         _, checkbox_selections = load_user_data(app, username)
+        bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
+        man_annotated_bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'), app)
 
-        for image_name in image_names:
-            if image_name in selected_images:
-                if image_name in checkbox_selections:
-                    if selected_images[image_name] not in checkbox_selections[image_name]:
-                        checkbox_selections[image_name].append(selected_images[image_name])
-                else:
-                    checkbox_selections[image_name] = [selected_images[image_name]]
-            else:
-                if image_name in checkbox_selections:
-                    for label_index in checkbox_selections[image_name]:
-                        if label_indices_to_label_names[label_index] == image_name.split('/')[0]:
-                            checkbox_selections[image_name].remove(label_index)
-                            break
-                    if len(checkbox_selections[image_name]) == 0:
-                        del checkbox_selections[image_name]
+        # Process each image in the grid
+        for (base_name, label) in zip(checked_image_base_names, checked_image_base_labels):
+            if base_name in man_annotated_bboxes_dict:
+                continue
+            checkbox_selections[base_name] = {}
+            # Get existing data
+            bboxes = bboxes_dict[base_name]['boxes']
+            scores = bboxes_dict[base_name]['scores']
+
+            if not bboxes:
+                continue
+
+            checkbox_selections[base_name]['bboxes'] = [{"coordinates": box, "label": label} for (score,box) in zip(scores, bboxes) if score >= app.config['THRESHOLD']]
+            checkbox_selections[base_name]['label_type'] = 'basic'
 
         try:
             total_num_predictions = app.num_predictions_per_user[username]
-            update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct, step=5)
+            update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct,
+                                       step=5)
+            # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
         except Exception as e:
-            app.logger.error(f"Error in save function for user {username}: {e}")
+            app.logger.error(f"Error in save_grid function for user {username}: {e}")
             return "An error occurred"
-        print(f"Time taken in save: {timeit.default_timer() - start}")
 
+        print(f"Time taken in save_grid: {timeit.default_timer() - start}")
         return redirect(url_for('grid_image', username=username))
 
     @app.route('/review/<username>', methods=['POST'])
     def review(username):
+        """
+        Handle review requests from grid view to detailed view.
+        """
+        # Get the base image name directly
         image_path = request.form.get('image')
         image_index = request.form.get("image_index")
         print(f"User is reviewing image: {image_path}")
         return redirect(url_for('label_image', username=username, image_path=image_path, image_index=image_index))
 
-    @app.route('/back2grid/<username>', methods=['POST'])
+    @app.route('/back2grid/<username>', methods=['POST', 'GET'])
     def back2grid(username):
         image_index = request.form.get("image_index")
-        print(f"User image index: {image_index}")
         return redirect(url_for('grid_image', username=username, image_index=image_index))
 
     @app.route('/<username>/save', methods=['POST'])
     def save(username):
+        """Save annotations for an image."""
         import timeit
         start = timeit.default_timer()
 
         # Get form data
         image_name, checkbox_values, direction, comments = get_form_data()
+
+        # Extract the base image name - we only save with base image name as key
+        base_image_name = os.path.basename(image_name)
 
         # Get new label_type field (default to "basic")
         label_type = request.form.get('label_type', 'basic')
@@ -488,7 +531,7 @@ def register_routes(app):
 
         # Load and update user data
         comments_json, checkbox_selections = load_user_data(app, username)
-        comments_json[image_name] = comments
+        comments_json[base_image_name] = comments
 
         # Process checkbox values to apply them to bboxes
         # Add a new bbox for each checked category if it doesn't exist yet
@@ -498,9 +541,9 @@ def register_routes(app):
 
             if bboxes:
                 existing_bboxes = bboxes
-            elif (image_name in checkbox_selections and isinstance(checkbox_selections[image_name], dict)
-                  and 'bboxes' in checkbox_selections[image_name]):
-                existing_bboxes = checkbox_selections[image_name]['bboxes']
+            elif (base_image_name in checkbox_selections and isinstance(checkbox_selections[base_image_name], dict)
+                  and 'bboxes' in checkbox_selections[base_image_name]):
+                existing_bboxes = checkbox_selections[base_image_name]['bboxes']
 
             # Extract existing labels
             existing_labels = set()
@@ -535,8 +578,8 @@ def register_routes(app):
             if label_type == "uncertain":
                 image_data["selected_classes"] = selected_classes
 
-            # Update the checkbox_selections
-            checkbox_selections[image_name] = image_data
+            # Update the checkbox_selections using base_image_name as key
+            checkbox_selections[base_image_name] = image_data
 
         # If no bboxes but we have selected classes for uncertain mode
         elif label_type == "uncertain" and selected_classes:
@@ -548,7 +591,7 @@ def register_routes(app):
             }
 
             # Update the checkbox_selections
-            checkbox_selections[image_name] = image_data
+            checkbox_selections[base_image_name] = image_data
 
         # If no bboxes or selected classes, but we have checkbox values
         elif checkbox_values:
@@ -568,7 +611,7 @@ def register_routes(app):
             }
 
             # Update the checkbox_selections
-            checkbox_selections[image_name] = image_data
+            checkbox_selections[base_image_name] = image_data
         else:
             # No bboxes, no selected classes, no checkboxes - create empty structure
             image_data = {
@@ -577,14 +620,12 @@ def register_routes(app):
             }
 
             # Update the checkbox_selections
-            checkbox_selections[image_name] = image_data
+            checkbox_selections[base_image_name] = image_data
 
         try:
             total_num_predictions = app.num_predictions_per_user[username]
             update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct)
             save_user_data(app, username, comments_json, checkbox_selections)
-
-
         except Exception as e:
             app.logger.error(f"Error in save function for user {username}: {e}")
             return "An error occurred"
@@ -594,6 +635,7 @@ def register_routes(app):
 
     @app.route('/<username>/save_bboxes', methods=['POST'])
     def save_bboxes(username):
+        """Save bounding box data via AJAX."""
         try:
             # Get the data from the request
             data = request.get_json()
@@ -604,9 +646,8 @@ def register_routes(app):
             if not image_name:
                 return jsonify({'error': 'Image name is required'}), 400
 
-            # Remove 'static/images/' prefix if present
-            if image_name.startswith('static/images/'):
-                image_name = image_name.lstrip('static/images/')
+            # Extract base image name regardless of path
+            base_image_name = os.path.basename(image_name)
 
             # Load existing checkbox selections
             _, checkbox_selections = load_user_data(app, username)
@@ -615,8 +656,9 @@ def register_routes(app):
             label_type = "basic"
             selected_classes = {}
 
-            if image_name in checkbox_selections:
-                existing_data = checkbox_selections[image_name]
+            # Check for existing data using both full path and base name
+            if base_image_name in checkbox_selections:
+                existing_data = checkbox_selections[base_image_name]
 
                 # Handle existing data structure with label_type
                 if isinstance(existing_data, dict) and "label_type" in existing_data:
@@ -624,20 +666,20 @@ def register_routes(app):
                     selected_classes = existing_data.get("selected_classes", {})
 
             # Update with new bboxes while preserving label type info
-            checkbox_selections[image_name] = {
+            # Always use base_image_name as the key
+            checkbox_selections[base_image_name] = {
                 "bboxes": bboxes,
                 "label_type": label_type
             }
 
             # Add selected_classes if uncertain
             if label_type == "uncertain":
-                checkbox_selections[image_name]["selected_classes"] = selected_classes
+                checkbox_selections[base_image_name]["selected_classes"] = selected_classes
 
             # Save the updated checkbox selections
             checkbox_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
                                          f"checkbox_selections_{username}.json")
             save_json_data(checkbox_path, checkbox_selections)
-
 
             return jsonify({'success': True, 'message': 'Bboxes saved successfully'})
 

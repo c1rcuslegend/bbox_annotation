@@ -1,9 +1,5 @@
 /**
  * Inline Bounding Box Editor
- * Created: 2025-03-06 16:49:59
- * Author: c1rcuslegend
- *
- * Fixed version with border-only selection and selective notifications
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inline BBox Editor initializing');
@@ -1164,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (width > 5 && height > 5) {
                     // Add the new box
                     inlineEditor.bboxes.boxes.push([...inlineEditor.tempBox]);
-                    inlineEditor.bboxes.scores.push(1.0); // 100% confidence
+                    inlineEditor.bboxes.scores.push(100); // 100% confidence
 
                     // Add label - first check window.lastSelectedClassId from checkbox.js
                     let classId = 0;

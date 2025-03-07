@@ -1,7 +1,6 @@
 /**
  * Bounding Box Editor
  * Manages the creation, editing, and visualization of bounding boxes
- * Fixed version: 2025-03-06 15:40:12
  */
 class BBoxEditor {
     constructor(config) {

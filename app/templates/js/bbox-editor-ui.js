@@ -1,9 +1,5 @@
 /**
  * Handles the UI for the bounding box editor modal
- * Created: 2025-03-06 17:06:06
- * Author: c1rcuslegend
- *
- * Fixed version with improved search and deletion functionality
  */
 class BBoxEditorUI {
     static openModal(box, boxIndex, bboxes, editor) {
@@ -901,7 +897,7 @@ class BBoxEditorUI {
                 if (width > 5 && height > 5) {
                     // Add the new box with a default score
                     this.bboxes.boxes.push([...this.tempBox]);
-                    this.bboxes.scores.push(1.0); // 100% confidence for user-drawn boxes
+                    this.bboxes.scores.push(100); // 100% confidence for user-drawn boxes
 
                     // Add label (default to 0)
                     if (!this.bboxes.labels) {

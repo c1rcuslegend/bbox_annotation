@@ -17,7 +17,7 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'JPEG', 'png', 'webp', 'avif'}
 ANNOTATORS_ROOT_DIRECTORY = os.path.join(APP_ROOT_FOLDER, "demo_data", "annotator_dirs")
 
 # THRESHOLD for the bounding boxes
-THRESHOLD = 0.5
+THRESHOLD = 50
 
 # Annotations root folder
 # For this demo, it would be the root directory of the ImageNetV2 dataset. Class names should be in wordnet IDs.
@@ -25,7 +25,7 @@ THRESHOLD = 0.5
 ANNOTATIONS_ROOT_FOLDER = "D:\imagenet_val"
 
 # Number of per class examples shown to the user
-NUM_EXAMPLES_PER_CLASS = 5
+NUM_EXAMPLES_PER_CLASS = 1
 
 # Dataset classes
 NUM_CLASSES = 1000

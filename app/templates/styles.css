@@ -128,7 +128,7 @@ body {
     text-align: center;
     cursor: pointer;
     padding: 15px 25px;
-    border-radius: 4px; /* Changed from 30px to match other buttons */
+    border-radius: 4px;
     background: linear-gradient(45deg, #9b59b6, #8e44ad);
     color: white;
     transition: all 0.3s ease;
@@ -843,22 +843,53 @@ body {
 }
 
 .image-wrapper {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
     gap: 20px;
     width: 100%;
     height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .image-container {
-    width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* First row: 3 images (33.33% width each) */
+.image-wrapper > :nth-child(1),
+.image-wrapper > :nth-child(2),
+.image-wrapper > :nth-child(3) {
+    flex: 0 0 calc(33.33% - 14px); /* Account for gap */
+    max-width: calc(33.33% - 14px);
+}
+
+/* Second row: 2 images (centered) */
+.image-wrapper > :nth-child(4),
+.image-wrapper > :nth-child(5) {
+    flex: 0 0 calc(33.33% - 14px);
+    max-width: calc(33.33% - 14px);
+}
+
+/* Media query for smaller screens */
+@media (max-width: 900px) {
+    .image-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .image-wrapper > .image-container {
+        flex: 0 0 auto;
+        width: 90%;
+        max-width: 450px;
+    }
 }
 
 .image-thumbnail {
@@ -866,6 +897,7 @@ body {
     max-height: 80%;
     object-fit: contain;
     margin-bottom: 15px;
+    position: relative;
 }
 
 .image-wrapper > :nth-child(1) {
@@ -888,16 +920,11 @@ body {
     grid-column: 4 / span 2;
 }
 
-.image-index {
-    text-align: center;
-    top: 5px;
-    font-size: 20px;
-}
-
 .human-class-title {
     font-weight: bold;
     text-align: center;
     font-size: 30px;
+    margin-bottom: 20px;
 }
 
 .action-row {
@@ -908,19 +935,29 @@ body {
 }
 
 .action-row button {
-    padding: 5px 10px;
-    background-color: rgb(100, 61, 219);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-family: Verdana, Geneva, sans-serif;
     font-size: 14px;
-    box-shadow: 2px 2px 0px rgb(183, 183, 183);
-    transition: background-color 0.2s;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    outline: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    color: white;
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    min-width: 80px;
+    text-align: center;
 }
 
 .action-row button:hover {
-    background-color: rgb(217, 21, 239);
+    background: linear-gradient(45deg, #2980b9, #3498db);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
 }
 
 .all-correct-wrapper {
@@ -930,17 +967,57 @@ body {
 }
 
 .all-correct-btn {
-    padding: 10px 20px;
-    background-color: rgb(200, 0, 0);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-family: Verdana, Geneva, sans-serif;
     font-size: 16px;
-    box-shadow: 2px 2px 0px rgb(183, 183, 183);
-    transition: background-color 0.2s;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    outline: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    color: white;
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
 }
 
 .all-correct-btn:hover {
-    background-color: rgb(217, 21, 239);
+    background: linear-gradient(45deg, #c0392b, #e74c3c);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* Bounding box styles for grid view */
+.bbox-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: fit-content;
+}
+
+.image-thumbnail {
+    position: relative;
+    display: block;
+    margin: 0 auto; /* Center image */
+}
+
+.bbox-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Make the overlay not capture mouse events */
+}
+
+/* Style for bounding boxes - just borders with no fill */
+.bbox {
+    position: absolute;
+    border: 2px solid rgba(255, 0, 0, 0.8);
+    background-color: transparent; /* No fill */
+    pointer-events: none;
+    box-sizing: border-box;
 }
