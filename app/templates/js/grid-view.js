@@ -23,6 +23,15 @@ function checkAllCheckboxes() {
     button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
 }
 
+// Check if all checkboxes are checked on page load
+function checkInitialCheckboxState() {
+    const checkboxes = document.querySelectorAll('input[name="checkboxes"]');
+    const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+
+    const button = document.querySelector('.all-correct-btn');
+    button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
+}
+
 // Initialize the page on load
 window.onload = function() {
     // Load the global threshold value
@@ -40,6 +49,9 @@ window.onload = function() {
 
     // Draw bounding boxes after a short delay to ensure images are loaded
     setTimeout(() => renderAllBoundingBoxes(threshold), 200);
+
+    // Check initial checkbox state
+    checkInitialCheckboxState();
 };
 
 // Function to render bounding boxes for all images

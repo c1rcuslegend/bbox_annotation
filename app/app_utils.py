@@ -49,14 +49,11 @@ def copy_js_files_to_static(app):
         else:
             print(f"Warning: Source file {source_path} not found")
 
-def copy_sample_files_to_static(source, destination):
+
+def copy_sample_files_to_static(source, destination, images_per_dir=10):
     """
     This function copies sample files from source to destination, preserving subdirectory structure,
     while avoiding copying files that already exist.
-
-    :param source: Root directory containing subdirectories and sample files.
-    :param destination: Root destination where the structure and files should be copied.
-    :return: None
     """
 
     # Walk through the source directory
@@ -71,13 +68,18 @@ def copy_sample_files_to_static(source, destination):
         os.makedirs(dest_dir, exist_ok=True)
 
         # Copy files from the source directory
+        copied_count = 1
         for file in filenames:
+            if copied_count > images_per_dir:
+                break
+
             source_file = os.path.join(dirpath, file)
             dest_file = os.path.join(dest_dir, file)
 
             # Only copy if the file doesn't already exist in the destination
             if not os.path.exists(dest_file):
                 shutil.copy2(source_file, dest_file)
+                copied_count += 1
 
 
 def setup_logging(app):
@@ -201,6 +203,7 @@ def update_current_image_index(app, username, direction, total_num_predictions, 
     index_file_path = os.path.join(results_dir, username, 'current_image_index_{}.txt'.format(username))
     with open(index_file_path, 'w') as f:
         f.write(str(current_image_index_dct[username]))
+
 
 def update_current_image_index_simple(app, username, current_image_index_dct, current_index):
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']

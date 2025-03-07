@@ -24,26 +24,31 @@
                 {% for i in image_paths.keys() %}
                     <div class="image-container" data-index="{{ i }}">
                         <div class="bbox-container">
-                            <!-- Removed onclick handler to disable image enlargement -->
                             <img class="image-thumbnail" src="{{ image_paths[i] }}" alt="Input Image">
                             <div class="bbox-overlay"></div>
                             <!-- Store bbox data as embedded JSON -->
                             <script class="bbox-data" type="application/json">
                                 {{ bbox_data[i] | tojson | safe if i in bbox_data else '{}' }}
                             </script>
-                        </div>
 
-                        <div class="action-row">
-                            <label class="container">
-                                <input form="save" type="checkbox" id="checkbox_{{ i }}" name="checkboxes"
-                                       value="{{ image_paths[i].lstrip('static/images') }}|{{ label_indices[i] }}"
-                                       {% if image_paths[i].split('\\')[-1] in checked_labels %}checked{% endif %}>
-                                <div class="checkmark"></div>
-                            </label>
-                            <form id="review_form_{{ i }}" action="{{ url_for('review', username=username) }}" method="post">
-                                <input type="hidden" name="image_index" value="{{ i }}">
-                                <button type="submit">Details</button>
-                            </form>
+                            <div class="image-index">Image Index: {{ i }}</div>
+
+                            <div class="action-row">
+                                <label class="container">
+                                    <!-- .lstrip('static/images') not working on windows? -->
+                                    <input form="save" type="checkbox" id="checkbox_{{ i }}" name="checkboxes"
+                                           value="{{ image_paths[i].lstrip('static/images') }}|{{ label_indices[i] }}"
+
+                                           {% set cleaned_path = image_paths[i].replace('\\', '/') %}
+                                           {% set image = cleaned_path.split('/')[-1] %}
+                                           {% if image in checked_labels %}checked{% endif %}>
+                                    <div class="checkmark"></div>
+                                </label>
+                                <form id="review_form_{{ i }}" action="{{ url_for('review', username=username) }}" method="post">
+                                    <input type="hidden" name="image_index" value="{{ i }}">
+                                    <button type="submit">Details</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}

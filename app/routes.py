@@ -641,6 +641,12 @@ def register_routes(app):
             data = request.get_json()
             image_name = data.get('image_name')
             bboxes = data.get('bboxes', [])
+            # Convert bbox coordinates to integers
+            for bbox in bboxes:
+                if 'coordinates' in bbox:
+                    bbox['coordinates'] = [int(coord) for coord in bbox['coordinates']]
+
+
             timestamp = data.get('timestamp', time.time())  # For debugging
 
             if not image_name:
