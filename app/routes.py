@@ -644,7 +644,7 @@ def register_routes(app):
             # Convert bbox coordinates to integers
             for bbox in bboxes:
                 if 'coordinates' in bbox:
-                    bbox['coordinates'] = [int(coord) for coord in bbox['coordinates']]
+                    bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
 
 
             timestamp = data.get('timestamp', time.time())  # For debugging
