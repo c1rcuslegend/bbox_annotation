@@ -1,10 +1,18 @@
 /**
  * Bounding Box Editor
  * Manages the creation, editing, and visualization of bounding boxes
+ * With support for gt field as class labels
  */
 class BBoxEditor {
     constructor(config) {
         this.bboxes = config.bboxes || { boxes: [], scores: [], labels: [] };
+
+        // Check for gt field and use it as labels if present
+        if (this.bboxes.gt && !this.bboxes.labels) {
+            console.log("BBoxEditor: Using 'gt' field as labels");
+            this.bboxes.labels = this.bboxes.gt;
+        }
+
         this.threshold = config.threshold || 0.5;
         this.img = config.img;
         this.canvas = config.canvas || document.createElement('canvas');
@@ -52,13 +60,20 @@ class BBoxEditor {
                 const labelX = box[0];
                 const labelY = box[1] - 5;
 
-                // Prepare label text
-                let labelText = `Box ${index + 1}`;
+                // IMPROVED: Get label ID with fallback to gt field if needed
+                let labelId;
                 if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
-                    const labelId = this.bboxes.labels[index];
-                    const labelName = this.classLabels[labelId] || labelId;
-                    labelText = `${labelId} - ${labelName}`; // Simplified format
+                    labelId = this.bboxes.labels[index];
+                } else if (this.bboxes.gt && this.bboxes.gt[index] !== undefined) {
+                    labelId = this.bboxes.gt[index];
+                    console.log(`BBoxEditor: Using gt[${index}] (${labelId}) for display`);
+                } else {
+                    labelId = 0; // Default fallback
                 }
+
+                // Prepare label text
+                const labelName = this.classLabels[labelId] || labelId;
+                const labelText = `${labelId} - ${labelName}`; // Simplified format
 
                 // Save current context state
                 this.ctx.save();
@@ -129,13 +144,20 @@ class BBoxEditor {
                     const labelX = box[0];
                     const labelY = box[1] - 5;
 
-                    // Prepare label text
-                    let labelText = `Box ${index + 1}`;
+                    // IMPROVED: Get label ID with fallback to gt field if needed
+                    let labelId;
                     if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
-                        const labelId = this.bboxes.labels[index];
-                        const labelName = this.classLabels[labelId] || labelId;
-                        labelText = `${labelId} - ${labelName}`; // Simplified format
+                        labelId = this.bboxes.labels[index];
+                    } else if (this.bboxes.gt && this.bboxes.gt[index] !== undefined) {
+                        labelId = this.bboxes.gt[index];
+                        console.log(`BBoxEditor: Using gt[${index}] (${labelId}) for display`);
+                    } else {
+                        labelId = 0; // Default fallback
                     }
+
+                    // Prepare label text
+                    const labelName = this.classLabels[labelId] || labelId;
+                    const labelText = `${labelId} - ${labelName}`; // Simplified format
 
                     // Save current context state
                     this.ctx.save();
@@ -183,5 +205,78 @@ class BBoxEditor {
                 }
             });
         }
+    }
+
+    // Add method to find box by border only (for consistent border-only selection)
+    findBoxByBorderOnly(x, y, borderWidth = 5) {
+        // Only detect clicks on borders, not inside the box
+        for (let i = this.bboxes.boxes.length - 1; i >= 0; i--) {
+            if (this.bboxes.scores[i] < this.threshold) continue;
+
+            const box = this.bboxes.boxes[i];
+
+            // Check left border
+            if (Math.abs(x - box[0]) <= borderWidth && y >= box[1] && y <= box[3]) {
+                return i;
+            }
+
+            // Check right border
+            if (Math.abs(x - box[2]) <= borderWidth && y >= box[1] && y <= box[3]) {
+                return i;
+            }
+
+            // Check top border
+            if (Math.abs(y - box[1]) <= borderWidth && x >= box[0] && x <= box[2]) {
+                return i;
+            }
+
+            // Check bottom border
+            if (Math.abs(y - box[3]) <= borderWidth && x >= box[0] && x <= box[2]) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    // Add method to show the editor (placeholder for patching in class auto-selection)
+    showBboxEditor(box, boxIndex) {
+        // This is a placeholder method that will be extended by patching
+        // It will be used to open the modal editor with the selected box
+        if (typeof BBoxEditorUI !== 'undefined') {
+            BBoxEditorUI.openModal(box, boxIndex, this.bboxes, this);
+        }
+    }
+
+    // Add method to handle canvas clicks (placeholder for patching)
+    handleCanvasClick(event) {
+        // This is a placeholder method that will be extended by patching
+        // Default implementation would select a box and open the editor
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const actualX = x * scaleX;
+        const actualY = y * scaleY;
+
+        // Select a box by border click
+        this.selectedBboxIndex = this.findBoxByBorderOnly(actualX, actualY);
+
+        // Store original state before showing editor
+        this.originalBboxes = JSON.parse(JSON.stringify(this.bboxes));
+
+        // Show the editor with the selected box
+        if (this.selectedBboxIndex >= 0) {
+            const selectedBox = this.bboxes.boxes[this.selectedBboxIndex];
+            this.showBboxEditor(selectedBox, this.selectedBboxIndex);
+        } else {
+            this.showBboxEditor(null, -1);
+        }
+
+        this.redrawCanvas();
+
+        event.stopPropagation();
     }
 }

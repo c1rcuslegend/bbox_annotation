@@ -14,6 +14,12 @@ class BBoxEditorUI {
         this.editor = editor;
         this.currentBoxIndex = boxIndex;
 
+        // Handle gt field - ensure labels array exists
+        if (!bboxes.labels && bboxes.gt) {
+            console.log("BBoxEditorUI: Using 'gt' field as labels");
+            bboxes.labels = bboxes.gt;
+        }
+
         // Show the modal
         modal.classList.add('show-modal');
 
@@ -34,8 +40,13 @@ class BBoxEditorUI {
     }
 
     static setupEnhancedClassSelector(boxIndex, bboxes, classLabels) {
+        // Check for gt field first
+        if (!bboxes.labels && bboxes.gt) {
+            console.log("BBoxEditorUI: Using 'gt' field as labels");
+            bboxes.labels = bboxes.gt;
+        }
         // Ensure labels array exists in bboxes
-        if (!bboxes.labels) {
+        else if (!bboxes.labels) {
             bboxes.labels = Array(bboxes.boxes.length).fill(0);
         }
 
@@ -117,9 +128,16 @@ class BBoxEditorUI {
                         option.selected = true;
                         firstMatchFound = true;
 
-                        // FIX 1: Immediately apply the class change to the selected box
+                        // Immediately apply the class change to the selected box
                         if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
-                            bboxes.labels[this.currentBoxIndex] = parseInt(option.value);
+                            const newClassId = parseInt(option.value);
+                            bboxes.labels[this.currentBoxIndex] = newClassId;
+
+                            // Update gt field if it exists
+                            if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
+                                bboxes.gt[this.currentBoxIndex] = newClassId;
+                                console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
+                            }
 
                             // Update the preview canvas to show the class change
                             this.updatePreviewCanvas();
@@ -142,7 +160,15 @@ class BBoxEditorUI {
 
                 // Also update the label for the selected bbox if one is selected
                 if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
-                    bboxes.labels[this.currentBoxIndex] = parseInt(selectedOption.value);
+                    const newClassId = parseInt(selectedOption.value);
+                    bboxes.labels[this.currentBoxIndex] = newClassId;
+
+                    // Update gt field if it exists
+                    if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
+                        bboxes.gt[this.currentBoxIndex] = newClassId;
+                        console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
+                    }
+
                     this.updatePreviewCanvas();
                 }
             }
@@ -174,7 +200,14 @@ class BBoxEditorUI {
 
                     // Get selected class
                     const classSelector = document.getElementById('bbox-class-selector');
-                    bboxes.labels[this.currentBoxIndex] = parseInt(classSelector.value);
+                    const newClassId = parseInt(classSelector.value);
+                    bboxes.labels[this.currentBoxIndex] = newClassId;
+
+                    // Update gt field if it exists
+                    if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
+                        bboxes.gt[this.currentBoxIndex] = newClassId;
+                        console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
+                    }
 
                     // Update coordinates
                     bboxes.boxes[this.currentBoxIndex] = [
@@ -206,6 +239,12 @@ class BBoxEditorUI {
                     bboxes.scores.splice(deletedIndex, 1);
                     if (bboxes.labels) bboxes.labels.splice(deletedIndex, 1);
 
+                    // Also update gt field if it exists
+                    if (bboxes.gt) {
+                        bboxes.gt.splice(deletedIndex, 1);
+                        console.log(`BBoxEditorUI: Removed box ${deletedIndex} from gt array`);
+                    }
+
                     // Reset the current box index
                     this.currentBoxIndex = -1;
                     editor.selectedBboxIndex = -1;
@@ -219,7 +258,7 @@ class BBoxEditorUI {
                     // Update the dropdown selector
                     this.updateBboxSelector(bboxes, -1, editor.threshold, editor.classLabels);
 
-                    // FIX 2: Immediately clear form fields and redraw the canvas
+                    // Immediately clear form fields and redraw the canvas
                     this.resetFormFields();
                     this.updatePreviewCanvas();
                 }
@@ -233,8 +272,15 @@ class BBoxEditorUI {
                 // Restore the original bboxes data with a fresh copy
                 bboxes.boxes = [...editor.originalBboxes.boxes];
                 bboxes.scores = [...editor.originalBboxes.scores];
-                if (bboxes.labels && editor.originalBboxes.labels) {
+
+                if (editor.originalBboxes.labels) {
                     bboxes.labels = [...editor.originalBboxes.labels];
+                }
+
+                // Restore gt array if it exists
+                if (editor.originalBboxes.gt) {
+                    bboxes.gt = [...editor.originalBboxes.gt];
+                    console.log("BBoxEditorUI: Restored gt array from original data");
                 }
 
                 // Update the editor's reference
@@ -336,8 +382,18 @@ class BBoxEditorUI {
                     const classSelector = document.getElementById('bbox-class-selector');
                     const searchInput = document.getElementById('class-search-input');
 
-                    if (classSelector && bboxes.labels && bboxes.labels[selectedIndex] !== undefined) {
-                        const labelId = bboxes.labels[selectedIndex];
+                    // Check labels first, then gt if labels doesn't exist
+                    let labelId;
+                    if (bboxes.labels && bboxes.labels[selectedIndex] !== undefined) {
+                        labelId = bboxes.labels[selectedIndex];
+                    } else if (bboxes.gt && bboxes.gt[selectedIndex] !== undefined) {
+                        labelId = bboxes.gt[selectedIndex];
+                        console.log(`BBoxEditorUI: Using gt[${selectedIndex}] (${labelId}) for class selector`);
+                    } else {
+                        labelId = 0; // Default to class 0
+                    }
+
+                    if (classSelector) {
                         classSelector.value = labelId;
 
                         // Update search input too
@@ -385,9 +441,20 @@ class BBoxEditorUI {
                 const option = document.createElement('option');
                 option.value = i;
 
+                // Try labels first, then gt
+                let labelId;
                 let labelText = `Box ${i + 1}`;
+
                 if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                    const labelId = bboxes.labels[i];
+                    labelId = bboxes.labels[i];
+                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                    labelId = bboxes.gt[i];
+                    console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for selector option`);
+                } else {
+                    labelId = 0; // Default
+                }
+
+                if (labelId !== undefined) {
                     const labelName = classLabels[labelId] || `Class ${labelId}`;
                     labelText += ` (${labelId} - ${labelName})`;
                 } else {
@@ -407,6 +474,12 @@ class BBoxEditorUI {
         this.selectedIndex = selectedIndex;
         this.img = img;
         this.threshold = threshold;
+
+        // Make sure we have a labels array
+        if (!bboxes.labels && bboxes.gt) {
+            bboxes.labels = bboxes.gt;
+            console.log("BBoxEditorUI: Using gt field as labels for preview canvas");
+        }
 
         // Set initial size
         this.calculateScale(previewCanvas);
@@ -484,9 +557,18 @@ class BBoxEditorUI {
                 }
 
                 // Prepare label text
+                // Try labels first, then gt, then use score
                 let labelText = `Box ${i + 1}`;
+                let labelId;
+
                 if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
-                    const labelId = this.bboxes.labels[i];
+                    labelId = this.bboxes.labels[i];
+                } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
+                    labelId = this.bboxes.gt[i];
+                    console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for label display`);
+                }
+
+                if (labelId !== undefined) {
                     const classLabels = this.editor ? this.editor.classLabels : {};
                     const labelName = classLabels[labelId] || `Class ${labelId}`;
                     labelText = `${labelId} - ${labelName}`; // Simplified format
@@ -714,9 +796,19 @@ class BBoxEditorUI {
                 const classSelector = document.getElementById('bbox-class-selector');
                 const searchInput = document.getElementById('class-search-input');
 
-                if (classSelector && this.bboxes.labels && this.bboxes.labels[clickedBoxIndex] !== undefined) {
-                                        const labelId = this.bboxes.labels[clickedBoxIndex];
-                    classSelector.value = labelId;
+                // Try labels first, then gt
+                let labelId;
+                if (this.bboxes.labels && this.bboxes.labels[clickedBoxIndex] !== undefined) {
+                    labelId = this.bboxes.labels[clickedBoxIndex];
+                } else if (this.bboxes.gt && this.bboxes.gt[clickedBoxIndex] !== undefined) {
+                    labelId = this.bboxes.gt[clickedBoxIndex];
+                    console.log(`BBoxEditorUI: Using gt[${clickedBoxIndex}] (${labelId}) for class selector`);
+                } else {
+                    labelId = 0; // Default
+                }
+
+                if (classSelector) {
+                    classSelector.value = labelId.toString();
 
                     // Update search input too
                     if (searchInput) {
@@ -899,11 +991,21 @@ class BBoxEditorUI {
                     this.bboxes.boxes.push([...this.tempBox]);
                     this.bboxes.scores.push(100); // 100% confidence for user-drawn boxes
 
-                    // Add label (default to 0)
+                    // Get default class ID - try to use the last class selected in UI
+                    const classSelector = document.getElementById('bbox-class-selector');
+                    const defaultClassId = classSelector ? parseInt(classSelector.value) : 0;
+
+                    // Add label
                     if (!this.bboxes.labels) {
                         this.bboxes.labels = Array(this.bboxes.boxes.length - 1).fill(0);
                     }
-                    this.bboxes.labels.push(0);
+                    this.bboxes.labels.push(defaultClassId);
+
+                    // Also update gt array if it exists
+                    if (this.bboxes.gt) {
+                        this.bboxes.gt.push(defaultClassId);
+                        console.log(`BBoxEditorUI: Added new box to gt array with class ${defaultClassId}`);
+                    }
 
                     // Select the new box
                     this.selectedIndex = this.bboxes.boxes.length - 1;
@@ -920,9 +1022,18 @@ class BBoxEditorUI {
                     this.updateBboxSelector(this.bboxes, this.selectedIndex, this.threshold, this.editor ? this.editor.classLabels : {});
 
                     // Update class selector
-                    const classSelector = document.getElementById('bbox-class-selector');
                     if (classSelector) {
-                        classSelector.value = 0; // Default to class 0
+                        classSelector.value = defaultClassId.toString();
+
+                        // Update search input too
+                        const searchInput = document.getElementById('class-search-input');
+                        if (searchInput) {
+                            if (this.editor && this.editor.classLabels && this.editor.classLabels[defaultClassId]) {
+                                searchInput.value = `${defaultClassId} - ${this.editor.classLabels[defaultClassId]}`;
+                            } else {
+                                searchInput.value = `Class ${defaultClassId}`;
+                            }
+                        }
                     }
 
                     // Update the editor's canvas
@@ -973,7 +1084,15 @@ class BBoxEditorUI {
         bboxes.boxes.forEach((box, i) => {
             // Only include boxes above threshold
             if (bboxes.scores[i] >= threshold) {
-                const label = bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0;
+                // Check labels first, then gt, then default to 0
+                let label = 0;
+                if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                    label = bboxes.labels[i];
+                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                    label = bboxes.gt[i];
+                    console.log(`BBoxEditorUI: Using gt[${i}] (${label}) for saved data`);
+                }
+
                 bboxDataArray.push({
                     coordinates: box,
                     label: label
@@ -1013,4 +1132,4 @@ class BBoxEditorUI {
 // Export the module for use in other scripts
 window.BBoxEditorUI = BBoxEditorUI;
 
-console.log('BBox Editor UI loaded with fixed class search and improved deletion');
+console.log('BBox Editor UI loaded with fixed class search, improved deletion, and gt field support');

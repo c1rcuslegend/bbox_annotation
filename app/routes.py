@@ -39,34 +39,6 @@ def convert_bboxes_to_serializable(bboxes):
     return bboxes  # Return as is if not in expected format
 
 
-def extract_checked_categories(data, label_indices_to_label_names):
-    """Extract checked categories from bbox labels or checkbox data"""
-    checked_categories = set()
-
-    # Handle new data structure
-    if isinstance(data, dict):
-        # If we have label data in a dict with 'labels' key
-        if 'labels' in data and len(data['labels']) > 0:
-            for label in data['labels']:
-                label_id = str(label)
-                if label_id in label_indices_to_label_names:
-                    checked_categories.add(label_id)
-        # Special case for uncertain label type
-        elif 'label_type' in data and data['label_type'] == 'uncertain' and 'selected_classes' in data:
-            for class_id in data['selected_classes'].keys():
-                checked_categories.add(class_id)
-    # Handle case where data is a list (old format)
-    elif isinstance(data, list):
-        for item in data:
-            if isinstance(item, dict) and 'label' in item:
-                # This is a bbox with a label
-                label_id = str(item['label'])
-                if label_id in label_indices_to_label_names:
-                    checked_categories.add(label_id)
-
-    return list(checked_categories)
-
-
 def get_bboxes_from_file(file_path, image_name=None):
     """Load bboxes directly from file without caching"""
     try:
@@ -186,7 +158,6 @@ def register_routes(app):
             else:
                 data = get_bboxes_from_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
                                                               username, f'bboxes_{username}.json'), image_basename)
-
                 for box,label,score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
@@ -330,7 +301,7 @@ def register_routes(app):
                         boxes.append(bbox['coordinates'])
                         label = bbox.get('label', 0)
                         labels.append(label)
-                        scores.append(1.0)
+                        scores.append(100)
 
                         # Track unique labels
                         checked_labels.add(str(label))
@@ -358,7 +329,7 @@ def register_routes(app):
                     boxes.append(bbox['coordinates'])
                     label = bbox.get('label', 0)
                     labels.append(label)
-                    scores.append(1.0)  # Default high confidence score
+                    scores.append(100)  # Default high confidence score
 
                     # Track unique labels for checked categories
                     checked_labels.add(str(label))
@@ -441,6 +412,7 @@ def register_routes(app):
         image_paths, checkbox_values, direction, _ = get_form_data()
 
         # Get base image names only
+        all_image_base_names = [os.path.basename(path) for path in image_paths.split('|')]
         checked_image_base_labels = [os.path.basename(path) for path in [temp.split('|')[1] for temp in checkbox_values]]
         checked_image_base_names = [os.path.basename(path) for path in [temp.split('|')[0] for temp in checkbox_values]]
 
@@ -449,20 +421,25 @@ def register_routes(app):
         bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
         man_annotated_bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'), app)
 
+        checked_images_count = 0
         # Process each image in the grid
-        for (base_name, label) in zip(checked_image_base_names, checked_image_base_labels):
-            if base_name in man_annotated_bboxes_dict:
+        for base_name in all_image_base_names:
+            if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
+                del checkbox_selections[base_name] # Remove all bboxes for unchecked images
                 continue
+            if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
+                continue # Skip images that are already annotated by the user
+
             checkbox_selections[base_name] = {}
             # Get existing data
             bboxes = bboxes_dict[base_name]['boxes']
             scores = bboxes_dict[base_name]['scores']
-
             if not bboxes:
                 continue
 
-            checkbox_selections[base_name]['bboxes'] = [{"coordinates": box, "label": label} for (score,box) in zip(scores, bboxes) if score >= app.config['THRESHOLD']]
+            checkbox_selections[base_name]['bboxes'] = [{"coordinates": box, "label": checked_image_base_labels[checked_images_count]} for (score,box) in zip(scores, bboxes) if score >= app.config['THRESHOLD']]
             checkbox_selections[base_name]['label_type'] = 'basic'
+            checked_images_count += 1
 
         try:
             total_num_predictions = app.num_predictions_per_user[username]

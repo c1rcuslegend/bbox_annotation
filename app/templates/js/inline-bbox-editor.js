@@ -77,8 +77,14 @@ document.addEventListener('DOMContentLoaded', function() {
             debug('Loaded bboxes:');
             debug(JSON.stringify(inlineEditor.bboxes));
 
+            // Check for 'gt' field and use it as 'labels' if it exists
+            if (inlineEditor.bboxes.gt && !inlineEditor.bboxes.labels) {
+                debug('Found "gt" field - using as labels array');
+                inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
+                inlineEditor.labelsInitialized = true;
+            }
             // Ensure labels array exists
-            if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.boxes) {
+            else if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.boxes) {
                 debug('Creating missing labels array with default values');
                 inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
                 inlineEditor.labelsInitialized = true;
@@ -400,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         debug('Main editor found, connecting...');
 
-        // CRITICAL FIX: Ensure we don't lose label information
+        // Ensure we don't lose label information
         // Make sure we have bboxes
         if (!inlineEditor.bboxes && inlineEditor.editor.bboxes) {
             debug('Using bboxes from main editor');
@@ -408,15 +414,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check if we need to create labels
             if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.boxes) {
-                debug('Creating missing labels array for editor boxes');
-                inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
+                // Check for 'gt' field first
+                if (inlineEditor.bboxes.gt) {
+                    debug('Using "gt" field as labels');
+                    inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
+                } else {
+                    debug('Creating missing labels array for editor boxes');
+                    inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
+                }
             }
         } else if (inlineEditor.editor.bboxes) {
             // We have our own bboxes, make sure editor uses them
             debug('Updating main editor with our bboxes');
 
+            // Check for 'gt' field before processing labels
+            if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.gt) {
+                debug('Using our "gt" field as labels');
+                inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
+            } 
             // Preserve labels if they exist in our bboxes
-            if (inlineEditor.bboxes.labels && !inlineEditor.editor.bboxes.labels) {
+            else if (inlineEditor.bboxes.labels && !inlineEditor.editor.bboxes.labels) {
                 debug('Preserving our labels when updating editor');
             }
             // If editor has labels but we don't, take them
@@ -446,10 +463,16 @@ document.addEventListener('DOMContentLoaded', function() {
             inlineEditor.threshold = inlineEditor.editor.threshold;
         }
 
-        // CRITICAL CHECK: Make sure we have labels after connection
+        // Make sure we have labels after connection
         if (inlineEditor.bboxes && inlineEditor.bboxes.boxes && !inlineEditor.bboxes.labels) {
-            debug('Labels missing after connection, creating them now');
-            inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
+            // Check for 'gt' field as final fallback
+            if (inlineEditor.bboxes.gt) {
+                debug('Using "gt" field as labels after connection check');
+                inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
+            } else {
+                debug('Labels missing after connection, creating them now');
+                inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
+            }
         } else if (inlineEditor.bboxes && inlineEditor.bboxes.labels) {
             debug(`Labels after connection: ${JSON.stringify(inlineEditor.bboxes.labels)}`);
         }
@@ -500,6 +523,9 @@ document.addEventListener('DOMContentLoaded', function() {
         inlineEditor.initialized = true;
         debug('Inline editor initialized and connected to main editor');
     }
+
+    // Rest of your code remains the same...
+    // ...
 
     // Setup event handlers for UI controls
     function setupEventHandlers() {
@@ -723,6 +749,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (inlineEditor.bboxes.labels) {
             inlineEditor.bboxes.labels.splice(deletedIndex, 1);
         }
+        
+        // Also remove from gt if it exists
+        if (inlineEditor.bboxes.gt) {
+            inlineEditor.bboxes.gt.splice(deletedIndex, 1);
+        }
 
         // Reset selection
         inlineEditor.currentBoxIndex = -1;
@@ -785,8 +816,14 @@ document.addEventListener('DOMContentLoaded', function() {
             debug('Created missing labels array during class update');
         }
 
-                // Update the class
+        // Update the class
         inlineEditor.bboxes.labels[inlineEditor.currentBoxIndex] = classId;
+
+        // If there's a "gt" field, update it too to keep them in sync
+        if (inlineEditor.bboxes.gt) {
+            inlineEditor.bboxes.gt[inlineEditor.currentBoxIndex] = classId;
+            debug(`Updated gt field for box ${inlineEditor.currentBoxIndex} to class ${classId}`);
+        }
 
         // Update the editor
         if (inlineEditor.editor) {
@@ -828,13 +865,22 @@ document.addEventListener('DOMContentLoaded', function() {
         debug(JSON.stringify(inlineEditor.bboxes.scores));
         debug('All labels before save:');
         debug(JSON.stringify(inlineEditor.bboxes.labels));
+        // Debug gt field if it exists
+        if (inlineEditor.bboxes.gt) {
+            debug('All gt values before save:');
+            debug(JSON.stringify(inlineEditor.bboxes.gt));
+        }
 
         inlineEditor.bboxes.boxes.forEach((box, i) => {
             if (inlineEditor.bboxes.scores[i] >= inlineEditor.threshold) {
                 // Ensure we have a proper label for this box
-                const label = inlineEditor.bboxes.labels &&
-                              inlineEditor.bboxes.labels[i] !== undefined ?
-                              inlineEditor.bboxes.labels[i] : 0;
+                // First check labels, fall back to gt if needed
+                let label = 0;
+                if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
+                    label = inlineEditor.bboxes.labels[i];
+                } else if (inlineEditor.bboxes.gt && inlineEditor.bboxes.gt[i] !== undefined) {
+                    label = inlineEditor.bboxes.gt[i];
+                }
 
                 bboxDataArray.push({
                     coordinates: box,
@@ -1092,8 +1138,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Bottom border
             return Math.abs(y - box[3]) <= threshold && x >= box[0] && x <= box[2];
-
-
         }
 
         // Update cursor based on mouse position
@@ -1180,6 +1224,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Add the new box's class
                     inlineEditor.bboxes.labels.push(classId);
+
+                    // IMPORTANT FIX: Also update gt array if it exists
+                    if (inlineEditor.bboxes.gt) {
+                        inlineEditor.bboxes.gt.push(classId);
+                        debug(`Added new box to gt array with class ${classId}`);
+                    }
 
                     // Select the new box
                     inlineEditor.currentBoxIndex = inlineEditor.bboxes.boxes.length - 1;
@@ -1464,5 +1514,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initialize debug message to track class label handling
-    debug("BBox Editor initialized with border-only selection and selective notifications");
+    debug("BBox Editor initialized with border-only selection, selective notifications, and gt field support");
 });

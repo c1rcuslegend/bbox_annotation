@@ -1,5 +1,6 @@
 /**
  * Patch for BBoxEditor and BBoxEditorUI to support auto-class selection
+ * with gt field support
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Debug mode
@@ -9,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (DEBUG) console.log(`[BBox Patch] ${message}`);
     }
 
-    debug("Initializing BBox editor patches");
+    debug("Initializing BBox editor patches with gt field support");
 
     // Patch BBoxEditor's handleCanvasClick to not auto-select boxes
     BBoxEditor.prototype.handleCanvasClick = function(event) {
@@ -68,7 +69,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             BBoxEditorUI.bboxes.labels = Array(BBoxEditorUI.bboxes.boxes.length).fill(0);
                         }
 
-                        BBoxEditorUI.bboxes.labels[clickedBoxIndex] = window.lastSelectedClassId;
+                        // Set the new class ID
+                        const newClassId = parseInt(window.lastSelectedClassId);
+                        BBoxEditorUI.bboxes.labels[clickedBoxIndex] = newClassId;
+
+                        // Also update gt field if it exists
+                        if (BBoxEditorUI.bboxes.gt && clickedBoxIndex < BBoxEditorUI.bboxes.gt.length) {
+                            BBoxEditorUI.bboxes.gt[clickedBoxIndex] = newClassId;
+                            debug(`Updated gt[${clickedBoxIndex}] to class ${newClassId}`);
+                        }
 
                         // Update the class selector UI
                         const classSelector = document.getElementById('bbox-class-selector');
@@ -94,6 +103,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         // Redraw the canvas
                         BBoxEditorUI.updatePreviewCanvas();
+
+                        // Also update the main editor if available
+                        if (BBoxEditorUI.editor) {
+                            BBoxEditorUI.editor.redrawCanvas();
+                        }
                     }
                 }
             };
@@ -101,11 +115,43 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add our click handler
             canvas.addEventListener('click', enhancedClickHandler);
 
-            debug("Enhanced preview canvas click handler installed");
+            debug("Enhanced preview canvas click handler installed with gt field support");
         };
     } else {
         debug("Warning: Could not find BBoxEditorUI.setupPreviewCanvasEvents to patch");
     }
 
-    debug("BBox editor patches applied");
+    // Patch findBoxByBorderOnly function if it doesn't exist
+    if (!BBoxEditorUI.findBoxByBorderOnly) {
+        debug("Adding missing findBoxByBorderOnly method to BBoxEditorUI");
+        BBoxEditorUI.findBoxByBorderOnly = function(x, y, borderWidth = 5) {
+            // Only detect clicks on borders, not inside the box
+            if (!this.bboxes || !this.bboxes.boxes) return -1;
+
+            for (let i = 0; i < this.bboxes.boxes.length; i++) {
+                if (this.bboxes.scores && this.bboxes.scores[i] < this.threshold) continue;
+
+                const box = this.bboxes.boxes[i];
+
+                // Convert box coordinates to canvas coordinates
+                const sx1 = box[0] * this.scale + this.offsetX;
+                const sy1 = box[1] * this.scale + this.offsetY;
+                const sx2 = box[2] * this.scale + this.offsetX;
+                const sy2 = box[3] * this.scale + this.offsetY;
+
+                // Check if we clicked on any of the four borders
+                const onLeftBorder = Math.abs(x - sx1) <= borderWidth && y >= sy1 && y <= sy2;
+                const onRightBorder = Math.abs(x - sx2) <= borderWidth && y >= sy1 && y <= sy2;
+                const onTopBorder = Math.abs(y - sy1) <= borderWidth && x >= sx1 && x <= sx2;
+                const onBottomBorder = Math.abs(y - sy2) <= borderWidth && x >= sx1 && x <= sx2;
+
+                if (onLeftBorder || onRightBorder || onTopBorder || onBottomBorder) {
+                    return i;
+                }
+            }
+            return -1;
+        };
+    }
+
+    debug("BBox editor patches applied with gt field support");
 });
