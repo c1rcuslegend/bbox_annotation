@@ -840,6 +840,10 @@ body {
     padding: 20px;
     box-sizing: border-box;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .image-wrapper {
@@ -860,22 +864,22 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    margin-bottom: 20px;
+    padding: 20px;
 }
 
-/* First row: 3 images (33.33% width each) */
+/* First row: 3 images (30% width each) */
 .image-wrapper > :nth-child(1),
 .image-wrapper > :nth-child(2),
 .image-wrapper > :nth-child(3) {
-    flex: 0 0 calc(33.33% - 14px); /* Account for gap */
-    max-width: calc(33.33% - 14px);
+    flex: 0 0 calc(30% - 14px); /* Account for gap */
+    max-width: calc(30% - 14px);
 }
 
 /* Second row: 2 images (centered) */
 .image-wrapper > :nth-child(4),
 .image-wrapper > :nth-child(5) {
-    flex: 0 0 calc(33.33% - 14px);
-    max-width: calc(33.33% - 14px);
+    flex: 0 0 calc(30% - 14px);
+    max-width: calc(30% - 14px);
 }
 
 /* Media query for smaller screens */
@@ -924,8 +928,9 @@ body {
 .human-class-title {
     font-weight: bold;
     text-align: center;
-    font-size: 30px;
+    font-size: 1.5rem;
     margin-bottom: 5px;
+    width: 80%;
 }
 
 .action-row {
@@ -966,6 +971,7 @@ body {
     position: absolute;
     top: 10px;
     right: 10px;
+    width: 20%;
 }
 
 .all-correct-btn {
@@ -1012,14 +1018,139 @@ body {
 /* Style for bounding boxes - just borders with no fill */
 .bbox {
     position: absolute;
-    border: 2px solid rgba(255, 0, 0, 0.8);
-    background-color: transparent; /* No fill */
-    pointer-events: none;
+    border: 2.5px solid #e74c3c;
+    background-color: transparent;
     box-sizing: border-box;
+    pointer-events: none;
 }
 
 .image-index {
     text-align: center;
     top: 5px;
     font-size: 20px;
+}
+
+.bbox-label {
+    position: absolute;
+    background-color: rgba(231, 76, 60, 0.85);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Class jump dropdown styles */
+.class-jump-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 20%;
+    z-index: 100;
+}
+
+.class-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.class-dropdown label {
+    font-weight: 600;
+    color: #444;
+    font-size: 16px;
+}
+
+.class-dropdown select {
+    width: 100%;
+    padding: 8px;
+    border: 2px solid #dfe6e9;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+.class-dropdown select:focus {
+    border-color: #9b59b6;
+    outline: none;
+}
+
+.class-dropdown select:hover {
+    background-color: #f1f1f1;
+}
+
+.current-position {
+    color: #666;
+    font-size: 14px;
+}
+
+.class-dropdown select option {
+    padding: 8px;
+}
+
+
+/* Custom select styling */
+.custom-select {
+    position: relative;
+    width: fit-content;
+}
+
+.select-search {
+    padding: 8px 30px 8px 10px;
+    border: 2px solid #dfe6e9;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    appearance: none;
+}
+
+.dropdown-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+    font-size: 12px;
+}
+
+.select-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    width: 300%; /* Makes it twice as wide as the input */
+    max-height: 300px; /* Increased height */
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #dfe6e9;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000; /* Very high z-index to ensure it's on top */
+    margin-top: 5px;
+}
+
+.select-options.show {
+    display: block;
+}
+
+.select-option {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.select-option:hover {
+    background-color: #f1f1f1;
+}
+
+.no-results {
+    padding: 10px;
+    color: #999;
+    font-style: italic;
+    text-align: center;
 }

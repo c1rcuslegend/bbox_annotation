@@ -4,7 +4,6 @@ import json
 import time
 import timeit
 from flask import render_template, request, redirect, url_for, jsonify
-from holoviews.operation import threshold
 
 from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
@@ -53,6 +52,32 @@ def get_bboxes_from_file(file_path, image_name=None):
     except (IOError, json.JSONDecodeError) as e:
         print(f"Error loading file {file_path}: {e}")
         return {}
+
+
+def ensure_at_least_one_bbox(bboxes, threshold):
+    """Ensure at least one bbox is above threshold by boosting the highest scoring box if needed."""
+    if not bboxes or 'boxes' not in bboxes or not bboxes['boxes'] or 'scores' not in bboxes or not bboxes['scores']:
+        return bboxes
+
+    # Check if any boxes are above threshold
+    above_threshold = any(score >= threshold for score in bboxes['scores'])
+
+    if not above_threshold and bboxes['boxes']:
+        # Find the box with the highest score
+        highest_score_idx = 0
+        highest_score = -1
+
+        for i, score in enumerate(bboxes['scores']):
+            if score > highest_score:
+                highest_score = score
+                highest_score_idx = i
+
+        # Boost the score of the highest scoring box
+        print(
+            f"No boxes above threshold {threshold}. Boosting box {highest_score_idx} with score {highest_score} to display")
+        bboxes['scores'][highest_score_idx] = threshold + 1
+
+    return bboxes
 
 
 def register_routes(app):
@@ -138,6 +163,7 @@ def register_routes(app):
         bbox_data = {}
         checked_labels = set()
         image_paths = {}
+        threshold = app.config.get('THRESHOLD', 0.5)
 
         for selected_index, image_path in zip(selected_indices, selected_images):
             image_basename = os.path.basename(image_path)
@@ -157,11 +183,14 @@ def register_routes(app):
                             bboxes['scores'].append(100)  # Default high confidence score
             else:
                 data = get_bboxes_from_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
-                                                              username, f'bboxes_{username}.json'), image_basename)
-                for box,label,score in zip(data['boxes'], data['gt'], data['scores']):
+                                                         username, f'bboxes_{username}.json'), image_basename)
+                for box, label, score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
                     bboxes['scores'].append(score)
+
+                # Ensure at least one bbox is displayed
+                bboxes = ensure_at_least_one_bbox(bboxes, threshold)
 
             print(bboxes)
             bbox_data[selected_index] = convert_bboxes_to_serializable(bboxes)
@@ -173,8 +202,6 @@ def register_routes(app):
 
         print(bbox_data)
 
-        threshold = app.config.get('THRESHOLD', 0.5)
-
         return render_template('img_grid.html',
                                image_paths=image_paths,
                                label_indices=label_indices,
@@ -184,8 +211,6 @@ def register_routes(app):
                                username=username,
                                human_readable_classes_map=label_indices_to_human_readable,
                                current_image_index=current_image_index)
-
-
 
     @app.route('/<username>/label_image')
     def label_image(username):
@@ -272,6 +297,7 @@ def register_routes(app):
         bboxes_source = None  # Track where we got the bboxes from
         label_type = "basic"  # Default label type
         selected_classes = {}  # For uncertain type
+        threshold = app.config['THRESHOLD']
 
         # First try checkbox_selections (user annotated images)
         if current_image in checkbox_selections:
@@ -306,7 +332,7 @@ def register_routes(app):
                         # Track unique labels
                         checked_labels.add(str(label))
 
-                    # FIXED: Always use bbox labels for checked categories (unless uncertain mode)
+                    # Always use bbox labels for checked categories (unless uncertain mode)
                     if label_type == "basic" and checked_labels:
                         checked_categories = [label_id for label_id in checked_labels if
                                               label_id in label_indices_to_label_names]
@@ -352,10 +378,14 @@ def register_routes(app):
             # Check if we got valid bbox data
             if bbox_data and 'boxes' in bbox_data and bbox_data['boxes']:
                 print(f"Found {len(bbox_data['boxes'])} bboxes in machine-generated bboxes file")
+
+                # Ensure at least one bbox is displayed
+                bbox_data = ensure_at_least_one_bbox(bbox_data, threshold)
+
                 bboxes = bbox_data
                 bboxes_source = 'general_bboxes'
 
-                # FIXED: Extract checked categories from bbox labels
+                # Extract checked categories from bbox labels
                 if 'labels' in bbox_data and bbox_data['labels']:
                     checked_labels = set()
                     for label in bbox_data['labels']:
@@ -374,7 +404,6 @@ def register_routes(app):
 
         # Ensure bboxes is properly serializable
         bboxes = convert_bboxes_to_serializable(bboxes)
-        threshold = app.config['THRESHOLD']
 
         # Get the ground truth class
         class_dict = ClassDictionary()
@@ -413,22 +442,26 @@ def register_routes(app):
 
         # Get base image names only
         all_image_base_names = [os.path.basename(path) for path in image_paths.split('|')]
-        checked_image_base_labels = [os.path.basename(path) for path in [temp.split('|')[1] for temp in checkbox_values]]
+        checked_image_base_labels = [os.path.basename(path) for path in
+                                     [temp.split('|')[1] for temp in checkbox_values]]
         checked_image_base_names = [os.path.basename(path) for path in [temp.split('|')[0] for temp in checkbox_values]]
 
         # Load user data
         _, checkbox_selections = load_user_data(app, username)
-        bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
-        man_annotated_bboxes_dict = read_json_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'), app)
+        bboxes_dict = read_json_file(
+            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
+        man_annotated_bboxes_dict = read_json_file(
+            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
+            app)
 
         checked_images_count = 0
         # Process each image in the grid
         for base_name in all_image_base_names:
             if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
-                del checkbox_selections[base_name] # Remove all bboxes for unchecked images
+                del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
                 continue
             if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
-                continue # Skip images that are already annotated by the user
+                continue  # Skip images that are already annotated by the user
 
             checkbox_selections[base_name] = {}
             # Get existing data
@@ -437,7 +470,20 @@ def register_routes(app):
             if not bboxes:
                 continue
 
-            checkbox_selections[base_name]['bboxes'] = [{"coordinates": box, "label": checked_image_base_labels[checked_images_count]} for (score,box) in zip(scores, bboxes) if score >= app.config['THRESHOLD']]
+            # Make sure we include at least one box per image
+            threshold = app.config['THRESHOLD']
+            above_threshold = [score >= threshold for score in scores]
+
+            # If no boxes above threshold, include the highest scoring box
+            if not any(above_threshold) and scores:
+                highest_score_idx = scores.index(max(scores))
+                above_threshold[highest_score_idx] = True
+                print(f"No boxes above threshold for {base_name}. Including highest score box {highest_score_idx}")
+
+            checkbox_selections[base_name]['bboxes'] = [
+                {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
+                for box, include in zip(bboxes, above_threshold) if include
+            ]
             checkbox_selections[base_name]['label_type'] = 'basic'
             checked_images_count += 1
 
@@ -469,6 +515,101 @@ def register_routes(app):
     def back2grid(username):
         image_index = request.form.get("image_index")
         return redirect(url_for('grid_image', username=username, image_index=image_index))
+
+    @app.route('/<username>/jump_to_class', methods=['POST'])
+    def jump_to_class(username):
+        """
+        Handle jumping to a specific class while saving checkbox selections
+        This functions similar to save_grid but with a different navigation target
+        """
+        import timeit
+        import os
+        start = timeit.default_timer()
+
+        # Get form data - same as in save_grid
+        image_paths, checkbox_values, direction, _ = get_form_data()
+
+        # Get the target image_index
+        image_index = request.form.get('image_index')
+        if not image_index:
+            return redirect(url_for('grid_image', username=username))
+
+        try:
+            target_index = int(image_index)
+        except (ValueError, TypeError):
+            app.logger.error(f"Invalid image index for jump: {image_index}")
+            return redirect(url_for('grid_image', username=username))
+
+        # Process checkbox selections - same as in save_grid
+        # Get base image names only
+        all_image_base_names = [os.path.basename(path) for path in image_paths.split('|')]
+        checked_image_base_labels = []
+        checked_image_base_names = []
+
+        if checkbox_values:
+            checked_image_base_labels = [os.path.basename(path) for path in
+                                         [temp.split('|')[1] for temp in checkbox_values]]
+            checked_image_base_names = [os.path.basename(path) for path in
+                                        [temp.split('|')[0] for temp in checkbox_values]]
+
+        # Load user data
+        _, checkbox_selections = load_user_data(app, username)
+        bboxes_dict = read_json_file(
+            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
+        man_annotated_bboxes_dict = read_json_file(
+            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
+            app)
+
+        checked_images_count = 0
+        # Process each image in the grid
+        for base_name in all_image_base_names:
+            if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
+                del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
+                continue
+            if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
+                continue  # Skip images that are already annotated by the user
+
+            checkbox_selections[base_name] = {}
+            # Get existing data
+            if base_name in bboxes_dict:
+                bboxes = bboxes_dict[base_name]['boxes']
+                scores = bboxes_dict[base_name]['scores']
+                if not bboxes:
+                    continue
+
+                # Include at least one box per image
+                threshold = app.config['THRESHOLD']
+                above_threshold = [score >= threshold for score in scores]
+
+                # If no boxes above threshold, include the highest scoring box
+                if not any(above_threshold) and scores:
+                    highest_score_idx = scores.index(max(scores))
+                    above_threshold[highest_score_idx] = True
+                    app.logger.info(
+                        f"No boxes above threshold for {base_name}. Including highest score box {highest_score_idx}")
+
+                if checked_images_count < len(checked_image_base_labels):
+                    checkbox_selections[base_name]['bboxes'] = [
+                        {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
+                        for box, include in zip(bboxes, above_threshold) if include
+                    ]
+                    checkbox_selections[base_name]['label_type'] = 'basic'
+                    checked_images_count += 1
+
+        try:
+            # Update the in-memory index
+            update_current_image_index_simple(app, username, app.current_image_index_dct, target_index)
+
+            # Save the checkbox selections
+            save_user_data(app, username, checkbox_selections=checkbox_selections)
+
+            app.logger.info(f"User {username} jumped to image index {target_index}")
+        except Exception as e:
+            app.logger.error(f"Error in jump_to_class function for user {username}: {e}")
+            return "An error occurred"
+
+        print(f"Time taken in jump_to_class: {timeit.default_timer() - start}")
+        return redirect(url_for('grid_image', username=username))
 
     @app.route('/<username>/save', methods=['POST'])
     def save(username):
@@ -623,7 +764,6 @@ def register_routes(app):
                 if 'coordinates' in bbox:
                     bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
 
-
             timestamp = data.get('timestamp', time.time())  # For debugging
 
             if not image_name:
@@ -648,8 +788,8 @@ def register_routes(app):
                     label_type = existing_data.get("label_type", "basic")
                     selected_classes = existing_data.get("selected_classes", {})
 
-            # Update with new bboxes while preserving label type info
-            # Always use base_image_name as the key
+                # Update with new bboxes while preserving label type info
+                # Always use base_image_name as the key
             checkbox_selections[base_image_name] = {
                 "bboxes": bboxes,
                 "label_type": label_type

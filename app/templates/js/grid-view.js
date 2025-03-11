@@ -4,6 +4,7 @@
 
 // Global variables
 let allChecked = false;
+let classLabelMap = {}; // Will be populated with class mappings
 
 // Change navigation direction and submit form
 function change(direction) {
@@ -44,6 +45,18 @@ window.onload = function() {
             console.log(`Using threshold: ${threshold}`);
         } catch (e) {
             console.error("Error parsing threshold data:", e);
+        }
+    }
+
+    // Load class label mappings if available
+    const classesElement = document.getElementById('human-readable-classes');
+    if (classesElement && classesElement.textContent) {
+        try {
+            classLabelMap = JSON.parse(classesElement.textContent);
+            console.log(`Loaded ${Object.keys(classLabelMap).length} class labels`);
+        } catch (e) {
+            console.error("Error parsing class labels:", e);
+            classLabelMap = {};
         }
     }
 
@@ -162,14 +175,31 @@ function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, 
             const boxWidth = (x2 - x1) * scaleX;
             const boxHeight = (y2 - y1) * scaleY;
 
-            // Create bbox div - only border, no fill and no label
+            // Create bbox div - border only
             const bboxDiv = document.createElement('div');
             bboxDiv.className = 'bbox';
             bboxDiv.style.left = `${boxLeft}px`;
             bboxDiv.style.top = `${boxTop}px`;
             bboxDiv.style.width = `${boxWidth}px`;
             bboxDiv.style.height = `${boxHeight}px`;
+
+            // Get label ID - check labels first, then gt field as fallback
+            let labelId;
+            if (bboxData.labels && bboxData.labels[index] !== undefined) {
+                labelId = bboxData.labels[index];
+            } else if (bboxData.gt && bboxData.gt[index] !== undefined) {
+                labelId = bboxData.gt[index];
+                console.log(`Using gt[${index}] (${labelId}) for label`);
+            } else {
+                labelId = 0; // Default if no label found
+            }
+
+            // Create and add label element
+            const labelDiv = createLabelElement(labelId, boxLeft, boxTop);
+
+            // Add elements to overlay
             overlay.appendChild(bboxDiv);
+            overlay.appendChild(labelDiv);
         }
     });
 }
@@ -181,26 +211,75 @@ function renderBoxesFormat3(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY) {
     }
 
     // Draw each box
-    bboxes.forEach(bbox => {
+    bboxes.forEach((bbox, index) => {
         if (bbox && bbox.coordinates && bbox.coordinates.length === 4) {
-            const [x, y, width, height] = bbox.coordinates;
+            // Coordinates can be in two formats:
+            // 1. [x1, y1, x2, y2] (two points)
+            // 2. [x, y, width, height] (point + dimensions)
+            let boxLeft, boxTop, boxWidth, boxHeight;
 
-            // Calculate scaled position and size
-            const boxLeft = imgLeft + (x * scaleX);
-            const boxTop = imgTop + (y * scaleY);
-            const boxWidth = width * scaleX;
-            const boxHeight = height * scaleY;
+            const coords = bbox.coordinates;
 
-            // Create bbox div - only border, no fill and no label
+            // Determine format based on values (if 3rd value is much larger than 1st, it's likely format 1)
+            const isCornerFormat = coords[2] > coords[0] * 1.5;
+
+            if (isCornerFormat) {
+                // Format [x1, y1, x2, y2]
+                boxLeft = imgLeft + (coords[0] * scaleX);
+                boxTop = imgTop + (coords[1] * scaleY);
+                boxWidth = (coords[2] - coords[0]) * scaleX;
+                boxHeight = (coords[3] - coords[1]) * scaleY;
+            } else {
+                // Format [x, y, width, height]
+                boxLeft = imgLeft + (coords[0] * scaleX);
+                boxTop = imgTop + (coords[1] * scaleY);
+                boxWidth = coords[2] * scaleX;
+                boxHeight = coords[3] * scaleY;
+            }
+
+            // Create bbox div
             const bboxDiv = document.createElement('div');
             bboxDiv.className = 'bbox';
             bboxDiv.style.left = `${boxLeft}px`;
             bboxDiv.style.top = `${boxTop}px`;
             bboxDiv.style.width = `${boxWidth}px`;
             bboxDiv.style.height = `${boxHeight}px`;
+
+            // Get the label ID from the bbox object
+            const labelId = bbox.label !== undefined ? bbox.label : 0;
+
+            // Create and add label element
+            const labelDiv = createLabelElement(labelId, boxLeft, boxTop);
+
+            // Add elements to overlay
             overlay.appendChild(bboxDiv);
+            overlay.appendChild(labelDiv);
         }
     });
+}
+
+// Helper function to create a label element with styling
+function createLabelElement(labelId, boxLeft, boxTop) {
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'bbox-label';
+
+    // Position the label above the box
+    labelDiv.style.left = `${boxLeft}px`;
+    labelDiv.style.top = `${boxTop - 22}px`; // Position above the box
+
+    // Get the class name from the mapping or use the ID if not found
+    let labelName = classLabelMap[labelId] || `Class ${labelId}`;
+
+    // Limit label name to 30 characters
+    if (labelName.length > 30) {
+        labelName = labelName.substring(0, 27) + '...';
+    }
+
+    // Format the label text
+    const labelText = `${labelId} - ${labelName}`;
+    labelDiv.textContent = labelText;
+
+    return labelDiv;
 }
 
 // Add window resize handler to redraw bounding boxes

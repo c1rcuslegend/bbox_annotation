@@ -6,13 +6,35 @@
     <title>Image Annotation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
-    <!-- Include external JavaScript file -->
+    <!-- Include external JavaScript files -->
     <script src="{{ url_for('static', filename='js/grid-view.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/class-jump.js') }}"></script>
 </head>
 
 <body>
     <form id="save" action="{{ url_for('save_grid', username=username) }}" method="post"></form>
+    <form id="jumpForm" action="{{ url_for('jump_to_class', username=username) }}" method="post"></form>
+
     <div class="layout-container">
+        <!-- Class Jump Dropdown -->
+        <div class="class-jump-container">
+            <div class="class-dropdown">
+                <!-- Original select - will be hidden and replaced by our custom dropdown -->
+                <select id="classJump">
+                    <option value="">Jump to Class...</option>
+                    {% set sorted_classes = [] %}
+                    {% for class_id, class_name in human_readable_classes_map.items() %}
+                        {% set _ = sorted_classes.append((class_id|int, class_id, class_name)) %}
+                    {% endfor %}
+
+                    {% for int_id, class_id, class_name in sorted_classes|sort %}
+                        <option value="{{ class_id }}">{{ class_id }} - {{ class_name }}</option>
+                    {% endfor %}
+                </select>
+                <!-- Custom dropdown will be inserted here by JavaScript -->
+            </div>
+        </div>
+
         <div class="image-navigation">
             <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>
         </div>
@@ -70,5 +92,6 @@
     <script id="threshold-data" type="application/json">
         {"threshold": {{ threshold|default(0.5) }}}
     </script>
+    <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
 </body>
 </html>
