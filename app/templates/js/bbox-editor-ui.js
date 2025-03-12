@@ -265,6 +265,40 @@ class BBoxEditorUI {
             };
         }
 
+        // Delete All button
+        const deleteAllButton = document.getElementById('bbox-delete-all');
+        if (deleteAllButton) {
+            deleteAllButton.onclick = () => {
+                // Remove all boxes, scores, and labels from the arrays
+                bboxes.boxes = [];
+                bboxes.scores = [];
+                if (bboxes.labels) bboxes.labels = [];
+
+                // Also clear gt field if it exists
+                if (bboxes.gt) {
+                    bboxes.gt = [];
+                    console.log('BBoxEditorUI: Cleared all boxes from gt array');
+                }
+
+                // Reset the current box index
+                this.currentBoxIndex = -1;
+                editor.selectedBboxIndex = -1;
+
+                // Create a fresh copy of the bboxes object to ensure change detection
+                editor.bboxes = JSON.parse(JSON.stringify(bboxes));
+
+                // Force a complete redraw of the canvas
+                editor.forceRedraw();
+
+                // Update the dropdown selector
+                this.updateBboxSelector(bboxes, -1, editor.threshold, editor.classLabels);
+
+                // Immediately clear form fields and redraw the canvas
+                this.resetFormFields();
+                this.updatePreviewCanvas();
+            };
+        }
+
         // Cancel button
         const cancelButton = document.getElementById('bbox-cancel');
         if (cancelButton) {

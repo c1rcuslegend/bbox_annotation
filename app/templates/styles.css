@@ -389,6 +389,11 @@ body {
     color: white;
 }
 
+.bbox-editor-button-delete-all {
+    background-color: #000000;
+    color: white;
+}
+
 .bbox-editor-button-cancel {
     background-color: #95a5a6;
     color: white;
@@ -771,6 +776,13 @@ body {
     margin-top: 10px;
 }
 
+.delete-all-btn {
+    background-color: #000000;
+    color: white;
+    width: 100%;
+    margin-top: 10px;
+}
+
 .popup-btn:hover {
     background-color: #27ae60; /* Matching hover state */
 }
@@ -864,7 +876,8 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    padding: 20px;
+    padding: 15px 5px 7px 5px;
+    border-radius: 10px;
 }
 
 /* First row: 3 images (30% width each) */
@@ -925,6 +938,22 @@ body {
     grid-column: 4 / span 2;
 }
 
+.image-container.border-ood {
+    border: 3px solid black;
+}
+
+.image-container.border-m {
+    border: 3px solid green;
+}
+
+.image-container.border-poss-m {
+    border: 3px dashed green;
+}
+
+.image-container.no-border {
+    border: none;
+}
+
 .human-class-title {
     font-weight: bold;
     text-align: center;
@@ -967,37 +996,6 @@ body {
     box-shadow: 0 5px 10px rgba(0,0,0,0.2);
 }
 
-.all-correct-wrapper {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 20%;
-}
-
-.all-correct-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 24px;
-    border-radius: 4px;
-    font-family: Verdana, Geneva, sans-serif;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: none;
-    outline: none;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    color: white;
-    background: linear-gradient(45deg, #e74c3c, #c0392b);
-}
-
-.all-correct-btn:hover {
-    background: linear-gradient(45deg, #c0392b, #e74c3c);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-}
-
 /* Bounding box styles for grid view */
 .bbox-container {
     position: relative;
@@ -1026,7 +1024,7 @@ body {
 
 .image-index {
     text-align: center;
-    top: 5px;
+    top: 7px;
     font-size: 20px;
 }
 
@@ -1047,7 +1045,7 @@ body {
 /* Class jump dropdown styles */
 .class-jump-container {
     position: absolute;
-    top: 10px;
+    bottom: 10px;
     left: 10px;
     width: 20%;
     z-index: 100;
@@ -1123,7 +1121,7 @@ body {
 .select-options {
     display: none;
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     width: 300%; /* Makes it twice as wide as the input */
     max-height: 300px; /* Increased height */
     overflow-y: auto;
@@ -1132,7 +1130,7 @@ body {
     border-radius: 4px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     z-index: 1000; /* Very high z-index to ensure it's on top */
-    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .select-options.show {
@@ -1153,4 +1151,103 @@ body {
     color: #999;
     font-style: italic;
     text-align: center;
+}
+
+/* Bottom container */
+
+.all-correct-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.all-correct-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    outline: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    color: white;
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+    width: 90%;
+    height: 50px;
+}
+
+.all-correct-btn:hover {
+    background: linear-gradient(45deg, #c0392b, #e74c3c);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+.bottom-right-container {
+    position: fixed;
+    bottom: 10px;
+    right: 20px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);  /* Slight shadow */
+    padding: 10px;
+}
+
+.progress-container {
+    width: 100%;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 20px;
+    width: 0;
+    background-color: #9b59b6;
+    border-radius: 5px;
+}
+
+.progress-text {
+    margin-top: 5px;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* New Styles for the Search Input and Dropdown Container */
+
+.search-and-dropdown {
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+    align-items: center;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    width: 90%;
+    padding: 8px;
+    border: 2px solid #dfe6e9;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 10px;
 }

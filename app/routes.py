@@ -5,7 +5,8 @@ import time
 import timeit
 from flask import render_template, request, redirect, url_for, jsonify
 
-from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict
+from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict, \
+    get_image_conf_dict
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
@@ -159,19 +160,38 @@ def register_routes(app):
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
             app) or {}
 
+        # Used to track the progress of the user
+        num_corrected_images = len(man_annotated_bboxes_dict)
+
         # Initialize bbox_data to store bounding boxes for each image
         bbox_data = {}
         checked_labels = set()
         image_paths = {}
+        borders = {}
         threshold = app.config.get('THRESHOLD', 0.5)
+
+        MULTILABEL_CONFIDENCE_THRESHOLD = 0.7 # We can move it to the config, anyway further discussion is needed
+
+        # Used for possible multilabel detection based on the confidence
+        image_conf_dict = get_image_conf_dict(proposals_info)
 
         for selected_index, image_path in zip(selected_indices, selected_images):
             image_basename = os.path.basename(image_path)
+
+            # Check if image is multilabel based on softmax confidence
+            if image_conf_dict[image_basename][0] <= MULTILABEL_CONFIDENCE_THRESHOLD:
+                borders[selected_index] = 'border-poss-m'
 
             # Process bounding box data for this image
             bboxes = {'boxes': [], 'scores': [], 'labels': []}
             if image_basename in man_annotated_bboxes_dict:
                 checked_labels.add(image_basename)
+
+                data = man_annotated_bboxes_dict[image_basename]
+                if data.get('label_type') == 'ood':
+                    borders[selected_index] = 'border-ood'
+                elif len(data.get('bboxes', [])) > 1:
+                    borders[selected_index] = 'border-m'
 
                 # Extract bounding boxes from annotations
                 data = man_annotated_bboxes_dict[image_basename]
@@ -210,7 +230,9 @@ def register_routes(app):
                                threshold=threshold,
                                username=username,
                                human_readable_classes_map=label_indices_to_human_readable,
-                               current_image_index=current_image_index)
+                               current_image_index=current_image_index,
+                               num_corrected_images=num_corrected_images,
+                               borders=borders)
 
     @app.route('/<username>/label_image')
     def label_image(username):

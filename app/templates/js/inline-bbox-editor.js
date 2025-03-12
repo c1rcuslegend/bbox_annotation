@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inlineClassSearch = document.getElementById('inline-class-search');
     const inlineClassSelector = document.getElementById('inline-class-selector');
     const deleteBoxBtn = document.getElementById('inline-bbox-delete');
+    const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
     const cancelBtn = document.getElementById('inline-bbox-cancel');
     const openPopupBtn = document.getElementById('open-popup-editor');
 
@@ -534,6 +535,10 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteBoxBtn.addEventListener('click', deleteCurrentBox);
         }
 
+        if (deleteAllBtn) {
+            deleteAllBtn.addEventListener('click', deleteAllBBoxes);
+        }
+
         // Cancel changes button
         if (cancelBtn) {
             cancelBtn.addEventListener('click', cancelChanges);
@@ -772,6 +777,41 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHiddenBboxesField();
 
         debug(`Deleted box ${deletedIndex}`);
+    }
+
+    function deleteAllBBoxes() {
+        if (!inlineEditor.bboxes || !inlineEditor.bboxes.boxes) {
+            debug('No bounding boxes to delete');
+            return;
+        }
+
+        // Clear all bounding boxes, scores, and labels
+        inlineEditor.bboxes.boxes = [];
+        inlineEditor.bboxes.scores = [];
+        if (inlineEditor.bboxes.labels) {
+            inlineEditor.bboxes.labels = [];
+        }
+        if (inlineEditor.bboxes.gt) {
+            inlineEditor.bboxes.gt = [];
+        }
+
+        // Reset selection
+        inlineEditor.currentBoxIndex = -1;
+
+        // Update the editor if available
+        if (inlineEditor.editor) {
+            inlineEditor.editor.selectedBboxIndex = -1;
+            inlineEditor.editor.bboxes = inlineEditor.bboxes;
+            inlineEditor.editor.redrawCanvas();
+        }
+
+        // Update UI
+        updateBboxSelector();
+
+        // Update hidden form field
+        updateHiddenBboxesField();
+
+        debug('Deleted all bounding boxes');
     }
 
     // Cancel all changes

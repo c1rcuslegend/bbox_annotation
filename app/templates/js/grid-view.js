@@ -33,6 +33,14 @@ function checkInitialCheckboxState() {
     button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
 }
 
+function updateProgressBar(correctedImages, totalImages) {
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressText = document.getElementById('progress-text');
+    const progressPercentage = (correctedImages / totalImages) * 100;
+    progressBarFill.style.width = progressPercentage + '%';
+    progressText.innerText = `Images Corrected: ${correctedImages} / ${totalImages}`;
+}
+
 // Initialize the page on load
 window.onload = function() {
     // Load the global threshold value
@@ -65,6 +73,10 @@ window.onload = function() {
 
     // Check initial checkbox state
     checkInitialCheckboxState();
+
+    const correctedImages = parseInt(document.getElementById('num-corrected-images').textContent, 10);
+    const totalImages = 50000;
+    updateProgressBar(correctedImages, totalImages);
 };
 
 // Function to render bounding boxes for all images

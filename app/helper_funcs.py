@@ -24,6 +24,15 @@ def get_image_softmax_dict(proposals_info):
     return image_softmax_dict
 
 
+def get_image_conf_dict(proposals_info):
+    image_conf_dict = {}
+    for info in proposals_info:
+        image_name = info['image_name']
+        softmax_vector = np.sort(info['softmax_val'])[::-1]
+        image_conf_dict[image_name] = softmax_vector
+    return image_conf_dict
+
+
 def get_sample_images_for_categories(top_categories, all_sample_images, indices_to_class_names, num_selection=10):
     """
     Returns a dictionary of sample images for each of the top categories.

@@ -6,6 +6,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Create and initialize the searchable dropdown
     initSearchableDropdown();
+
+    // Initialize the image index search functionality
+    initImageIndexSearch();
 });
 
 // Initialize searchable dropdown component
@@ -132,6 +135,76 @@ function initSearchableDropdown() {
             dropdownOptions.classList.remove('show');
         }
     });
+}
+
+// Function to initialize the image index search functionality
+function initImageIndexSearch() {
+    const searchInput = document.querySelector('.search-input');
+    if (!searchInput) return;
+
+    // Add event listener for Enter key press
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const indexValue = searchInput.value.trim();
+
+            // Check if the input is a valid number
+            if (indexValue && !isNaN(indexValue)) {
+                jumpToImageIndex(parseInt(indexValue));
+            } else {
+                alert('Please enter a valid image index number.');
+            }
+        }
+    });
+}
+
+// Function to jump to a specific image index
+function jumpToImageIndex(targetIndex) {
+    if (targetIndex < 0 || targetIndex > 49999) {
+        alert('Please enter a valid image index between 0 and 49999.');
+        return;
+    }
+
+    // Re-use the jump form from jumpToClass function
+    const form = document.getElementById('jumpForm');
+
+    // Clear existing hidden inputs
+    while (form.firstChild) {
+        form.removeChild(form.firstChild);
+    }
+
+    // Add the target index as a hidden input
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'image_index';
+    hiddenInput.value = targetIndex;
+    form.appendChild(hiddenInput);
+
+    // Add image paths hidden input
+    const imagePathsInput = document.createElement('input');
+    imagePathsInput.type = 'hidden';
+    imagePathsInput.name = 'image_name';
+    imagePathsInput.value = document.querySelector('input[name="image_name"]').value;
+    form.appendChild(imagePathsInput);
+
+    // Add direction hidden input
+    const directionInput = document.createElement('input');
+    directionInput.type = 'hidden';
+    directionInput.name = 'direction';
+    directionInput.value = 'jump';
+    form.appendChild(directionInput);
+
+    // Gather all checked checkboxes and copy their values to the jump form
+    const checkboxes = document.querySelectorAll('input[form="save"][name="checkboxes"]:checked');
+    checkboxes.forEach((checkbox) => {
+        const hiddenCheckbox = document.createElement('input');
+        hiddenCheckbox.type = 'hidden';
+        hiddenCheckbox.name = 'checkboxes';
+        hiddenCheckbox.value = checkbox.value;
+        form.appendChild(hiddenCheckbox);
+    });
+
+    // Submit the form to update the server-side index
+    form.submit();
 }
 
 // Function to handle class jumping with form submission
