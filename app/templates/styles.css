@@ -135,7 +135,6 @@ body {
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
     border: none;
     outline: none;
-    margin: 0 10px;
 }
 
 .refresh-btn:hover {
@@ -849,7 +848,6 @@ body {
 .image-display {
     flex: 1;
     text-align: center;
-    padding: 20px;
     box-sizing: border-box;
     height: 100%;
     display: flex;
@@ -866,7 +864,7 @@ body {
     gap: 10px;
     width: 100%;
     min-height: 80vh;
-    padding: 20px;
+    padding: 2px;
     box-sizing: border-box;
 }
 
@@ -1250,4 +1248,31 @@ body {
     border-radius: 4px;
     font-size: 14px;
     margin-bottom: 10px;
+}
+
+.crowd-container {
+    display: flex;
+    width: 100%;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    gap: 10px;
+    align-items: center;
+}
+
+.crowd-container label {
+    font-weight: 600;
+    color: #555;
+    font-size: medium;
+}
+
+.bbox-crowd-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.bbox-crowd-container label {
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 600;
 }
