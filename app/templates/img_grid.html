@@ -15,6 +15,29 @@
     <form id="save" action="{{ url_for('save_grid', username=username) }}" method="post"></form>
     <form id="jumpForm" action="{{ url_for('jump_to_class', username=username) }}" method="post"></form>
 
+    <div class="legend-toggle">
+        ?
+    </div>
+
+    <div class="legend-container">
+        <div class="legend-header">
+            <h3>Legend</h3>
+            <span class="legend-close">&times;</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box border-poss-m"></div>
+            <span>Possibly Multilabel</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box border-m"></div>
+            <span>Multilabel</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box border-ood"></div>
+            <span>Out of Distribution</span>
+        </div>
+    </div>
+
     <div class="layout-container">
         <div class="image-navigation">
             <div class="refresh-btn" onclick="change('prev'); document.getElementById('save').submit();">&#9664;</div>

@@ -307,3 +307,26 @@ window.addEventListener('resize', function() {
         renderAllBoundingBoxes(threshold);
     }, 100);
 });
+
+// Add legend toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const legendToggle = document.querySelector('.legend-toggle');
+    const legendContainer = document.querySelector('.legend-container');
+    const legendClose = document.querySelector('.legend-close');
+
+    legendToggle.addEventListener('click', function() {
+        legendContainer.classList.toggle('show');
+    });
+
+    legendClose.addEventListener('click', function() {
+        legendContainer.classList.remove('show');
+    });
+
+    // Close legend when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!legendContainer.contains(event.target) &&
+            !legendToggle.contains(event.target)) {
+            legendContainer.classList.remove('show');
+        }
+    });
+});
