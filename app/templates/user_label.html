@@ -119,6 +119,7 @@
     <script src="{{ url_for('static', filename='js/auto-select-class.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bbox-editor-patch.js') }}"></script>
     <script src="{{ url_for('static', filename='js/inline-bbox-editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/whole-image-bbox.js') }}"></script>
 </head>
 
 <body>
@@ -169,9 +170,10 @@
                         <button id="inline-bbox-cancel" class="editor-button cancel-btn">Cancel Changes</button>
                     </div>
 
-                    <button id="inline-bbox-delete-all" class="editor-button delete-all-btn">
-                        Delete All Boxes
-                    </button>
+                    <div class="control-buttons2">
+                        <button id="inline-bbox-delete-all" class="editor-button delete-all-btn">Delete All Boxes</button>
+                        <button id="inline-bbox-whole-image" class="editor-button whole-image-btn">Whole Image Box</button>
+                    </div>
 
                     <!-- Open advanced editor button -->
                     <button id="open-popup-editor" class="editor-button popup-btn">
@@ -333,6 +335,7 @@
                         <button id="bbox-update" class="bbox-editor-button bbox-editor-button-update">Save Changes</button>
                         <button id="bbox-delete" class="bbox-editor-button bbox-editor-button-delete">Delete Box</button>
                         <button id="bbox-delete-all" class="bbox-editor-button bbox-editor-button-delete-all">Delete All Boxes</button>
+                        <button id="bbox-whole-image" class="bbox-editor-button whole-image-btn">Whole Image Box</button>
                         <button id="bbox-cancel" class="bbox-editor-button bbox-editor-button-cancel">Cancel Changes</button>
                     </div>
                 </div>

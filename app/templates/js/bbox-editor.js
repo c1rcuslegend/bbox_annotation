@@ -44,6 +44,7 @@ class BBoxEditor {
         this.img.style.display = 'none';
     }
 
+    // Modify the redrawCanvas method in BBoxEditor class
     redrawCanvas() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.drawImage(this.img, 0, 0);
@@ -57,10 +58,18 @@ class BBoxEditor {
 
                 // Show label info for each box with enhanced readability
                 const isSelected = this.selectedBboxIndex === index;
-                const labelX = box[0];
-                const labelY = box[1] - 5;
 
-                // IMPROVED: Get label ID with fallback to gt field if needed
+                // Check if box is at top edge or is a whole-image box
+                const isAtTopEdge = box[1] <= 5; // within 5px of top edge
+                const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
+                                     Math.abs(box[2] - this.canvas.width) <= 5 &&
+                                     Math.abs(box[3] - this.canvas.height) <= 5;
+
+                // Position label inside the box if it's at top edge
+                const labelX = box[0] + 5; // Add small padding from left edge
+                const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
+
+                // Get label ID with fallback to gt field if needed
                 let labelId;
                 if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
                     labelId = this.bboxes.labels[index];
@@ -141,10 +150,19 @@ class BBoxEditor {
 
                     // Show label info for each box with enhanced readability
                     const isSelected = this.selectedBboxIndex === index;
-                    const labelX = box[0];
-                    const labelY = box[1] - 5;
 
-                    // IMPROVED: Get label ID with fallback to gt field if needed
+                    // Check if box is at top edge or is a whole-image box
+                    const isAtTopEdge = box[1] <= 5; // within 5px of top edge
+                    const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
+                                         Math.abs(box[2] - this.canvas.width) <= 5 &&
+                                         Math.abs(box[3] - this.canvas.height) <= 5;
+
+                    // Position label inside the box if it's at top edge
+                    const labelX = box[0] + 5; // Add small padding from left edge
+                    const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
+
+
+                    // Get label ID with fallback to gt field if needed
                     let labelId;
                     if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
                         labelId = this.bboxes.labels[index];

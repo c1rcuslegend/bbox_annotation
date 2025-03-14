@@ -590,6 +590,16 @@ class BBoxEditorUI {
                     this.drawHandles(ctx, x, y, width, height);
                 }
 
+                // Check if box is at top edge or is a whole-image box
+                const isAtTopEdge = box[1] <= 5; // within 5px of top edge
+                const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
+                                   Math.abs(box[2] - this.img.naturalWidth) <= 5 &&
+                                   Math.abs(box[3] - this.img.naturalHeight) <= 5;
+
+                // Position label inside the box if it's at top edge
+                const labelX = x + 5; // Add small padding from left edge
+                const labelY = isAtTopEdge ? y + 20 : y - 8; // Move label inside box if at top edge
+
                 // Prepare label text
                 // Try labels first, then gt, then use score
                 let labelText = `Box ${i + 1}`;
@@ -621,10 +631,6 @@ class BBoxEditorUI {
                 // Calculate text metrics for background
                 const textMetrics = ctx.measureText(labelText);
                 const textWidth = textMetrics.width;
-
-                // Position label above the box
-                const labelX = x;
-                const labelY = y - 8;
 
                 // Draw background with rounded corners
                 ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';

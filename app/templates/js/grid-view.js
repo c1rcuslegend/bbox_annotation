@@ -74,9 +74,12 @@ window.onload = function() {
     // Check initial checkbox state
     checkInitialCheckboxState();
 
-    const correctedImages = parseInt(document.getElementById('num-corrected-images').textContent, 10);
-    const totalImages = 50000;
-    updateProgressBar(correctedImages, totalImages);
+    const correctedImagesElement = document.getElementById('num-corrected-images');
+    if (correctedImagesElement) {
+        const correctedImages = parseInt(correctedImagesElement.textContent, 10);
+        const totalImages = 50000;
+        updateProgressBar(correctedImages, totalImages);
+    }
 };
 
 // Function to render bounding boxes for all images
@@ -151,21 +154,21 @@ function renderBoundingBoxes(overlay, bboxData, img, threshold, imageIndex) {
     if (bboxData && typeof bboxData === 'object') {
         // Format 1: {boxes: [[x1,y1,x2,y2],...], scores: [], labels: []}
         if (Array.isArray(bboxData.boxes)) {
-            renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold);
+            renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold, displayHeight);
         }
         // Format 2: {imageIndex: {boxes: [...], scores: [...], labels: [...]}}
         else if (bboxData[imageIndex] && bboxData[imageIndex].boxes) {
-            renderBoxesFormat1(overlay, bboxData[imageIndex], imgLeft, imgTop, scaleX, scaleY, threshold);
+            renderBoxesFormat1(overlay, bboxData[imageIndex], imgLeft, imgTop, scaleX, scaleY, threshold, displayHeight);
         }
         // Format 3: Array of box objects
         else if (Array.isArray(bboxData)) {
-            renderBoxesFormat3(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY);
+            renderBoxesFormat3(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, displayHeight);
         }
     }
 }
 
 // Render boxes in format {boxes: [[x1,y1,x2,y2],...], scores: [], labels: []}
-function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold) {
+function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold, imgHeight) {
     if (!bboxData.boxes || !Array.isArray(bboxData.boxes) || bboxData.boxes.length === 0) {
         return;
     }
@@ -207,7 +210,7 @@ function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, 
             }
 
             // Create and add label element
-            const labelDiv = createLabelElement(labelId, boxLeft, boxTop);
+            const labelDiv = createLabelElement(labelId, boxLeft, boxTop, imgHeight, imgTop);
 
             // Add elements to overlay
             overlay.appendChild(bboxDiv);
@@ -217,7 +220,7 @@ function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, 
 }
 
 // Render boxes in format [{coordinates: [x,y,width,height], label: 0}, ...]
-function renderBoxesFormat3(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY) {
+function renderBoxesFormat3(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY, imgHeight) {
     if (!Array.isArray(bboxes) || bboxes.length === 0) {
         return;
     }
@@ -261,7 +264,7 @@ function renderBoxesFormat3(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY) {
             const labelId = bbox.label !== undefined ? bbox.label : 0;
 
             // Create and add label element
-            const labelDiv = createLabelElement(labelId, boxLeft, boxTop);
+            const labelDiv = createLabelElement(labelId, boxLeft, boxTop, imgHeight, imgTop);
 
             // Add elements to overlay
             overlay.appendChild(bboxDiv);
@@ -270,14 +273,10 @@ function renderBoxesFormat3(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY) {
     });
 }
 
-// Helper function to create a label element with styling
-function createLabelElement(labelId, boxLeft, boxTop) {
+// Helper function to create a label element with smart positioning
+function createLabelElement(labelId, boxLeft, boxTop, imgHeight, imgTop) {
     const labelDiv = document.createElement('div');
     labelDiv.className = 'bbox-label';
-
-    // Position the label above the box
-    labelDiv.style.left = `${boxLeft}px`;
-    labelDiv.style.top = `${boxTop - 22}px`; // Position above the box
 
     // Get the class name from the mapping or use the ID if not found
     let labelName = classLabelMap[labelId] || `Class ${labelId}`;
@@ -290,6 +289,26 @@ function createLabelElement(labelId, boxLeft, boxTop) {
     // Format the label text
     const labelText = `${labelId} - ${labelName}`;
     labelDiv.textContent = labelText;
+
+    // Calculate label height and buffer space
+    const labelHeight = 22; // Approximate height of label
+    const buffer = 5; // Buffer space from edge
+
+    // Check if we should place label below instead of above
+    // Determine if the label would go out of bounds on top
+    const labelTop = boxTop - labelHeight - buffer;
+    const isOutOfBoundsTop = labelTop < imgTop + buffer;
+
+    if (isOutOfBoundsTop) {
+        // Position just below the top-left corner of the box
+        labelDiv.style.left = `${boxLeft}px`; // Align with left edge
+        labelDiv.style.top = `${boxTop + buffer}px`; // Just below top border
+        labelDiv.classList.add('below-top-left');
+    } else {
+        // Position above the box (original behavior)
+        labelDiv.style.left = `${boxLeft}px`;
+        labelDiv.style.top = `${boxTop - labelHeight - buffer}px`;
+    }
 
     return labelDiv;
 }
@@ -314,19 +333,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const legendContainer = document.querySelector('.legend-container');
     const legendClose = document.querySelector('.legend-close');
 
-    legendToggle.addEventListener('click', function() {
-        legendContainer.classList.toggle('show');
-    });
+    if (legendToggle && legendContainer && legendClose) {
+        legendToggle.addEventListener('click', function() {
+            legendContainer.classList.toggle('show');
+        });
 
-    legendClose.addEventListener('click', function() {
-        legendContainer.classList.remove('show');
-    });
-
-    // Close legend when clicking outside
-    document.addEventListener('click', function(event) {
-        if (!legendContainer.contains(event.target) &&
-            !legendToggle.contains(event.target)) {
+        legendClose.addEventListener('click', function() {
             legendContainer.classList.remove('show');
-        }
-    });
+        });
+
+        // Close legend when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!legendContainer.contains(event.target) &&
+                !legendToggle.contains(event.target)) {
+                legendContainer.classList.remove('show');
+            }
+        });
+    }
 });

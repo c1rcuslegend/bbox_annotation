@@ -737,7 +737,6 @@ body {
 .control-buttons {
     display: flex;
     gap: 10px;
-    margin-bottom: 15px;
 }
 
 /* Button styles */
@@ -772,14 +771,12 @@ body {
     background-color: #2ecc71;
     color: white;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 17px;
 }
 
 .delete-all-btn {
     background-color: #000000;
     color: white;
-    width: 100%;
-    margin-top: 10px;
 }
 
 .popup-btn:hover {
@@ -1397,4 +1394,38 @@ body {
 .image-wrapper {
     scrollbar-width: thin;
     scrollbar-color: #5e5e5e transparent;
+}
+
+.control-buttons2 {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.whole-image-btn {
+    background: linear-gradient(45deg, #53add5, #32a1c6);
+    color: white;
+}
+
+.whole-image-btn:hover {
+    background: linear-gradient(45deg, #32a1c6, #53add5);
+}
+
+.bbox-editor-button-whole {
+    background: linear-gradient(45deg, #32a1c6, #53add5);
+    color: white;
+}
+
+.bbox-editor-button-whole:hover {
+    background: linear-gradient(45deg, #53add5, #32a1c6);
+}
+
+/* BBox label styles */
+.bbox-label.below-top-left {
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
