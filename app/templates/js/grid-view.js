@@ -33,12 +33,25 @@ function checkInitialCheckboxState() {
     button.innerText = allChecked ? "UNSELECT ALL" : "EVERYTHING IS CORRECT";
 }
 
-function updateProgressBar(correctedImages, totalImages) {
+function updateProgressBar(correctedImages, totalImages, className) {
     const progressBarFill = document.getElementById('progress-bar-fill');
     const progressText = document.getElementById('progress-text');
-    const progressPercentage = (correctedImages / totalImages) * 100;
-    progressBarFill.style.width = progressPercentage + '%';
-    progressText.innerText = `Images Corrected: ${correctedImages} / ${totalImages}`;
+
+    // Calculate percentage with safety checks
+    let progressPercentage = 0;
+    if (totalImages > 0) {
+        progressPercentage = Math.min(100, Math.max(0, (correctedImages / totalImages) * 100));
+    }
+
+    // Update progress bar
+    progressBarFill.style.width = progressPercentage.toFixed(1) + '%';
+
+    // Update text with class name if provided
+    if (className) {
+        progressText.innerHTML = `<strong>${className}</strong>: ${correctedImages} / ${totalImages} images corrected (${progressPercentage.toFixed(1)}%)`;
+    } else {
+        progressText.innerText = `Images Corrected: ${correctedImages} / ${totalImages}`;
+    }
 }
 
 // Initialize the page on load
@@ -74,11 +87,25 @@ window.onload = function() {
     // Check initial checkbox state
     checkInitialCheckboxState();
 
-    const correctedImagesElement = document.getElementById('num-corrected-images');
-    if (correctedImagesElement) {
-        const correctedImages = parseInt(correctedImagesElement.textContent, 10);
-        const totalImages = 50000;
-        updateProgressBar(correctedImages, totalImages);
+    // Load progress data for the current class
+    const progressData = document.getElementById('progress-data');
+    if (progressData) {
+        let className = document.getElementById('current-class-name')?.textContent;
+        if (className && className.length > 20) {
+            className = className.substring(0, 19) + '...';
+        }
+        const classCorrectedImages = parseInt(document.getElementById('class-corrected-images')?.textContent || '0', 10);
+        const classTotalImages = parseInt(document.getElementById('class-total-images')?.textContent || '0', 10);
+
+        if (classTotalImages > 0) {
+            // Use class-specific data
+            updateProgressBar(classCorrectedImages, classTotalImages, className);
+        } else {
+            // Fallback to global progress if class-specific data isn't available
+            const correctedImages = parseInt(document.getElementById('num-corrected-images')?.textContent || '0', 10);
+            const totalImages = 50000; // Global default
+            updateProgressBar(correctedImages, totalImages);
+        }
     }
 };
 

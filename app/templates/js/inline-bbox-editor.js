@@ -258,6 +258,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update hidden field
                 updateHiddenBboxesField();
 
+                // Reset radio selection when navigating
+                if (typeof window.resetRadioSelection === 'function') {
+                    window.resetRadioSelection();
+                    debug('Radio selection reset before form submission');
+                }
+
                 debug('Form submitted - saved bboxes and updated hidden field');
 
                 // Continue with form submission after a slight delay
@@ -278,6 +284,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.addEventListener('click', function() {
                     saveBboxes();
                     updateHiddenBboxesField();
+
+                    // Reset radio selection
+                    if (typeof window.resetRadioSelection === 'function') {
+                        window.resetRadioSelection();
+                    }
+
                     debug('Next button clicked - saved bboxes');
                 });
             }
@@ -286,6 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.addEventListener('click', function() {
                     saveBboxes();
                     updateHiddenBboxesField();
+
+                    // Reset radio selection
+                    if (typeof window.resetRadioSelection === 'function') {
+                        window.resetRadioSelection();
+                    }
+
                     debug('Prev button clicked - saved bboxes');
                 });
             }
@@ -1246,14 +1264,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     inlineEditor.bboxes.boxes.push([...inlineEditor.tempBox]);
                     inlineEditor.bboxes.scores.push(100); // 100% confidence
 
-                    // Add label - first check window.lastSelectedClassId from checkbox.js
+                    // Get class ID for new box
                     let classId = 0;
-                    if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
-                        classId = parseInt(window.lastSelectedClassId);
-                        debug(`Using global lastSelectedClassId: ${classId}`);
-                    } else if (inlineEditor.lastSelectedClassId !== null) {
-                        classId = parseInt(inlineEditor.lastSelectedClassId);
-                        debug(`Using local lastSelectedClassId: ${classId}`);
+
+                    // Use the global helper function if available
+                    if (typeof window.getClassForNewBBox === 'function') {
+                        classId = window.getClassForNewBBox();
+                        debug(`Using getClassForNewBBox function, got class ID: ${classId}`);
+                    }
+                    // Fallback logic if helper function is not available
+                    else {
+                        if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
+                            classId = parseInt(window.lastSelectedClassId);
+                            debug(`Using global lastSelectedClassId: ${classId}`);
+                        }
+                        else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
+                            classId = parseInt(window.groundTruthClassId);
+                            debug(`Using groundTruthClassId: ${classId}`);
+                        }
+                        else if (inlineEditor.lastSelectedClassId !== null) {
+                            classId = parseInt(inlineEditor.lastSelectedClassId);
+                            debug(`Using local lastSelectedClassId: ${classId}`);
+                        }
                     }
 
                     // Ensure labels array exists
@@ -1306,6 +1338,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Update hidden field for form submission
                     updateHiddenBboxesField();
+
+                    // Reset radio selection after using it
+                    if (window.lastSelectedClassId !== null && typeof window.resetRadioSelection === 'function') {
+                        window.resetRadioSelection();
+                        debug('Radio button selection reset after drawing box');
+                    }
 
                     debug(`Created new box with class ${classId}: [${inlineEditor.tempBox.join(', ')}]`);
                 }

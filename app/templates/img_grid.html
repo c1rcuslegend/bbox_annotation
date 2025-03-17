@@ -131,6 +131,13 @@
     </script>
     <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
 
-    <div id="num-corrected-images" style="display: none;">{{ num_corrected_images }}</div>
+    <!-- Class-specific progress data -->
+    <div id="progress-data" style="display: none;">
+        <span id="current-class-id">{{ label_indices[current_image_index] }}</span>
+        <span id="current-class-name">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</span>
+        <span id="class-corrected-images">{{ class_corrected_images }}</span>
+        <span id="class-total-images">{{ class_total_images }}</span>
+        <span id="num-corrected-images">{{ num_corrected_images }}</span>
+    </div>
 </body>
 </html>

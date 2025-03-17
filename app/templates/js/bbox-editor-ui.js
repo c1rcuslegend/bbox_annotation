@@ -1,5 +1,6 @@
 /**
  * Handles the UI for the bounding box editor modal
+ * Updated to use ground truth class for new boxes
  */
 class BBoxEditorUI {
     static openModal(box, boxIndex, bboxes, editor) {
@@ -234,7 +235,7 @@ class BBoxEditorUI {
                     // Store the index being deleted
                     const deletedIndex = this.currentBoxIndex;
 
-                    // Remove box, score and label from the arrays
+                                        // Remove box, score and label from the arrays
                     bboxes.boxes.splice(deletedIndex, 1);
                     bboxes.scores.splice(deletedIndex, 1);
                     if (bboxes.labels) bboxes.labels.splice(deletedIndex, 1);
@@ -428,7 +429,7 @@ class BBoxEditorUI {
                     }
 
                     if (classSelector) {
-                        classSelector.value = labelId;
+                        classSelector.value = labelId.toString();
 
                         // Update search input too
                         if (searchInput) {
@@ -600,30 +601,25 @@ class BBoxEditorUI {
                 const labelX = x + 5; // Add small padding from left edge
                 const labelY = isAtTopEdge ? y + 20 : y - 8; // Move label inside box if at top edge
 
-                // Prepare label text
-                // Try labels first, then gt, then use score
-                let labelText = `Box ${i + 1}`;
+                // Get label ID with fallback to gt field if needed
                 let labelId;
-
                 if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
                     labelId = this.bboxes.labels[i];
                 } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
                     labelId = this.bboxes.gt[i];
                     console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for label display`);
-                }
-
-                if (labelId !== undefined) {
-                    const classLabels = this.editor ? this.editor.classLabels : {};
-                    const labelName = classLabels[labelId] || `Class ${labelId}`;
-                    labelText = `${labelId} - ${labelName}`; // Simplified format
                 } else {
-                    labelText += ` (${this.bboxes.scores[i].toFixed(2)})`;
+                    labelId = 0; // Default fallback
                 }
 
-                // Save context before label rendering
+                // Prepare label text
+                const labelName = this.editor.classLabels[labelId] || labelId;
+                const labelText = `${labelId} - ${labelName}`; // Simplified format
+
+                // Save current context state
                 ctx.save();
 
-                // Text styling
+                // Text properties
                 const fontSize = 16;
                 const padding = 6;
                 ctx.font = `bold ${fontSize}px Arial, sans-serif`;
@@ -632,7 +628,7 @@ class BBoxEditorUI {
                 const textMetrics = ctx.measureText(labelText);
                 const textWidth = textMetrics.width;
 
-                // Draw background with rounded corners
+                // Background for better visibility
                 ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
 
                 // Create rounded rectangle path
@@ -650,12 +646,12 @@ class BBoxEditorUI {
                 ctx.closePath();
                 ctx.fill();
 
-                // Add subtle border
+                // Add a subtle border
                 ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
                 ctx.lineWidth = 1;
                 ctx.stroke();
 
-                // Draw text with shadow for better visibility
+                // Draw text with shadow for depth
                 ctx.fillStyle = 'white';
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
                 ctx.shadowBlur = 2;
@@ -728,7 +724,7 @@ class BBoxEditorUI {
     static setupPreviewCanvasEvents(canvas) {
         let isDragging = false;
         let isResizing = false;
-        let isDrawingNew = false; // Flag for drawing new bbox
+        this.isDrawingNew = false; // Flag for drawing new bbox
         let resizeCorner = null;
         let startX, startY;
         let newBoxStart = { x: 0, y: 0 }; // Starting coordinates for new box
@@ -811,7 +807,7 @@ class BBoxEditorUI {
         // Add click event listener to the canvas for selecting boxes
         canvas.addEventListener('click', (e) => {
             // Don't process clicks when in the middle of drawing
-            if (isDrawingNew) return;
+            if (this.isDrawingNew) return;
 
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -907,7 +903,7 @@ class BBoxEditorUI {
             // If we didn't click on any existing box border or corner, start drawing a new box
             const imgCoords = toImageCoords(x, y);
             newBoxStart = { x: imgCoords.x, y: imgCoords.y };
-            isDrawingNew = true;
+            this.isDrawingNew = true;
         });
 
         canvas.addEventListener('mousemove', (e) => {
@@ -975,10 +971,10 @@ class BBoxEditorUI {
             }
 
             // Handle drawing a new box
-            if (isDrawingNew) {
+            if (this.isDrawingNew) {
                 const imgCoords = toImageCoords(x, y);
 
-                // Create a temporary box for visualization
+                                // Create a temporary box for visualization
                 this.tempBox = [
                     Math.min(newBoxStart.x, imgCoords.x),
                     Math.min(newBoxStart.y, imgCoords.y),
@@ -1021,7 +1017,7 @@ class BBoxEditorUI {
 
         canvas.addEventListener('mouseup', (e) => {
             // If we were drawing a new box, finalize it
-            if (isDrawingNew && this.tempBox) {
+            if (this.isDrawingNew && this.tempBox) {
                 const width = this.tempBox[2] - this.tempBox[0];
                 const height = this.tempBox[3] - this.tempBox[1];
 
@@ -1031,20 +1027,58 @@ class BBoxEditorUI {
                     this.bboxes.boxes.push([...this.tempBox]);
                     this.bboxes.scores.push(100); // 100% confidence for user-drawn boxes
 
-                    // Get default class ID - try to use the last class selected in UI
-                    const classSelector = document.getElementById('bbox-class-selector');
-                    const defaultClassId = classSelector ? parseInt(classSelector.value) : 0;
+                    // Get default class ID using our helper function
+                    let classId = 0;
+
+                    // Use the global helper function if available, which handles ground truth and radio selection
+                    if (typeof window.getClassForNewBBox === 'function') {
+                        classId = window.getClassForNewBBox();
+                        console.log(`Advanced editor: Using getClassForNewBBox helper, got class: ${classId}`);
+                    } else {
+                        // Fallback to using ground truth directly or class selector
+                        // First check for ground truth data element
+                        const gtDataElement = document.getElementById('ground-truth-data');
+                        if (gtDataElement && gtDataElement.textContent) {
+                            try {
+                                const gtClassId = parseInt(gtDataElement.textContent.trim());
+                                if (!isNaN(gtClassId)) {
+                                    classId = gtClassId;
+                                    console.log(`Advanced editor: Using ground truth class ID from data element: ${classId}`);
+                                }
+                            } catch (e) {
+                                console.error('Error parsing ground truth class ID:', e);
+                            }
+                        }
+                        // Then check for global groundTruthClassId
+                        else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
+                            classId = parseInt(window.groundTruthClassId);
+                            console.log(`Advanced editor: Using global groundTruthClassId: ${classId}`);
+                        }
+                        // Then try the global lastSelectedClassId
+                        else if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
+                            classId = parseInt(window.lastSelectedClassId);
+                            console.log(`Advanced editor: Using global lastSelectedClassId: ${classId}`);
+                        }
+                        // Finally try the class selector
+                        else {
+                            const classSelector = document.getElementById('bbox-class-selector');
+                            if (classSelector) {
+                                classId = parseInt(classSelector.value) || 0;
+                                console.log(`Advanced editor: Using class selector value: ${classId}`);
+                            }
+                        }
+                    }
 
                     // Add label
                     if (!this.bboxes.labels) {
                         this.bboxes.labels = Array(this.bboxes.boxes.length - 1).fill(0);
                     }
-                    this.bboxes.labels.push(defaultClassId);
+                    this.bboxes.labels.push(classId);
 
                     // Also update gt array if it exists
                     if (this.bboxes.gt) {
-                        this.bboxes.gt.push(defaultClassId);
-                        console.log(`BBoxEditorUI: Added new box to gt array with class ${defaultClassId}`);
+                        this.bboxes.gt.push(classId);
+                        console.log(`Advanced editor: Added new box to gt array with class ${classId}`);
                     }
 
                     // Select the new box
@@ -1062,16 +1096,17 @@ class BBoxEditorUI {
                     this.updateBboxSelector(this.bboxes, this.selectedIndex, this.threshold, this.editor ? this.editor.classLabels : {});
 
                     // Update class selector
+                    const classSelector = document.getElementById('bbox-class-selector');
                     if (classSelector) {
-                        classSelector.value = defaultClassId.toString();
+                        classSelector.value = classId.toString();
 
                         // Update search input too
                         const searchInput = document.getElementById('class-search-input');
                         if (searchInput) {
-                            if (this.editor && this.editor.classLabels && this.editor.classLabels[defaultClassId]) {
-                                searchInput.value = `${defaultClassId} - ${this.editor.classLabels[defaultClassId]}`;
+                            if (this.editor && this.editor.classLabels && this.editor.classLabels[classId]) {
+                                searchInput.value = `${classId} - ${this.editor.classLabels[classId]}`;
                             } else {
-                                searchInput.value = `Class ${defaultClassId}`;
+                                searchInput.value = `Class ${classId}`;
                             }
                         }
                     }
@@ -1079,6 +1114,12 @@ class BBoxEditorUI {
                     // Update the editor's canvas
                     if (this.editor) {
                         this.editor.redrawCanvas();
+                    }
+
+                    // Reset radio selection if one was used
+                    if (window.lastSelectedClassId !== null && typeof window.resetRadioSelection === 'function') {
+                        window.resetRadioSelection();
+                        console.log('Advanced editor: Radio button selection reset after drawing box');
                     }
                 }
 
@@ -1091,18 +1132,18 @@ class BBoxEditorUI {
 
             isDragging = false;
             isResizing = false;
-            isDrawingNew = false;
+            this.isDrawingNew = false;
             resizeCorner = null;
         });
 
         canvas.addEventListener('mouseleave', () => {
-            if ((isDragging || isResizing || isDrawingNew) && this.editor) {
+            if ((isDragging || isResizing || this.isDrawingNew) && this.editor) {
                 this.editor.redrawCanvas(); // Update the main canvas too
             }
 
             isDragging = false;
             isResizing = false;
-            isDrawingNew = false;
+            this.isDrawingNew = false;
             resizeCorner = null;
             delete this.tempBox;
             canvas.style.cursor = 'default';
@@ -1172,4 +1213,4 @@ class BBoxEditorUI {
 // Export the module for use in other scripts
 window.BBoxEditorUI = BBoxEditorUI;
 
-console.log('BBox Editor UI loaded with fixed class search, improved deletion, and gt field support');
+console.log('BBox Editor UI loaded with ground truth class support and radio button integration');

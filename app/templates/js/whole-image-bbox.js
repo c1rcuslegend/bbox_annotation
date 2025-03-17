@@ -1,5 +1,6 @@
 /**
  * Add whole image bounding box functionality
+ * Updated to use ground truth class index from backend
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Registering Whole Image BBox functionality');
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Creates a bounding box covering the entire image and selects it
  * Works in both inline editor and advanced editor modes
+ * Uses ground_truth_class_index from the backend
  */
 function createWholeImageBBox() {
     // Try different ways to get editor references
@@ -116,27 +118,36 @@ function createWholeImageBBox() {
     // Determine the class ID to use
     let classId = 0;
 
-    // Try to get the class from the inline editor first
-    if (isInlineMode) {
-        // Try to get the last selected class ID from various sources
-        if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
+    // Use our global helper function for consistent class selection
+    if (typeof window.getClassForNewBBox === 'function') {
+        classId = window.getClassForNewBBox();
+        console.log(`Using getClassForNewBBox helper function, got class ID: ${classId}`);
+    }
+    else {
+        // Fallback if helper function is not available
+
+        // Try to get the ground truth class ID from the hidden element first
+        const gtDataElement = document.getElementById('ground-truth-data');
+        if (gtDataElement && gtDataElement.textContent) {
+            try {
+                const gtClassId = parseInt(gtDataElement.textContent.trim());
+                if (!isNaN(gtClassId)) {
+                    classId = gtClassId;
+                    console.log(`Using ground truth class ID from data element: ${classId}`);
+                }
+            } catch (e) {
+                console.error('Error parsing ground truth class ID:', e);
+            }
+        }
+        // If that fails, check if there's a global groundTruthClassId variable
+        else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
+            classId = parseInt(window.groundTruthClassId);
+            console.log(`Using global groundTruthClassId: ${classId}`);
+        }
+        // Last resort, try to get class from radio selection
+        else if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
             classId = parseInt(window.lastSelectedClassId);
             console.log(`Using global lastSelectedClassId: ${classId}`);
-        }
-
-        // Also check for selected class in the inline selector
-        const inlineClassSelector = document.getElementById('inline-class-selector');
-        if (inlineClassSelector && inlineClassSelector.value) {
-            classId = parseInt(inlineClassSelector.value);
-            console.log(`Using inline class selector value: ${classId}`);
-        }
-    }
-    // Try to get class from advanced editor mode
-    else {
-        const classSelector = document.getElementById('bbox-class-selector');
-        if (classSelector && classSelector.value) {
-            classId = parseInt(classSelector.value);
-            console.log(`Using advanced editor class selector: ${classId}`);
         }
     }
 
@@ -384,6 +395,12 @@ function createWholeImageBBox() {
                 window.BBoxEditorUI.updatePreviewCanvas();
             }
         }
+    }
+
+    // Reset radio selection if one was used
+    if (window.lastSelectedClassId !== null && typeof window.resetRadioSelection === 'function') {
+        window.resetRadioSelection();
+        console.log('Radio button selection has been reset after creating whole-image bbox');
     }
 
     // Try to focus the first class selector found

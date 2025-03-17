@@ -1,5 +1,6 @@
 /**
- * Auto-select class when checkbox is clicked
+ * Auto-select class when radio button is clicked
+ * Updated to use ground_truth_class_index from backend
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Debug mode
@@ -9,27 +10,66 @@ document.addEventListener('DOMContentLoaded', function() {
         if (DEBUG) console.log(`[Class Selector] ${message}`);
     }
 
-    // Store the last selected checkbox class ID globally
+    // Store the last selected class ID globally
     window.lastSelectedClassId = null;
 
-    // Track checkbox state changes
-    const checkboxStates = {};
+    // Store the ground truth class ID if available
+    window.groundTruthClassId = null;
 
-    // Find all category checkboxes
-    const checkboxes = document.querySelectorAll('input[name="checkboxes"]');
+    // Extract ground truth class ID directly from the hidden data element
+    function extractGroundTruthClassId() {
+        const gtDataElement = document.getElementById('ground-truth-data');
 
-    // Initialize checkbox states
-    checkboxes.forEach(checkbox => {
-        checkboxStates[checkbox.value] = checkbox.checked;
+        if (gtDataElement && gtDataElement.textContent) {
+            try {
+                const gtClassId = parseInt(gtDataElement.textContent.trim());
+                if (!isNaN(gtClassId)) {
+                    window.groundTruthClassId = gtClassId;
+                    debug(`Found ground truth class ID from data element: ${window.groundTruthClassId}`);
+                    return window.groundTruthClassId;
+                }
+            } catch (e) {
+                debug(`Error parsing ground truth class ID: ${e}`);
+            }
+        }
+
+        // Fallback to extracting from GT label text
+        const gtLabel = document.querySelector('.gt-label');
+        if (gtLabel) {
+            const gtText = gtLabel.textContent;
+            // Extract the class ID from text like "Ground Truth: 123 - Class Name" or just a number
+            const match = gtText.match(/Ground Truth:?\s*(\d+)/i) || gtText.match(/(\d+)/);
+            if (match && match[1]) {
+                const gtClassId = parseInt(match[1]);
+                window.groundTruthClassId = gtClassId;
+                debug(`Found ground truth class ID from label text: ${window.groundTruthClassId}`);
+                return gtClassId;
+            }
+        }
+
+        debug('Could not find ground truth class ID');
+        return null;
+    }
+
+    // Extract the ground truth class ID when page loads
+    extractGroundTruthClassId();
+
+    // Find all radio buttons for class selection
+    const radioButtons = document.querySelectorAll('input[type="radio"][name="class_selection"]');
+
+    // Ensure all radio buttons are unchecked on page load
+    radioButtons.forEach(radio => {
+        radio.checked = false;
     });
+    debug('Cleared all radio button selections on page load');
 
-    // Add click event listeners to checkboxes
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('click', function(e) {
-            // Only proceed if checkbox is being checked (not unchecked)
-            if (this.checked && !checkboxStates[this.value]) {
+    // Add click event listeners to radio buttons
+    radioButtons.forEach(radio => {
+        radio.addEventListener('click', function(e) {
+            // Only proceed if radio is being checked
+            if (this.checked) {
                 const classId = parseInt(this.value);
-                debug(`Checkbox ${classId} clicked - storing class ID`);
+                debug(`Radio button for class ${classId} selected`);
 
                 // Store the class ID globally for use by the bbox editor
                 window.lastSelectedClassId = classId;
@@ -51,11 +91,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show a center screen notification
                 showCenterNotification(`${className} selected!`, `Draw a bounding box for this class`);
             }
-
-            // Update state
-            checkboxStates[this.value] = this.checked;
         });
     });
+
+    // Function to reset all radio button selections
+    window.resetRadioSelection = function() {
+        radioButtons.forEach(radio => {
+            radio.checked = false;
+        });
+
+        // Reset the global selection variable
+        window.lastSelectedClassId = null;
+        debug('Radio selection has been reset');
+    };
+
+    // Helper function to get the current class ID for a new bounding box
+    // Exposed globally so it can be called from other scripts
+    window.getClassForNewBBox = function() {
+        // Priority: 1. Radio button selection, 2. Ground truth
+        if (window.lastSelectedClassId !== null && window.lastSelectedClassId !== undefined) {
+            debug(`Using selected radio button class: ${window.lastSelectedClassId}`);
+            return parseInt(window.lastSelectedClassId);
+        }
+        else if (window.groundTruthClassId !== null && window.groundTruthClassId !== undefined) {
+            debug(`Using ground truth class as default: ${window.groundTruthClassId}`);
+            return parseInt(window.groundTruthClassId);
+        }
+
+        // Default to 0 if nothing else is available
+        debug('No class selection or ground truth available, using default 0');
+        return 0;
+    };
+
+    // Setup navigation button handlers to clear radio selection when navigating
+    setupNavigationHandlers();
+
+    function setupNavigationHandlers() {
+        // Handle navigation buttons (prev/next arrows)
+        const navigationButtons = document.querySelectorAll('.refresh-btn');
+        navigationButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Reset radio buttons when navigating
+                window.resetRadioSelection();
+                debug('Radio selection cleared due to navigation');
+            });
+        });
+    }
 
     // Function to show a temporary center screen notification
     function showCenterNotification(title, message) {
@@ -128,5 +209,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    debug("Auto-class selection initialized with center screen notification");
+    // Log the ground truth class ID for debugging
+    if (window.groundTruthClassId !== null) {
+        debug(`Ground truth class ID initialized to: ${window.groundTruthClassId}`);
+    } else {
+        debug('Ground truth class ID not found, will default to 0');
+    }
+
+    debug("Radio button class selection initialized with ground truth prioritization");
 });

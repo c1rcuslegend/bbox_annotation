@@ -11,7 +11,6 @@ from .app_utils import get_form_data, load_user_data, update_current_image_index
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
 
-
 def convert_bboxes_to_serializable(bboxes):
     """Convert bbox data to a serializable format for JSON."""
     # If bboxes already has the expected structure but with numpy arrays, convert them
@@ -82,6 +81,26 @@ def ensure_at_least_one_bbox(bboxes, threshold):
 
 
 def register_routes(app):
+    # Initialize the global bbox data
+    app.bbox_openclip_data = {}
+
+    def load_bbox_openclip_data(username):
+        """Helper function to load bbox data for a specific image"""
+        if username not in app.bbox_openclip_data:
+            # Load entire file for this user
+            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
+                                          username, f'bboxes_{username}.json')
+            app.bbox_openclip_data[username] = get_bboxes_from_file(bbox_file_path)
+
+        # Return data for specific image if exists
+        if app.bbox_openclip_data:
+            return app.bbox_openclip_data[username]
+
+        return {}
+
+    # Attach the loader function to app for access from routes
+    app.load_bbox_openclip_data = load_bbox_openclip_data
+
     @app.route('/', methods=['GET', 'POST'])
     def index():
         """
@@ -191,7 +210,14 @@ def register_routes(app):
                 if data.get('label_type') == 'ood':
                     borders[selected_index] = 'border-ood'
                 elif len(data.get('bboxes', [])) > 1:
-                    borders[selected_index] = 'border-m'
+                    labels = set()
+                    for bbox in data['bboxes']:
+                        if bbox['label'] not in labels:
+                            if len(labels) == 0:
+                                labels.add(bbox['label'])
+                            else:
+                                borders[selected_index] = 'border-m'
+                                break
 
                 # Extract bounding boxes from annotations
                 data = man_annotated_bboxes_dict[image_basename]
@@ -202,8 +228,7 @@ def register_routes(app):
                             bboxes['labels'].append(bbox['label'])
                             bboxes['scores'].append(100)  # Default high confidence score
             else:
-                data = get_bboxes_from_file(os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
-                                                         username, f'bboxes_{username}.json'), image_basename)
+                data = app.load_bbox_openclip_data(username)[image_basename]
                 for box, label, score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
@@ -220,7 +245,19 @@ def register_routes(app):
 
         assert len(image_paths) == len(label_indices) == NUM_IMG_TO_FETCH
 
-        print(bbox_data)
+        print("bbox_data: ", bbox_data)
+
+        # Load class_corrected_images from checkbox selection file
+        class_dict = ClassDictionary()
+        current_class = current_image_index // 50
+        class_corrected_images = 0
+        for img_name_key in man_annotated_bboxes_dict.keys():
+            if class_corrected_images == 50:
+                break
+            if class_dict.get_val_img_class(img_name_key) == current_class:
+                class_corrected_images += 1
+
+        print(class_corrected_images)
 
         return render_template('img_grid.html',
                                image_paths=image_paths,
@@ -232,7 +269,9 @@ def register_routes(app):
                                human_readable_classes_map=label_indices_to_human_readable,
                                current_image_index=current_image_index,
                                num_corrected_images=num_corrected_images,
-                               borders=borders)
+                               borders=borders,
+                               class_corrected_images=class_corrected_images,
+                               class_total_images=50)
 
     @app.route('/<username>/label_image')
     def label_image(username):
@@ -391,11 +430,9 @@ def register_routes(app):
                 print(f"Found {len(boxes)} bboxes in annotator format")
 
         # If no bboxes found in checkbox_selections, try loading from machine-generated bboxes file
-        if bboxes is None:
-            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
-                                          f'bboxes_{username}.json')
+        else:
 
-            bbox_data = get_bboxes_from_file(bbox_file_path, current_image)
+            bbox_data = app.load_bbox_openclip_data(username)[current_image]
 
             # Check if we got valid bbox data
             if bbox_data and 'boxes' in bbox_data and bbox_data['boxes']:
@@ -439,6 +476,7 @@ def register_routes(app):
                                username=username,
                                ground_truth_label=class_dict.get_class_name(
                                    class_dict.get_val_img_class(current_image)),
+                               ground_truth_class_index = class_dict.get_val_img_class(current_image),
                                checked_categories=checked_categories,
                                comments=comments,
                                human_readable_classes_map=label_indices_to_human_readable,
@@ -470,8 +508,7 @@ def register_routes(app):
 
         # Load user data
         _, checkbox_selections = load_user_data(app, username)
-        bboxes_dict = read_json_file(
-            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
+        bboxes_dict = app.load_bbox_openclip_data(username)
         man_annotated_bboxes_dict = read_json_file(
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
             app)
@@ -576,8 +613,7 @@ def register_routes(app):
 
         # Load user data
         _, checkbox_selections = load_user_data(app, username)
-        bboxes_dict = read_json_file(
-            os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'bboxes_{username}.json'), app)
+        bboxes_dict = app.load_bbox_openclip_data(username)
         man_annotated_bboxes_dict = read_json_file(
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
             app)
@@ -807,7 +843,6 @@ def register_routes(app):
 
                 # Handle existing data structure with label_type
                 if isinstance(existing_data, dict) and "label_type" in existing_data:
-                    label_type = existing_data.get("label_type", "basic")
                     selected_classes = existing_data.get("selected_classes", {})
 
                 # Update with new bboxes while preserving label type info

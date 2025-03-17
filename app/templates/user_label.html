@@ -236,8 +236,8 @@
 
                         <div class="category_label">{{ human_readable_classes_map[pred_info|string] }}</div>
                         <label class="container">
-                            <input form="save" type="checkbox" id="checkbox_{{ loop.index }}" name="checkboxes" value="{{ pred_info }}"
-                                   {% if pred_info|string in checked_categories %}checked{% endif %}>
+                            <!-- No more automatic checking based on checked_categories -->
+                            <input form="save" type="radio" id="radio_{{ loop.index }}" name="class_selection" value="{{ pred_info }}">
                             <div class="checkmark"></div>
                         </label>
                         <div class="right">
@@ -347,6 +347,7 @@
     </div>
 
     <!-- Hidden elements for passing data to JavaScript -->
+    <div id="ground-truth-data" style="display:none;">{{ ground_truth_class_index|default(0) }}</div>
     <script id="bbox-data" type="application/json">{{ bboxes|tojson }}</script>
     <script id="threshold" type="application/json">{{ threshold }}</script>
     <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
