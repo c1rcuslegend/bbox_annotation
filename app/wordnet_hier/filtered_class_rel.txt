@@ -1,0 +1,1000 @@
+Leaf: menu, Index: 922,                                                                                                      Parents: food
+Leaf: carbonara, Index: 959,                                                                                                 Parents: food
+Leaf: bubble, Index: 971,                                                                                                    Parents: other
+Leaf: pretzel, Index: 932,                                                                                                   Parents: food
+Leaf: street sign, Index: 919,                                                                                               Parents: other
+Leaf: toilet tissue, toilet paper, bathroom tissue, Index: 999,                                                              Parents: other
+Leaf: French loaf, Index: 930,                                                                                               Parents: food
+Leaf: traffic light, traffic signal, stoplight, Index: 920,                                                                  Parents: motor vehicle
+Leaf: bagel, beigel, Index: 931,                                                                                             Parents: food
+Leaf: chocolate sauce, chocolate syrup, Index: 960,                                                                          Parents: food
+Leaf: guacamole, Index: 924,                                                                                                 Parents: food
+Leaf: hay, Index: 958,                                                                                                       Parents: other
+Leaf: hotdog, hot dog, red hot, Index: 934,                                                                                  Parents: food
+Leaf: cheeseburger, Index: 933,                                                                                              Parents: food
+Leaf: mashed potato, Index: 935,                                                                                             Parents: food
+Leaf: dough, Index: 961,                                                                                                     Parents: food
+Leaf: hot pot, hotpot, Index: 926,                                                                                           Parents: food
+Leaf: meat loaf, meatloaf, Index: 962,                                                                                       Parents: food
+Leaf: consomme, Index: 925,                                                                                                  Parents: food
+Leaf: potpie, Index: 964,                                                                                                    Parents: food
+Leaf: burrito, Index: 965,                                                                                                   Parents: food
+Leaf: pizza, pizza pie, Index: 963,                                                                                          Parents: food
+Leaf: plate, Index: 923,                                                                                                     Parents: food
+Leaf: ice lolly, lolly, lollipop, popsicle, Index: 929,                                                                      Parents: food
+Leaf: ice cream, icecream, Index: 928,                                                                                       Parents: food
+Leaf: trifle, Index: 927,                                                                                                    Parents: food
+Leaf: cliff, drop, drop-off, Index: 972,                                                                                     Parents: geological formation
+Leaf: valley, vale, Index: 979,                                                                                              Parents: geological formation
+Leaf: alp, Index: 970,                                                                                                       Parents: geological formation
+Leaf: volcano, Index: 980,                                                                                                   Parents: geological formation
+Leaf: promontory, headland, head, foreland, Index: 976,                                                                      Parents: geological formation
+Leaf: sandbar, sand bar, Index: 977,                                                                                         Parents: geological formation
+Leaf: coral reef, Index: 973,                                                                                                Parents: geological formation
+Leaf: lakeside, lakeshore, Index: 975,                                                                                       Parents: geological formation
+Leaf: seashore, coast, seacoast, sea-coast, Index: 978,                                                                      Parents: geological formation
+Leaf: geyser, Index: 974,                                                                                                    Parents: geological formation
+Leaf: espresso, Index: 967,                                                                                                  Parents: beverage
+Leaf: red wine, Index: 966,                                                                                                  Parents: beverage
+Leaf: eggnog, Index: 969,                                                                                                    Parents: beverage
+Leaf: cup, Index: 968,                                                                                                       Parents: beverage
+Leaf: bell pepper, Index: 945,                                                                                               Parents: vegetable
+Leaf: head cabbage, Index: 936,                                                                                              Parents: vegetable
+Leaf: broccoli, Index: 937,                                                                                                  Parents: vegetable
+Leaf: cauliflower, Index: 938,                                                                                               Parents: vegetable
+Leaf: acorn squash, Index: 941,                                                                                              Parents: vegetable
+Leaf: butternut squash, Index: 942,                                                                                          Parents: vegetable
+Leaf: zucchini, courgette, Index: 939,                                                                                       Parents: vegetable
+Leaf: spaghetti squash, Index: 940,                                                                                          Parents: vegetable
+Leaf: cucumber, cuke, Index: 943,                                                                                            Parents: vegetable
+Leaf: artichoke, globe artichoke, Index: 944,                                                                                Parents: vegetable
+Leaf: cardoon, Index: 946,                                                                                                   Parents: vegetable
+Leaf: mushroom, Index: 947,                                                                                                  Parents: vegetable
+Leaf: Granny Smith, Index: 948,                                                                                              Parents: fruits and berries
+Leaf: strawberry, Index: 949,                                                                                                Parents: fruits and berries
+Leaf: orange, Index: 950,                                                                                                    Parents: fruits and berries
+Leaf: lemon, Index: 951,                                                                                                     Parents: fruits and berries
+Leaf: fig, Index: 952,                                                                                                       Parents: fruits and berries
+Leaf: pineapple, ananas, Index: 953,                                                                                         Parents: fruits and berries
+Leaf: banana, Index: 954,                                                                                                    Parents: fruits and berries
+Leaf: jackfruit, jak, jack, Index: 955,                                                                                      Parents: fruits and berries
+Leaf: custard apple, Index: 956,                                                                                             Parents: fruits and berries
+Leaf: pomegranate, Index: 957,                                                                                               Parents: fruits and berries
+Leaf: acorn, Index: 988,                                                                                                     Parents: plants
+Leaf: hip, rose hip, rosehip, Index: 989,                                                                                    Parents: plants
+Leaf: ear, spike, capitulum, Index: 998,                                                                                     Parents: plants
+Leaf: rapeseed, Index: 984,                                                                                                  Parents: plants
+Leaf: corn, Index: 987,                                                                                                      Parents: plants
+Leaf: buckeye, horse chestnut, conker, Index: 990,                                                                           Parents: plants
+Leaf: grand piano, grand, Index: 579,                                                                                        Parents: musical instrument
+Leaf: upright, upright piano, Index: 881,                                                                                    Parents: musical instrument
+Leaf: chime, bell, gong, Index: 494,                                                                                         Parents: musical instrument
+Leaf: drum, membranophone, tympan, Index: 541,                                                                               Parents: musical instrument
+Leaf: gong, tam-tam, Index: 577,                                                                                             Parents: musical instrument
+Leaf: maraca, Index: 641,                                                                                                    Parents: musical instrument
+Leaf: marimba, xylophone, Index: 642,                                                                                        Parents: musical instrument
+Leaf: steel drum, Index: 822,                                                                                                Parents: musical instrument
+Leaf: banjo, Index: 420,                                                                                                     Parents: musical instrument
+Leaf: cello, violoncello, Index: 486,                                                                                        Parents: musical instrument
+Leaf: violin, fiddle, Index: 889,                                                                                            Parents: musical instrument
+Leaf: harp, Index: 594,                                                                                                      Parents: musical instrument
+Leaf: acoustic guitar, Index: 402,                                                                                           Parents: musical instrument
+Leaf: electric guitar, Index: 546,                                                                                           Parents: musical instrument
+Leaf: organ, pipe organ, Index: 687,                                                                                         Parents: musical instrument
+Leaf: cornet, horn, trumpet, trump, Index: 513,                                                                              Parents: musical instrument
+Leaf: French horn, horn, Index: 566,                                                                                         Parents: musical instrument
+Leaf: trombone, Index: 875,                                                                                                  Parents: musical instrument
+Leaf: accordion, piano accordion, squeeze box, Index: 401,                                                                   Parents: musical instrument
+Leaf: harmonica, mouth organ, harp, mouth harp, Index: 593,                                                                  Parents: musical instrument
+Leaf: ocarina, sweet potato, Index: 684,                                                                                     Parents: musical instrument
+Leaf: panpipe, pandean pipe, syrinx, Index: 699,                                                                             Parents: musical instrument
+Leaf: bassoon, Index: 432,                                                                                                   Parents: musical instrument
+Leaf: oboe, hautboy, hautbois, Index: 683,                                                                                   Parents: musical instrument
+Leaf: sax, saxophone, Index: 776,                                                                                            Parents: musical instrument
+Leaf: flute, transverse flute, Index: 558,                                                                                   Parents: musical instrument
+Leaf: wing, Index: 908,                                                                                                      Parents: aircraft
+Leaf: oxygen mask, Index: 691,                                                                                               Parents: diving
+Leaf: snorkel, Index: 801,                                                                                                   Parents: diving
+Leaf: loudspeaker, speaker, speaker unit, loudspeaker system, speaker system, Index: 632,                                    Parents: computer and devices
+Leaf: microphone, mike, Index: 650,                                                                                          Parents: musical instrument
+Leaf: screen, CRT screen, Index: 782,                                                                                        Parents: computer and devices
+Leaf: mouse, computer mouse, Index: 673,                                                                                     Parents: computer and devices
+Leaf: electric fan, blower, Index: 545,                                                                                      Parents: household
+Leaf: oil filter, Index: 686,                                                                                                Parents: other
+Leaf: strainer, Index: 828,                                                                                                  Parents: kitchen device
+Leaf: space heater, Index: 811,                                                                                              Parents: electrical device
+Leaf: stove, Index: 827,                                                                                                     Parents: kitchen device
+Leaf: guillotine, Index: 583,                                                                                                Parents: other
+Leaf: barometer, Index: 426,                                                                                                 Parents: measuring instrument
+Leaf: rule, ruler, Index: 769,                                                                                               Parents: measuring instrument
+Leaf: odometer, hodometer, mileometer, milometer, Index: 685,                                                                Parents: measuring instrument
+Leaf: scale, weighing machine, Index: 778,                                                                                   Parents: measuring instrument
+Leaf: digital watch, Index: 531,                                                                                             Parents: clock
+Leaf: analog clock, Index: 409,                                                                                              Parents: clock
+Leaf: digital clock, Index: 530,                                                                                             Parents: clock
+Leaf: wall clock, Index: 892,                                                                                                Parents: clock
+Leaf: hourglass, Index: 604,                                                                                                 Parents: clock
+Leaf: sundial, Index: 835,                                                                                                   Parents: clock
+Leaf: parking meter, Index: 704,                                                                                             Parents: measuring instrument
+Leaf: stopwatch, stop watch, Index: 826,                                                                                     Parents: clock
+Leaf: stethoscope, Index: 823,                                                                                               Parents: medical equipment
+Leaf: syringe, Index: 845,                                                                                                   Parents: medical equipment
+Leaf: magnetic compass, Index: 635,                                                                                          Parents: instrument
+Leaf: binoculars, field glasses, opera glasses, Index: 447,                                                                  Parents: instrument
+Leaf: projector, Index: 745,                                                                                                 Parents: instrument
+Leaf: sunglasses, dark glasses, shades, Index: 837,                                                                          Parents: clothing
+Leaf: loupe, jeweler's loupe, Index: 633,                                                                                    Parents: instrument
+Leaf: radio telescope, radio reflector, Index: 755,                                                                          Parents: instrument
+Leaf: missile, Index: 657,                                                                                                   Parents: weapon
+Leaf: bow, Index: 456,                                                                                                       Parents: weapon
+Leaf: cannon, Index: 471,                                                                                                    Parents: weapon
+Leaf: assault rifle, assault gun, Index: 413,                                                                                Parents: weapon
+Leaf: revolver, six-gun, six-shooter, Index: 763,                                                                            Parents: weapon
+Leaf: rifle, Index: 764,                                                                                                     Parents: weapon
+Leaf: projectile, missile, Index: 744,                                                                                       Parents: weapon
+Leaf: computer keyboard, keypad, Index: 508,                                                                                 Parents: computer and devices
+Leaf: typewriter keyboard, Index: 878,                                                                                       Parents: computer and devices
+Leaf: crane, Index: 517,                                                                                                     Parents: machine
+Leaf: lighter, light, igniter, ignitor, Index: 626,                                                                          Parents: lighting
+Leaf: power drill, Index: 740,                                                                                               Parents: electrical device
+Leaf: chain saw, chainsaw, Index: 491,                                                                                       Parents: electrical device
+Leaf: abacus, Index: 398,                                                                                                    Parents: other
+Leaf: cash machine, cash dispenser, automated teller machine, automatic teller machine, automated teller, automatic teller, ATM, Index: 480, Parents: machine
+Leaf: slide rule, slipstick, Index: 798,                                                                                     Parents: measuring instrument
+Leaf: desktop computer, Index: 527,                                                                                          Parents: computer and devices
+Leaf: laptop, laptop computer, Index: 620,                                                                                   Parents: computer and devices
+Leaf: hand-held computer, hand-held microcomputer, Index: 590,                                                               Parents: computer and devices
+Leaf: notebook, notebook computer, Index: 681,                                                                               Parents: computer and devices
+Leaf: web site, website, internet site, site, Index: 916,                                                                    Parents: computer and devices
+Leaf: harvester, reaper, Index: 595,                                                                                         Parents: machine
+Leaf: thresher, thrasher, threshing machine, Index: 856,                                                                     Parents: machine
+Leaf: slot, one-armed bandit, Index: 800,                                                                                    Parents: machine
+Leaf: vending machine, Index: 886,                                                                                           Parents: machine
+Leaf: joystick, Index: 613,                                                                                                  Parents: electrical device
+Leaf: switch, electric switch, electrical switch, Index: 844,                                                                Parents: electrical device
+Leaf: hook, claw, Index: 600,                                                                                                Parents: other
+Leaf: car wheel, Index: 479,                                                                                                 Parents: motor vehicle
+Leaf: paddlewheel, paddle wheel, Index: 694,                                                                                 Parents: simple machine
+Leaf: pinwheel, Index: 723,                                                                                                  Parents: simple machine
+Leaf: potter's wheel, Index: 739,                                                                                            Parents: simple machine
+Leaf: gas pump, gasoline pump, petrol pump, island dispenser, Index: 571,                                                    Parents: structure
+Leaf: carousel, carrousel, merry-go-round, roundabout, whirligig, Index: 476,                                                Parents: structure
+Leaf: swing, Index: 843,                                                                                                     Parents: structure
+Leaf: reel, Index: 758,                                                                                                      Parents: other
+Leaf: radiator, Index: 753,                                                                                                  Parents: furniture and decor
+Leaf: hard disc, hard disk, fixed disk, Index: 592,                                                                          Parents: computer and devices
+Leaf: sunglass, Index: 836,                                                                                                  Parents: clothing
+Leaf: pick, plectrum, plectron, Index: 714,                                                                                  Parents: tool
+Leaf: car mirror, Index: 475,                                                                                                Parents: motor vehicle
+Leaf: solar dish, solar collector, solar furnace, Index: 807,                                                                Parents: electrical device
+Leaf: remote control, remote, Index: 761,                                                                                    Parents: electrical device
+Leaf: disk brake, disc brake, Index: 535,                                                                                    Parents: tool
+Leaf: buckle, Index: 464,                                                                                                    Parents: fastener
+Leaf: hair slide, Index: 584,                                                                                                Parents: fastener
+Leaf: knot, Index: 616,                                                                                                      Parents: fastener
+Leaf: combination lock, Index: 507,                                                                                          Parents: fastener
+Leaf: padlock, Index: 695,                                                                                                   Parents: fastener
+Leaf: nail, Index: 677,                                                                                                      Parents: tool
+Leaf: safety pin, Index: 772,                                                                                                Parents: fastener
+Leaf: screw, Index: 783,                                                                                                     Parents: tools
+Leaf: muzzle, Index: 676,                                                                                                    Parents: dog - other
+Leaf: seat belt, seatbelt, Index: 785,                                                                                       Parents: other
+Leaf: ski, Index: 795,                                                                                                       Parents: sports equipment
+Leaf: whistle, Index: 902,                                                                                                   Parents: other
+Leaf: candle, taper, wax light, Index: 470,                                                                                  Parents: lighting
+Leaf: jack-o'-lantern, Index: 607,                                                                                           Parents: lighting
+Leaf: spotlight, spot, Index: 818,                                                                                           Parents: lighting
+Leaf: torch, Index: 862,                                                                                                     Parents: lighting
+Leaf: neck brace, Index: 678,                                                                                                Parents: medical equipment
+Leaf: pier, Index: 718,                                                                                                      Parents: bridge structures
+Leaf: tripod, Index: 872,                                                                                                    Parents: camera
+Leaf: maypole, Index: 645,                                                                                                   Parents: structure
+Leaf: mousetrap, Index: 674,                                                                                                 Parents: other
+Leaf: spider web, spider's web, Index: 815,                                                                                  Parents: arachnid
+Leaf: hatchet, Index: 596,                                                                                                   Parents: tools
+Leaf: cleaver, meat cleaver, chopper, Index: 499,                                                                            Parents: kitchen device
+Leaf: letter opener, paper knife, paperknife, Index: 623,                                                                    Parents: other
+Leaf: plane, carpenter's plane, woodworking plane, Index: 726,                                                               Parents: tools
+Leaf: lawn mower, mower, Index: 621,                                                                                         Parents: electrical device
+Leaf: hammer, Index: 587,                                                                                                    Parents: tools
+Leaf: corkscrew, bottle screw, Index: 512,                                                                                   Parents: kitchen device
+Leaf: can opener, tin opener, Index: 473,                                                                                    Parents: kitchen device
+Leaf: plunger, plumber's helper, Index: 731,                                                                                 Parents: tools
+Leaf: screwdriver, Index: 784,                                                                                               Parents: tools
+Leaf: shovel, Index: 792,                                                                                                    Parents: tools
+Leaf: plow, plough, Index: 730,                                                                                              Parents: machine
+Leaf: Crock Pot, Index: 521,                                                                                                 Parents: kitchen device
+Leaf: frying pan, frypan, skillet, Index: 567,                                                                               Parents: kitchen device
+Leaf: wok, Index: 909,                                                                                                       Parents: food
+Leaf: caldron, cauldron, Index: 469,                                                                                         Parents: vessel
+Leaf: coffeepot, Index: 505,                                                                                                 Parents: vessel
+Leaf: teapot, Index: 849,                                                                                                    Parents: vessel
+Leaf: spatula, Index: 813,                                                                                                   Parents: kitchen device
+Leaf: swab, swob, mop, Index: 840,                                                                                           Parents: medical equipment
+Leaf: broom, Index: 462,                                                                                                     Parents: tools
+Leaf: paintbrush, Index: 696,                                                                                                Parents: tools
+Leaf: rubber eraser, rubber, pencil eraser, Index: 767,                                                                      Parents: school gear
+Leaf: pencil sharpener, Index: 710,                                                                                          Parents: school gear
+Leaf: paddle, boat paddle, Index: 693,                                                                                       Parents: watercraft
+Leaf: pole, Index: 733,                                                                                                      Parents: structure
+Leaf: quill, quill pen, Index: 749,                                                                                          Parents: school gear
+Leaf: ballpoint, ballpoint pen, ballpen, Biro, Index: 418,                                                                   Parents: school gear
+Leaf: fountain pen, Index: 563,                                                                                              Parents: school gear
+Leaf: spindle, Index: 816,                                                                                                   Parents: other
+Leaf: drumstick, Index: 542,                                                                                                 Parents: musical instrument
+Leaf: crutch, Index: 523,                                                                                                    Parents: other
+Leaf: flagpole, flagstaff, Index: 557,                                                                                       Parents: structure
+Leaf: matchstick, Index: 644,                                                                                                Parents: other
+Leaf: space bar, Index: 810,                                                                                                 Parents: computer and devices
+Leaf: racket, racquet, Index: 752,                                                                                           Parents: sports equipment
+Leaf: bicycle-built-for-two, tandem bicycle, tandem, Index: 444,                                                             Parents: wheeled vehicle
+Leaf: mountain bike, all-terrain bike, off-roader, Index: 671,                                                               Parents: wheeled vehicle
+Leaf: freight car, Index: 565,                                                                                               Parents: motor vehicle
+Leaf: passenger car, coach, carriage, Index: 705,                                                                            Parents: motor vehicle
+Leaf: barrow, garden cart, lawn cart, wheelbarrow, Index: 428,                                                               Parents: wheeled vehicle
+Leaf: shopping cart, Index: 791,                                                                                             Parents: wheeled vehicle
+Leaf: motor scooter, scooter, Index: 670,                                                                                    Parents: motor vehicle
+Leaf: forklift, Index: 561,                                                                                                  Parents: wheeled vehicle
+Leaf: electric locomotive, Index: 547,                                                                                       Parents: wheeled vehicle
+Leaf: steam locomotive, Index: 820,                                                                                          Parents: wheeled vehicle
+Leaf: amphibian, amphibious vehicle, Index: 408,                                                                             Parents: motor vehicle
+Leaf: ambulance, Index: 407,                                                                                                 Parents: motor vehicle
+Leaf: beach wagon, station wagon, wagon, estate car, beach waggon, station waggon, waggon, Index: 436,                       Parents: motor vehicle
+Leaf: cab, hack, taxi, taxicab, Index: 468,                                                                                  Parents: motor vehicle
+Leaf: convertible, Index: 511,                                                                                               Parents: motor vehicle
+Leaf: jeep, landrover, Index: 609,                                                                                           Parents: motor vehicle
+Leaf: limousine, limo, Index: 627,                                                                                           Parents: motor vehicle
+Leaf: minivan, Index: 656,                                                                                                   Parents: motor vehicle
+Leaf: Model T, Index: 661,                                                                                                   Parents: motor vehicle
+Leaf: racer, race car, racing car, Index: 751,                                                                               Parents: motor vehicle
+Leaf: sports car, sport car, Index: 817,                                                                                     Parents: motor vehicle
+Leaf: go-kart, Index: 573,                                                                                                   Parents: motor vehicle
+Leaf: golfcart, golf cart, Index: 575,                                                                                       Parents: motor vehicle
+Leaf: moped, Index: 665,                                                                                                     Parents: motor vehicle
+Leaf: snowplow, snowplough, Index: 803,                                                                                      Parents: motor vehicle
+Leaf: fire engine, fire truck, Index: 555,                                                                                   Parents: motor vehicle
+Leaf: garbage truck, dustcart, Index: 569,                                                                                   Parents: motor vehicle
+Leaf: pickup, pickup truck, Index: 717,                                                                                      Parents: motor vehicle
+Leaf: tow truck, tow car, wrecker, Index: 864,                                                                               Parents: motor vehicle
+Leaf: trailer truck, tractor trailer, trucking rig, rig, articulated lorry, semi, Index: 867,                                Parents: motor vehicle
+Leaf: moving van, Index: 675,                                                                                                Parents: motor vehicle
+Leaf: police van, police wagon, paddy wagon, patrol wagon, wagon, black Maria, Index: 734,                                   Parents: motor vehicle
+Leaf: recreational vehicle, RV, R.V., Index: 757,                                                                            Parents: motor vehicle
+Leaf: streetcar, tram, tramcar, trolley, trolley car, Index: 829,                                                            Parents: transport
+Leaf: half track, Index: 586,                                                                                                Parents: motor vehicle
+Leaf: tank, army tank, armored combat vehicle, armoured combat vehicle, Index: 847,                                          Parents: transport
+Leaf: snowmobile, Index: 802,                                                                                                Parents: transport
+Leaf: tractor, Index: 866,                                                                                                   Parents: transport
+Leaf: tricycle, trike, velocipede, Index: 870,                                                                               Parents: wheeled vehicle
+Leaf: unicycle, monocycle, Index: 880,                                                                                       Parents: wheeled vehicle
+Leaf: horse cart, horse-cart, Index: 603,                                                                                    Parents: wheeled vehicle
+Leaf: jinrikisha, ricksha, rickshaw, Index: 612,                                                                             Parents: wheeled vehicle
+Leaf: oxcart, Index: 690,                                                                                                    Parents: wheeled vehicle
+Leaf: hamper, Index: 588,                                                                                                    Parents: brewery
+Leaf: shopping basket, Index: 790,                                                                                           Parents: food
+Leaf: thimble, Index: 855,                                                                                                   Parents: tools
+Leaf: mailbag, postbag, Index: 636,                                                                                          Parents: bag
+Leaf: backpack, back pack, knapsack, packsack, rucksack, haversack, Index: 414,                                              Parents: bag
+Leaf: purse, Index: 748,                                                                                                     Parents: bag
+Leaf: sleeping bag, Index: 797,                                                                                              Parents: other
+Leaf: plastic bag, Index: 728,                                                                                               Parents: bag
+Leaf: wooden spoon, Index: 910,                                                                                              Parents: kitchen device
+Leaf: piggy bank, penny bank, Index: 719,                                                                                    Parents: other
+Leaf: Petri dish, Index: 712,                                                                                                Parents: measuring instrument
+Leaf: soup bowl, Index: 809,                                                                                                 Parents: kitchen device
+Leaf: mixing bowl, Index: 659,                                                                                               Parents: kitchen device
+Leaf: ashcan, trash can, garbage can, wastebin, ash bin, ash-bin, ashbin, dustbin, trash barrel, trash bin, Index: 412,      Parents: household item
+Leaf: cocktail shaker, Index: 503,                                                                                           Parents: kitchen device
+Leaf: saltshaker, salt shaker, Index: 773,                                                                                   Parents: kitchen device
+Leaf: pot, flowerpot, Index: 738,                                                                                            Parents: furniture and decor
+Leaf: washbasin, handbasin, washbowl, lavabo, wash-hand basin, Index: 896,                                                   Parents: furniture and decor
+Leaf: tub, vat, Index: 876,                                                                                                  Parents: furniture and decor
+Leaf: vase, Index: 883,                                                                                                      Parents: furniture and decor
+Leaf: beaker, Index: 438,                                                                                                    Parents: measuring instrument
+Leaf: bucket, pail, Index: 463,                                                                                              Parents: vessel
+Leaf: mortar, Index: 666,                                                                                                    Parents: vessel
+Leaf: beer bottle, Index: 440,                                                                                               Parents: vessel
+Leaf: pop bottle, soda bottle, Index: 737,                                                                                   Parents: vessel
+Leaf: wine bottle, Index: 907,                                                                                               Parents: vessel
+Leaf: pill bottle, Index: 720,                                                                                               Parents: vessel
+Leaf: water bottle, Index: 898,                                                                                              Parents: vessel
+Leaf: whiskey jug, Index: 901,                                                                                               Parents: vessel
+Leaf: water jug, Index: 899,                                                                                                 Parents: vessel
+Leaf: water tower, Index: 900,                                                                                               Parents: structure
+Leaf: rain barrel, Index: 756,                                                                                               Parents: vessel
+Leaf: bathtub, bathing tub, bath, tub, Index: 435,                                                                           Parents: furniture and decor
+Leaf: ladle, Index: 618,                                                                                                     Parents: kitchen device
+Leaf: barrel, cask, Index: 427,                                                                                              Parents: vessel
+Leaf: pitcher, ewer, Index: 725,                                                                                             Parents: vessel
+Leaf: coffee mug, Index: 504,                                                                                                Parents: vessel
+Leaf: envelope, Index: 549,                                                                                                  Parents: other
+Leaf: milk can, Index: 653,                                                                                                  Parents: vessel
+Leaf: beer glass, Index: 441,                                                                                                Parents: vessel
+Leaf: goblet, Index: 572,                                                                                                    Parents: vessel
+Leaf: cassette, Index: 481,                                                                                                  Parents: electronic equipment
+Leaf: tray, Index: 868,                                                                                                      Parents: kitchen device
+Leaf: soap dispenser, Index: 804,                                                                                            Parents: furniture and decor
+Leaf: packet, Index: 692,                                                                                                    Parents: container
+Leaf: carton, Index: 478,                                                                                                    Parents: container
+Leaf: chest, Index: 492,                                                                                                     Parents: container
+Leaf: safe, Index: 771,                                                                                                      Parents: container
+Leaf: pencil box, pencil case, Index: 709,                                                                                   Parents: school gear
+Leaf: crate, Index: 519,                                                                                                     Parents: container
+Leaf: mailbox, letter box, Index: 637,                                                                                       Parents: structure
+Leaf: measuring cup, Index: 647,                                                                                             Parents: measuring instrument
+Leaf: wallet, billfold, notecase, pocketbook, Index: 893,                                                                    Parents: bag
+Leaf: balance beam, beam, Index: 416,                                                                                        Parents: sports equipment
+Leaf: horizontal bar, high bar, Index: 602,                                                                                  Parents: sports equipment
+Leaf: parallel bars, bars, Index: 702,                                                                                       Parents: sports equipment
+Leaf: barbell, Index: 422,                                                                                                   Parents: sports equipment
+Leaf: dumbbell, Index: 543,                                                                                                  Parents: sports equipment
+Leaf: pool table, billiard table, snooker table, Index: 736,                                                                 Parents: game equipment
+Leaf: crossword puzzle, crossword, Index: 918,                                                                               Parents: game equipment
+Leaf: jigsaw puzzle, Index: 611,                                                                                             Parents: game equipment
+Leaf: soccer ball, Index: 805,                                                                                               Parents: ball
+Leaf: croquet ball, Index: 522,                                                                                              Parents: ball
+Leaf: golf ball, Index: 574,                                                                                                 Parents: ball
+Leaf: baseball, Index: 429,                                                                                                  Parents: ball
+Leaf: ping-pong ball, Index: 722,                                                                                            Parents: ball
+Leaf: punching bag, punch bag, punching ball, punchball, Index: 747,                                                         Parents: ball
+Leaf: rugby ball, Index: 768,                                                                                                Parents: ball
+Leaf: basketball, Index: 430,                                                                                                Parents: ball
+Leaf: volleyball, Index: 890,                                                                                                Parents: ball
+Leaf: tennis ball, Index: 852,                                                                                               Parents: ball
+Leaf: Polaroid camera, Polaroid Land camera, Index: 732,                                                                     Parents: camera
+Leaf: reflex camera, Index: 759,                                                                                             Parents: camera
+Leaf: carpenter's kit, tool kit, Index: 477,                                                                                 Parents: tools
+Leaf: drilling platform, offshore rig, Index: 540,                                                                           Parents: other
+Leaf: iPod, Index: 605,                                                                                                      Parents: computer and devices
+Leaf: modem, Index: 662,                                                                                                     Parents: electronic equipment
+Leaf: monitor, Index: 664,                                                                                                   Parents: computer and devices
+Leaf: oscilloscope, scope, cathode-ray oscilloscope, CRO, Index: 688,                                                        Parents: electronic equipment
+Leaf: printer, Index: 742,                                                                                                   Parents: computer and devices
+Leaf: cassette player, Index: 482,                                                                                           Parents: electronic equipment
+Leaf: cellular telephone, cellular phone, cellphone, cell, mobile phone, Index: 487,                                         Parents: electronic equipment
+Leaf: pay-phone, pay-station, Index: 707,                                                                                    Parents: electronic equipment
+Leaf: dial telephone, dial phone, Index: 528,                                                                                Parents: electronic equipment
+Leaf: tape player, Index: 848,                                                                                               Parents: electronic equipment
+Leaf: CD player, Index: 485,                                                                                                 Parents: electronic equipment
+Leaf: photocopier, Index: 713,                                                                                               Parents: computer and devices
+Leaf: parachute, chute, Index: 701,                                                                                          Parents: other
+Leaf: sunscreen, sunblock, sun blocker, Index: 838,                                                                          Parents: toiletry
+Leaf: perfume, essence, Index: 711,                                                                                          Parents: toiletry
+Leaf: face powder, Index: 551,                                                                                               Parents: toiletry
+Leaf: lipstick, lip rouge, Index: 629,                                                                                       Parents: toiletry
+Leaf: lotion, Index: 631,                                                                                                    Parents: toiletry
+Leaf: hair spray, Index: 585,                                                                                                Parents: toiletry
+Leaf: airliner, Index: 404,                                                                                                  Parents: aircraft
+Leaf: warplane, military plane, Index: 895,                                                                                  Parents: aircraft
+Leaf: airship, dirigible, Index: 405,                                                                                        Parents: aircraft
+Leaf: balloon, Index: 417,                                                                                                   Parents: aircraft
+Leaf: space shuttle, Index: 812,                                                                                             Parents: aircraft
+Leaf: fireboat, Index: 554,                                                                                                  Parents: watercraft
+Leaf: gondola, Index: 576,                                                                                                   Parents: watercraft
+Leaf: speedboat, Index: 814,                                                                                                 Parents: watercraft
+Leaf: lifeboat, Index: 625,                                                                                                  Parents: watercraft
+Leaf: canoe, Index: 472,                                                                                                     Parents: watercraft
+Leaf: yawl, Index: 914,                                                                                                      Parents: watercraft
+Leaf: schooner, Index: 780,                                                                                                  Parents: watercraft
+Leaf: catamaran, Index: 484,                                                                                                 Parents: watercraft
+Leaf: trimaran, Index: 871,                                                                                                  Parents: watercraft
+Leaf: container ship, containership, container vessel, Index: 510,                                                           Parents: watercraft
+Leaf: liner, ocean liner, Index: 628,                                                                                        Parents: watercraft
+Leaf: pirate, pirate ship, Index: 724,                                                                                       Parents: watercraft
+Leaf: aircraft carrier, carrier, flattop, attack aircraft carrier, Index: 403,                                               Parents: aircraft
+Leaf: submarine, pigboat, sub, U-boat, Index: 833,                                                                           Parents: watercraft
+Leaf: wreck, Index: 913,                                                                                                     Parents: watercraft
+Leaf: bobsled, bobsleigh, bob, Index: 450,                                                                                   Parents: transport
+Leaf: dogsled, dog sled, dog sleigh, Index: 537,                                                                             Parents: transport
+Leaf: stretcher, Index: 830,                                                                                                 Parents: transport
+Leaf: bullet train, bullet, Index: 466,                                                                                      Parents: transport
+Leaf: trolleybus, trolley coach, trackless trolley, Index: 874,                                                              Parents: motor vehicle
+Leaf: minibus, Index: 654,                                                                                                   Parents: motor vehicle
+Leaf: school bus, Index: 779,                                                                                                Parents: motor vehicle
+Leaf: chain, Index: 488,                                                                                                     Parents: other
+Leaf: bassinet, Index: 431,                                                                                                  Parents: furniture and decor
+Leaf: cradle, Index: 516,                                                                                                    Parents: furniture and decor
+Leaf: crib, cot, Index: 520,                                                                                                 Parents: furniture and decor
+Leaf: four-poster, Index: 564,                                                                                               Parents: furniture and decor
+Leaf: bookcase, Index: 453,                                                                                                  Parents: furniture and decor
+Leaf: china cabinet, china closet, Index: 495,                                                                               Parents: furniture and decor
+Leaf: medicine chest, medicine cabinet, Index: 648,                                                                          Parents: furniture and decor
+Leaf: chiffonier, commode, Index: 493,                                                                                       Parents: furniture and decor
+Leaf: table lamp, Index: 846,                                                                                                Parents: lighting
+Leaf: file, file cabinet, filing cabinet, Index: 553,                                                                        Parents: furniture and decor
+Leaf: park bench, Index: 703,                                                                                                Parents: other
+Leaf: barber chair, Index: 423,                                                                                              Parents: furniture and decor
+Leaf: throne, Index: 857,                                                                                                    Parents: furniture and decor
+Leaf: folding chair, Index: 559,                                                                                             Parents: furniture and decor
+Leaf: rocking chair, rocker, Index: 765,                                                                                     Parents: furniture and decor
+Leaf: studio couch, day bed, Index: 831,                                                                                     Parents: furniture and decor
+Leaf: toilet seat, Index: 861,                                                                                               Parents: furniture and decor
+Leaf: desk, Index: 526,                                                                                                      Parents: furniture and decor
+Leaf: dining table, board, Index: 532,                                                                                       Parents: furniture and decor
+Leaf: entertainment center, Index: 548,                                                                                      Parents: furniture and decor
+Leaf: wardrobe, closet, press, Index: 894,                                                                                   Parents: furniture and decor
+Leaf: prayer rug, prayer mat, Index: 741,                                                                                    Parents: furniture and decor
+Leaf: shower curtain, Index: 794,                                                                                            Parents: furniture and decor
+Leaf: theater curtain, theatre curtain, Index: 854,                                                                          Parents: other
+Leaf: radio, wireless, Index: 754,                                                                                           Parents: electronic equipment
+Leaf: television, television system, Index: 851,                                                                             Parents: furniture and decor
+Leaf: maze, labyrinth, Index: 646,                                                                                           Parents: building
+Leaf: altar, Index: 406,                                                                                                     Parents: building
+Leaf: patio, terrace, Index: 706,                                                                                            Parents: building
+Leaf: steel arch bridge, Index: 821,                                                                                         Parents: bridge structures
+Leaf: suspension bridge, Index: 839,                                                                                         Parents: bridge structures
+Leaf: viaduct, Index: 888,                                                                                                   Parents: bridge structures
+Leaf: barn, Index: 425,                                                                                                      Parents: building
+Leaf: greenhouse, nursery, glasshouse, Index: 580,                                                                           Parents: building
+Leaf: palace, Index: 698,                                                                                                    Parents: building
+Leaf: monastery, Index: 663,                                                                                                 Parents: building
+Leaf: library, Index: 624,                                                                                                   Parents: building
+Leaf: apiary, bee house, Index: 410,                                                                                         Parents: building
+Leaf: boathouse, Index: 449,                                                                                                 Parents: building
+Leaf: church, church building, Index: 497,                                                                                   Parents: place of worship
+Leaf: mosque, Index: 668,                                                                                                    Parents: place of worship
+Leaf: stupa, tope, Index: 832,                                                                                               Parents: place of worship
+Leaf: planetarium, Index: 727,                                                                                               Parents: building
+Leaf: restaurant, eating house, eating place, eatery, Index: 762,                                                            Parents: building
+Leaf: cinema, movie theater, movie theatre, movie house, picture palace, Index: 498,                                         Parents: building
+Leaf: home theater, home theatre, Index: 598,                                                                                Parents: building
+Leaf: lumbermill, sawmill, Index: 634,                                                                                       Parents: building
+Leaf: coil, spiral, volute, whorl, helix, Index: 506,                                                                        Parents: other
+Leaf: totem pole, Index: 863,                                                                                                Parents: construction
+Leaf: obelisk, Index: 682,                                                                                                   Parents: construction
+Leaf: castle, Index: 483,                                                                                                    Parents: building
+Leaf: prison, prison house, Index: 743,                                                                                      Parents: building
+Leaf: grocery store, grocery, food market, market, Index: 582,                                                               Parents: building
+Leaf: bakery, bakeshop, bakehouse, Index: 415,                                                                               Parents: building
+Leaf: barbershop, Index: 424,                                                                                                Parents: building
+Leaf: bookshop, bookstore, bookstall, Index: 454,                                                                            Parents: building
+Leaf: butcher shop, meat market, Index: 467,                                                                                 Parents: building
+Leaf: confectionery, confectionary, candy store, Index: 509,                                                                 Parents: building
+Leaf: shoe shop, shoe-shop, shoe store, Index: 788,                                                                          Parents: building
+Leaf: tobacco shop, tobacconist shop, tobacconist, Index: 860,                                                               Parents: building
+Leaf: toyshop, Index: 865,                                                                                                   Parents: building
+Leaf: fountain, Index: 562,                                                                                                  Parents: construction
+Leaf: mobile home, manufactured home, Index: 660,                                                                            Parents: structure
+Leaf: cliff dwelling, Index: 500,                                                                                            Parents: structure
+Leaf: yurt, Index: 915,                                                                                                      Parents: structure
+Leaf: dock, dockage, docking facility, Index: 536,                                                                           Parents: structure
+Leaf: triumphal arch, Index: 873,                                                                                            Parents: structure
+Leaf: brass, memorial tablet, plaque, Index: 458,                                                                            Parents: structure
+Leaf: megalith, megalithic structure, Index: 649,                                                                            Parents: structure
+Leaf: bannister, banister, balustrade, balusters, handrail, Index: 421,                                                      Parents: structure
+Leaf: breakwater, groin, groyne, mole, bulwark, seawall, jetty, Index: 460,                                                  Parents: structure
+Leaf: dam, dike, dyke, Index: 525,                                                                                           Parents: structure
+Leaf: chainlink fence, Index: 489,                                                                                           Parents: fence
+Leaf: picket fence, paling, Index: 716,                                                                                      Parents: fence
+Leaf: worm fence, snake fence, snake-rail fence, Virginia fence, Index: 912,                                                 Parents: fence
+Leaf: stone wall, Index: 825,                                                                                                Parents: structure
+Leaf: grille, radiator grille, Index: 581,                                                                                   Parents: motor vehicle
+Leaf: sliding door, Index: 799,                                                                                              Parents: furniture and decor
+Leaf: turnstile, Index: 877,                                                                                                 Parents: other
+Leaf: mountain tent, Index: 672,                                                                                             Parents: other
+Leaf: honeycomb, Index: 599,                                                                                                 Parents: food
+Leaf: plate rack, Index: 729,                                                                                                Parents: kitchen device
+Leaf: pedestal, plinth, footstall, Index: 708,                                                                               Parents: structure
+Leaf: beacon, lighthouse, beacon light, pharos, Index: 437,                                                                  Parents: lighting
+Leaf: comic book, Index: 917,                                                                                                Parents: other
+Leaf: scoreboard, Index: 781,                                                                                                Parents: sports equipment
+Leaf: puck, hockey puck, Index: 746,                                                                                         Parents: sports equipment
+Leaf: wool, woolen, woollen, Index: 911,                                                                                     Parents: material
+Leaf: handkerchief, hankie, hanky, hankey, Index: 591,                                                                       Parents: piece of cloth
+Leaf: dishrag, dishcloth, Index: 533,                                                                                        Parents: piece of cloth
+Leaf: paper towel, Index: 700,                                                                                               Parents: piece of cloth
+Leaf: bath towel, Index: 434,                                                                                                Parents: piece of cloth
+Leaf: bib, Index: 443,                                                                                                       Parents: piece of cloth
+Leaf: velvet, Index: 885,                                                                                                    Parents: material
+Leaf: mask, Index: 643,                                                                                                      Parents: clothing
+Leaf: cloak, Index: 501,                                                                                                     Parents: clothing
+Leaf: book jacket, dust cover, dust jacket, dust wrapper, Index: 921,                                                        Parents: other
+Leaf: shoji, Index: 789,                                                                                                     Parents: furniture and decor
+Leaf: sandal, Index: 774,                                                                                                    Parents: footwear
+Leaf: running shoe, Index: 770,                                                                                              Parents: footwear
+Leaf: Loafer, Index: 630,                                                                                                    Parents: footwear
+Leaf: cowboy boot, Index: 514,                                                                                               Parents: footwear
+Leaf: clog, geta, patten, sabot, Index: 502,                                                                                 Parents: footwear
+Leaf: Band Aid, Index: 419,                                                                                                  Parents: medical equipment
+Leaf: quilt, comforter, comfort, puff, Index: 750,                                                                           Parents: furniture and decor
+Leaf: doormat, welcome mat, Index: 539,                                                                                      Parents: furniture and decor
+Leaf: wig, Index: 903,                                                                                                       Parents: clothing
+Leaf: knee pad, Index: 615,                                                                                                  Parents: clothing
+Leaf: apron, Index: 411,                                                                                                     Parents: clothing
+Leaf: academic gown, academic robe, judge's robe, Index: 400,                                                                Parents: clothing
+Leaf: vestment, Index: 887,                                                                                                  Parents: clothing
+Leaf: bulletproof vest, Index: 465,                                                                                          Parents: clothing
+Leaf: swimming trunks, bathing trunks, Index: 842,                                                                           Parents: clothing
+Leaf: maillot, tank suit, Index: 639,                                                                                        Parents: clothing
+Leaf: bikini, two-piece, Index: 445,                                                                                         Parents: clothing
+Leaf: suit, suit of clothes, Index: 834,                                                                                     Parents: clothing
+Leaf: feather boa, boa, Index: 552,                                                                                          Parents: clothing
+Leaf: stole, Index: 824,                                                                                                     Parents: clothing
+Leaf: bow tie, bow-tie, bowtie, Index: 457,                                                                                  Parents: clothing
+Leaf: Windsor tie, Index: 906,                                                                                               Parents: clothing
+Leaf: bolo tie, bolo, bola tie, bola, Index: 451,                                                                            Parents: clothing
+Leaf: hoopskirt, crinoline, Index: 601,                                                                                      Parents: clothing
+Leaf: miniskirt, mini, Index: 655,                                                                                           Parents: clothing
+Leaf: overskirt, Index: 689,                                                                                                 Parents: clothing
+Leaf: sarong, Index: 775,                                                                                                    Parents: clothing
+Leaf: poncho, Index: 735,                                                                                                    Parents: clothing
+Leaf: fur coat, Index: 568,                                                                                                  Parents: clothing
+Leaf: trench coat, Index: 869,                                                                                               Parents: clothing
+Leaf: lab coat, laboratory coat, Index: 617,                                                                                 Parents: clothing
+Leaf: sweatshirt, Index: 841,                                                                                                Parents: clothing
+Leaf: cardigan, Index: 474,                                                                                                  Parents: clothing
+Leaf: kimono, Index: 614,                                                                                                    Parents: clothing
+Leaf: abaya, Index: 399,                                                                                                     Parents: clothing
+Leaf: jersey, T-shirt, tee shirt, Index: 610,                                                                                Parents: clothing
+Leaf: diaper, nappy, napkin, Index: 529,                                                                                     Parents: clothing
+Leaf: mitten, Index: 658,                                                                                                    Parents: clothing
+Leaf: crash helmet, Index: 518,                                                                                              Parents: clothing
+Leaf: football helmet, Index: 560,                                                                                           Parents: clothing
+Leaf: bathing cap, swimming cap, Index: 433,                                                                                 Parents: clothing
+Leaf: mortarboard, Index: 667,                                                                                               Parents: clothing
+Leaf: shower cap, Index: 793,                                                                                                Parents: clothing
+Leaf: bonnet, poke bonnet, Index: 452,                                                                                       Parents: clothing
+Leaf: bearskin, busby, shako, Index: 439,                                                                                    Parents: clothing
+Leaf: cowboy hat, ten-gallon hat, Index: 515,                                                                                Parents: clothing
+Leaf: sombrero, Index: 808,                                                                                                  Parents: clothing
+Leaf: maillot, Index: 638,                                                                                                   Parents: clothing
+Leaf: sock, Index: 806,                                                                                                      Parents: clothing
+Leaf: Christmas stocking, Index: 496,                                                                                        Parents: clothing
+Leaf: military uniform, Index: 652,                                                                                          Parents: clothing
+Leaf: pajama, pyjama, pj's, jammies, Index: 697,                                                                             Parents: clothing
+Leaf: jean, blue jean, denim, Index: 608,                                                                                    Parents: clothing
+Leaf: gown, Index: 578,                                                                                                      Parents: clothing
+Leaf: brassiere, bra, bandeau, Index: 459,                                                                                   Parents: clothing
+Leaf: pickelhaube, Index: 715,                                                                                               Parents: weapon
+Leaf: breastplate, aegis, egis, Index: 461,                                                                                  Parents: weapon
+Leaf: lens cap, lens cover, Index: 622,                                                                                      Parents: camera
+Leaf: tile roof, Index: 858,                                                                                                 Parents: building
+Leaf: dome, Index: 538,                                                                                                      Parents: building
+Leaf: thatch, thatched roof, Index: 853,                                                                                     Parents: building
+Leaf: vault, Index: 884,                                                                                                     Parents: building
+Leaf: window shade, Index: 905,                                                                                              Parents: furniture and decor
+Leaf: binder, ring-binder, Index: 446,                                                                                       Parents: other
+Leaf: lampshade, lamp shade, Index: 619,                                                                                     Parents: lighting
+Leaf: mosquito net, Index: 669,                                                                                              Parents: furniture and decor
+Leaf: window screen, Index: 904,                                                                                             Parents: furniture and decor
+Leaf: fire screen, fireguard, Index: 556,                                                                                    Parents: furniture and decor
+Leaf: cuirass, Index: 524,                                                                                                   Parents: weapon
+Leaf: chain mail, ring mail, mail, chain armor, chain armour, ring armor, ring armour, Index: 490,                           Parents: weapon
+Leaf: shield, buckler, Index: 787,                                                                                           Parents: weapon
+Leaf: gasmask, respirator, gas helmet, Index: 570,                                                                           Parents: other
+Leaf: ski mask, Index: 796,                                                                                                  Parents: sports equipment
+Leaf: holster, Index: 597,                                                                                                   Parents: weapon
+Leaf: scabbard, Index: 777,                                                                                                  Parents: weapon
+Leaf: birdhouse, Index: 448,                                                                                                 Parents: other
+Leaf: bell cote, bell cot, Index: 442,                                                                                       Parents: place of worship
+Leaf: umbrella, Index: 879,                                                                                                  Parents: other
+Leaf: manhole cover, Index: 640,                                                                                             Parents: other
+Leaf: bottlecap, Index: 455,                                                                                                 Parents: brewery
+Leaf: nipple, Index: 680,                                                                                                    Parents: other
+Leaf: pillow, Index: 721,                                                                                                    Parents: furniture and decor
+Leaf: hand blower, blow dryer, blow drier, hair dryer, hair drier, Index: 589,                                               Parents: electrical device
+Leaf: sewing machine, Index: 786,                                                                                            Parents: household item
+Leaf: iron, smoothing iron, Index: 606,                                                                                      Parents: household item
+Leaf: espresso maker, Index: 550,                                                                                            Parents: household item
+Leaf: microwave, microwave oven, Index: 651,                                                                                 Parents: kitchen device
+Leaf: Dutch oven, Index: 544,                                                                                                Parents: kitchen device
+Leaf: rotisserie, Index: 766,                                                                                                Parents: kitchen device
+Leaf: toaster, Index: 859,                                                                                                   Parents: kitchen device
+Leaf: waffle iron, Index: 891,                                                                                               Parents: kitchen device
+Leaf: vacuum, vacuum cleaner, Index: 882,                                                                                    Parents: household item
+Leaf: dishwasher, dish washer, dishwashing machine, Index: 534,                                                              Parents: kitchen device
+Leaf: refrigerator, icebox, Index: 760,                                                                                      Parents: kitchen device
+Leaf: washer, automatic washer, washing machine, Index: 897,                                                                 Parents: household item
+Leaf: necklace, Index: 679,                                                                                                  Parents: jewelry
+Leaf: teddy, teddy bear, Index: 850,                                                                                         Parents: other
+Leaf: stage, Index: 819,                                                                                                     Parents: musical instrument
+Leaf: daisy, Index: 985,                                                                                                     Parents: plants
+Leaf: yellow lady's slipper, yellow lady-slipper, Cypripedium calceolus, Cypripedium parviflorum, Index: 986,                Parents: plants
+Leaf: hen-of-the-woods, hen of the woods, Polyporus frondosus, Grifola frondosa, Index: 996,                                 Parents: fungus
+Leaf: earthstar, Index: 995,                                                                                                 Parents: fungus
+Leaf: coral fungus, Index: 991,                                                                                              Parents: fungus
+Leaf: stinkhorn, carrion fungus, Index: 994,                                                                                 Parents: fungus
+Leaf: gyromitra, Index: 993,                                                                                                 Parents: fungus
+Leaf: bolete, Index: 997,                                                                                                    Parents: fungus
+Leaf: agaric, Index: 992,                                                                                                    Parents: fungus
+Leaf: ballplayer, baseball player, Index: 981,                                                                               Parents: person
+Leaf: scuba diver, Index: 983,                                                                                               Parents: diving
+Leaf: groom, bridegroom, Index: 982,                                                                                         Parents: person
+Leaf: trilobite, Index: 69,                                                                                                  Parents: arthropod
+Leaf: harvestman, daddy longlegs, Phalangium opilio, Index: 70,                                                              Parents: arachnid
+Leaf: scorpion, Index: 71,                                                                                                   Parents: arachnid
+Leaf: black and gold garden spider, Argiope aurantia, Index: 72,                                                             Parents: arachnid
+Leaf: barn spider, Araneus cavaticus, Index: 73,                                                                             Parents: arachnid
+Leaf: garden spider, Aranea diademata, Index: 74,                                                                            Parents: arachnid
+Leaf: black widow, Latrodectus mactans, Index: 75,                                                                           Parents: arachnid
+Leaf: tarantula, Index: 76,                                                                                                  Parents: arachnid
+Leaf: wolf spider, hunting spider, Index: 77,                                                                                Parents: arachnid
+Leaf: tick, Index: 78,                                                                                                       Parents: arachnid
+Leaf: centipede, Index: 79,                                                                                                  Parents: arthropod
+Leaf: isopod, Index: 126,                                                                                                    Parents: arthropod
+Leaf: Dungeness crab, Cancer magister, Index: 118,                                                                           Parents: decapod
+Leaf: rock crab, Cancer irroratus, Index: 119,                                                                               Parents: decapod
+Leaf: fiddler crab, Index: 120,                                                                                              Parents: decapod
+Leaf: king crab, Alaska crab, Alaskan king crab, Alaska king crab, Paralithodes camtschatica, Index: 121,                    Parents: decapod
+Leaf: American lobster, Northern lobster, Maine lobster, Homarus americanus, Index: 122,                                     Parents: decapod
+Leaf: spiny lobster, langouste, rock lobster, crawfish, crayfish, sea crawfish, Index: 123,                                  Parents: decapod
+Leaf: crayfish, crawfish, crawdad, crawdaddy, Index: 124,                                                                    Parents: decapod
+Leaf: hermit crab, Index: 125,                                                                                               Parents: decapod
+Leaf: tiger beetle, Index: 300,                                                                                              Parents: beetle
+Leaf: ladybug, ladybeetle, lady beetle, ladybird, ladybird beetle, Index: 301,                                               Parents: beetle
+Leaf: ground beetle, carabid beetle, Index: 302,                                                                             Parents: beetle
+Leaf: long-horned beetle, longicorn, longicorn beetle, Index: 303,                                                           Parents: beetle
+Leaf: leaf beetle, chrysomelid, Index: 304,                                                                                  Parents: beetle
+Leaf: dung beetle, Index: 305,                                                                                               Parents: beetle
+Leaf: rhinoceros beetle, Index: 306,                                                                                         Parents: beetle
+Leaf: weevil, Index: 307,                                                                                                    Parents: beetle
+Leaf: fly, Index: 308,                                                                                                       Parents: insect
+Leaf: ant, emmet, pismire, Index: 310,                                                                                       Parents: insect
+Leaf: bee, Index: 309,                                                                                                       Parents: insect
+Leaf: grasshopper, hopper, Index: 311,                                                                                       Parents: insect
+Leaf: cricket, Index: 312,                                                                                                   Parents: insect
+Leaf: walking stick, walkingstick, stick insect, Index: 313,                                                                 Parents: insect
+Leaf: cockroach, roach, Index: 314,                                                                                          Parents: insect
+Leaf: mantis, mantid, Index: 315,                                                                                            Parents: insect
+Leaf: cicada, cicala, Index: 316,                                                                                            Parents: insect
+Leaf: leafhopper, Index: 317,                                                                                                Parents: insect
+Leaf: lacewing, lacewing fly, Index: 318,                                                                                    Parents: insect
+Leaf: dragonfly, darning needle, devil's darning needle, sewing needle, snake feeder, snake doctor, mosquito hawk, skeeter hawk, Index: 319, Parents: insect
+Leaf: damselfly, Index: 320,                                                                                                 Parents: insect
+Leaf: admiral, Index: 321,                                                                                                   Parents: insect
+Leaf: ringlet, ringlet butterfly, Index: 322,                                                                                Parents: insect
+Leaf: monarch, monarch butterfly, milkweed butterfly, Danaus plexippus, Index: 323,                                          Parents: insect
+Leaf: cabbage butterfly, Index: 324,                                                                                         Parents: insect
+Leaf: sulphur butterfly, sulfur butterfly, Index: 325,                                                                       Parents: insect
+Leaf: lycaenid, lycaenid butterfly, Index: 326,                                                                              Parents: insect
+Leaf: jellyfish, Index: 107,                                                                                                 Parents: marine life
+Leaf: sea anemone, anemone, Index: 108,                                                                                      Parents: marine life
+Leaf: brain coral, Index: 109,                                                                                               Parents: marine life
+Leaf: flatworm, platyhelminth, Index: 110,                                                                                   Parents: worms
+Leaf: nematode, nematode worm, roundworm, Index: 111,                                                                        Parents: worms
+Leaf: conch, Index: 112,                                                                                                     Parents: mollusk
+Leaf: snail, Index: 113,                                                                                                     Parents: mollusk
+Leaf: slug, Index: 114,                                                                                                      Parents: mollusk
+Leaf: sea slug, nudibranch, Index: 115,                                                                                      Parents: mollusk
+Leaf: chiton, coat-of-mail shell, sea cradle, polyplacophore, Index: 116,                                                    Parents: marine life
+Leaf: chambered nautilus, pearly nautilus, nautilus, Index: 117,                                                             Parents: marine life
+Leaf: starfish, sea star, Index: 327,                                                                                        Parents: marine life
+Leaf: sea urchin, Index: 328,                                                                                                Parents: marine life
+Leaf: sea cucumber, holothurian, Index: 329,                                                                                 Parents: marine life
+Leaf: Egyptian cat, Index: 285,                                                                                              Parents: domestic cat
+Leaf: Persian cat, Index: 283,                                                                                               Parents: domestic cat
+Leaf: tiger cat, Index: 282,                                                                                                 Parents: domestic cat
+Leaf: Siamese cat, Siamese, Index: 284,                                                                                      Parents: domestic cat
+Leaf: tabby, tabby cat, Index: 281,                                                                                          Parents: domestic cat
+Leaf: vizsla, Hungarian pointer, Index: 211,                                                                                 Parents: dog - pointer
+Leaf: German short-haired pointer, Index: 210,                                                                               Parents: dog - pointer
+Leaf: English setter, Index: 212,                                                                                            Parents: dog - setter
+Leaf: Gordon setter, Index: 214,                                                                                             Parents: dog - setter
+Leaf: Irish setter, red setter, Index: 213,                                                                                  Parents: dog - setter
+Leaf: Irish water spaniel, Index: 221,                                                                                       Parents: dog - spaniel
+Leaf: Welsh springer spaniel, Index: 218,                                                                                    Parents: dog - spaniel
+Leaf: English springer, English springer spaniel, Index: 217,                                                                Parents: dog - spaniel
+Leaf: clumber, clumber spaniel, Index: 216,                                                                                  Parents: dog - spaniel
+Leaf: Brittany spaniel, Index: 215,                                                                                          Parents: dog - spaniel
+Leaf: cocker spaniel, English cocker spaniel, cocker, Index: 219,                                                            Parents: dog - spaniel
+Leaf: Sussex spaniel, Index: 220,                                                                                            Parents: dog - spaniel
+Leaf: golden retriever, Index: 207,                                                                                          Parents: dog - retriever
+Leaf: Chesapeake Bay retriever, Index: 209,                                                                                  Parents: dog - retriever
+Leaf: curly-coated retriever, Index: 206,                                                                                    Parents: dog - retriever
+Leaf: flat-coated retriever, Index: 205,                                                                                     Parents: dog - retriever
+Leaf: Labrador retriever, Index: 208,                                                                                        Parents: dog - retriever
+Leaf: Australian terrier, Index: 193,                                                                                        Parents: dog - terrier
+Leaf: wire-haired fox terrier, Index: 188,                                                                                   Parents: dog - terrier
+Leaf: soft-coated wheaten terrier, Index: 202,                                                                               Parents: dog - terrier
+Leaf: Sealyham terrier, Sealyham, Index: 190,                                                                                Parents: dog - terrier
+Leaf: Lakeland terrier, Index: 189,                                                                                          Parents: dog - terrier
+Leaf: Dandie Dinmont, Dandie Dinmont terrier, Index: 194,                                                                    Parents: dog - terrier
+Leaf: Airedale, Airedale terrier, Index: 191,                                                                                Parents: dog - terrier
+Leaf: Lhasa, Lhasa apso, Index: 204,                                                                                         Parents: dog - terrier
+Leaf: Yorkshire terrier, Index: 187,                                                                                         Parents: dog - terrier
+Leaf: West Highland white terrier, Index: 203,                                                                               Parents: dog - terrier
+Leaf: giant schnauzer, Index: 197,                                                                                           Parents: dog - terrier
+Leaf: miniature schnauzer, Index: 196,                                                                                       Parents: dog - terrier
+Leaf: standard schnauzer, Index: 198,                                                                                        Parents: dog - terrier
+Leaf: Staffordshire bullterrier, Staffordshire bull terrier, Index: 179,                                                     Parents: dog - terrier
+Leaf: American Staffordshire terrier, Staffordshire terrier, American pit bull terrier, pit bull terrier, Index: 180,        Parents: dog - terrier
+Leaf: Norfolk terrier, Index: 185,                                                                                           Parents: dog - terrier
+Leaf: cairn, cairn terrier, Index: 192,                                                                                      Parents: dog - terrier
+Leaf: Kerry blue terrier, Index: 183,                                                                                        Parents: dog - terrier
+Leaf: Scotch terrier, Scottish terrier, Scottie, Index: 199,                                                                 Parents: dog - terrier
+Leaf: Boston bull, Boston terrier, Index: 195,                                                                               Parents: dog - terrier
+Leaf: Bedlington terrier, Index: 181,                                                                                        Parents: dog - terrier
+Leaf: Irish terrier, Index: 184,                                                                                             Parents: dog - terrier
+Leaf: silky terrier, Sydney silky, Index: 201,                                                                               Parents: dog - terrier
+Leaf: Norwich terrier, Index: 186,                                                                                           Parents: dog - terrier
+Leaf: Tibetan terrier, chrysanthemum dog, Index: 200,                                                                        Parents: dog - terrier
+Leaf: Border terrier, Index: 182,                                                                                            Parents: dog - terrier
+Leaf: borzoi, Russian wolfhound, Index: 169,                                                                                 Parents: dog - hound
+Leaf: Irish wolfhound, Index: 170,                                                                                           Parents: dog - hound
+Leaf: Scottish deerhound, deerhound, Index: 177,                                                                             Parents: dog - hound
+Leaf: black-and-tan coonhound, Index: 165,                                                                                   Parents: dog - hound
+Leaf: Walker hound, Walker foxhound, Index: 166,                                                                             Parents: dog - hound
+Leaf: English foxhound, Index: 167,                                                                                          Parents: dog - hound
+Leaf: Weimaraner, Index: 178,                                                                                                Parents: dog - hound
+Leaf: otterhound, otter hound, Index: 175,                                                                                   Parents: dog - hound
+Leaf: bloodhound, sleuthhound, Index: 163,                                                                                   Parents: dog - hound
+Leaf: Norwegian elkhound, elkhound, Index: 174,                                                                              Parents: dog - hound
+Leaf: Saluki, gazelle hound, Index: 176,                                                                                     Parents: dog - hound
+Leaf: Afghan hound, Afghan, Index: 160,                                                                                      Parents: dog - hound
+Leaf: whippet, Index: 172,                                                                                                   Parents: dog - hound
+Leaf: Italian greyhound, Index: 171,                                                                                         Parents: dog - hound
+Leaf: beagle, Index: 162,                                                                                                    Parents: dog - hound
+Leaf: basset, basset hound, Index: 161,                                                                                      Parents: dog - hound
+Leaf: bluetick, Index: 164,                                                                                                  Parents: dog - hound
+Leaf: redbone, Index: 168,                                                                                                   Parents: dog - hound
+Leaf: Ibizan hound, Ibizan Podenco, Index: 173,                                                                              Parents: dog - hound
+Leaf: Rhodesian ridgeback, Index: 159,                                                                                       Parents: dog - other
+Leaf: dalmatian, coach dog, carriage dog, Index: 251,                                                                        Parents: dog - other
+Leaf: Cardigan, Cardigan Welsh corgi, Index: 264,                                                                            Parents: dog - corgi
+Leaf: Pembroke, Pembroke Welsh corgi, Index: 263,                                                                            Parents: dog - corgi
+Leaf: Mexican hairless, Index: 268,                                                                                          Parents: dog - other
+Leaf: Newfoundland, Newfoundland dog, Index: 256,                                                                            Parents: dog - other
+Leaf: miniature poodle, Index: 266,                                                                                          Parents: dog - poodle
+Leaf: toy poodle, Index: 265,                                                                                                Parents: dog - poodle
+Leaf: standard poodle, Index: 267,                                                                                           Parents: dog - poodle
+Leaf: basenji, Index: 253,                                                                                                   Parents: dog - other
+Leaf: Leonberg, Index: 255,                                                                                                  Parents: dog - other
+Leaf: Brabancon griffon, Index: 262,                                                                                         Parents: dog - other
+Leaf: pug, pug-dog, Index: 254,                                                                                              Parents: dog - other
+Leaf: Great Dane, Index: 246,                                                                                                Parents: dog - other
+Leaf: Old English sheepdog, bobtail, Index: 229,                                                                             Parents: dog - shepherd
+Leaf: Bouvier des Flandres, Bouviers des Flandres, Index: 233,                                                               Parents: dog - shepherd
+Leaf: Rottweiler, Index: 234,                                                                                                Parents: dog - shepherd
+Leaf: komondor, Index: 228,                                                                                                  Parents: dog - shepherd
+Leaf: collie, Index: 231,                                                                                                    Parents: dog - shepherd
+Leaf: Border collie, Index: 232,                                                                                             Parents: dog - shepherd
+Leaf: malinois, Index: 225,                                                                                                  Parents: dog - shepherd
+Leaf: groenendael, Index: 224,                                                                                               Parents: dog - shepherd
+Leaf: Shetland sheepdog, Shetland sheep dog, Shetland, Index: 230,                                                           Parents: dog - shepherd
+Leaf: kelpie, Index: 227,                                                                                                    Parents: dog - shepherd
+Leaf: briard, Index: 226,                                                                                                    Parents: dog - shepherd
+Leaf: German shepherd, German shepherd dog, German police dog, alsatian, Index: 235,                                         Parents: dog - shepherd
+Leaf: schipperke, Index: 223,                                                                                                Parents: dog - other
+Leaf: Doberman, Doberman pinscher, Index: 236,                                                                               Parents: dog - pinscher
+Leaf: affenpinscher, monkey pinscher, monkey dog, Index: 252,                                                                Parents: dog - pinscher
+Leaf: miniature pinscher, Index: 237,                                                                                        Parents: dog - pinscher
+Leaf: kuvasz, Index: 222,                                                                                                    Parents: dog - other
+Leaf: Siberian husky, Index: 250,                                                                                            Parents: dog - sledge dog
+Leaf: malamute, malemute, Alaskan malamute, Index: 249,                                                                      Parents: dog - sledge dog
+Leaf: boxer, Index: 242,                                                                                                     Parents: dog - other
+Leaf: bull mastiff, Index: 243,                                                                                              Parents: dog - other
+Leaf: Eskimo dog, husky, Index: 248,                                                                                         Parents: dog - sledge dog
+Leaf: EntleBucher, Index: 241,                                                                                               Parents: dog - Sennenhunde
+Leaf: Bernese mountain dog, Index: 239,                                                                                      Parents: dog - Sennenhunde
+Leaf: Greater Swiss Mountain dog, Index: 238,                                                                                Parents: dog - Sennenhunde
+Leaf: Appenzeller, Index: 240,                                                                                               Parents: dog - Sennenhunde
+Leaf: Saint Bernard, St Bernard, Index: 247,                                                                                 Parents: dog - other
+Leaf: Tibetan mastiff, Index: 244,                                                                                           Parents: dog - other
+Leaf: French bulldog, Index: 245,                                                                                            Parents: dog - other
+Leaf: Pomeranian, Index: 259,                                                                                                Parents: dog - spitz
+Leaf: keeshond, Index: 261,                                                                                                  Parents: dog - spitz
+Leaf: chow, chow chow, Index: 260,                                                                                           Parents: dog - spitz
+Leaf: Samoyed, Samoyede, Index: 258,                                                                                         Parents: dog - spitz
+Leaf: Great Pyrenees, Index: 257,                                                                                            Parents: dog - other
+Leaf: papillon, Index: 157,                                                                                                  Parents: dog - toy dog
+Leaf: Blenheim spaniel, Index: 156,                                                                                          Parents: dog - toy dog
+Leaf: Pekinese, Pekingese, Peke, Index: 154,                                                                                 Parents: dog - toy dog
+Leaf: Maltese dog, Maltese terrier, Maltese, Index: 153,                                                                     Parents: dog - toy dog
+Leaf: toy terrier, Index: 158,                                                                                               Parents: dog - toy dog
+Leaf: Japanese spaniel, Index: 152,                                                                                          Parents: dog - toy dog
+Leaf: Shih-Tzu, Index: 155,                                                                                                  Parents: dog - toy dog
+Leaf: Chihuahua, Index: 151,                                                                                                 Parents: dog - toy dog
+Leaf: hare, Index: 331,                                                                                                      Parents: hare and rabbits
+Leaf: Angora, Angora rabbit, Index: 332,                                                                                     Parents: hare and rabbits
+Leaf: wood rabbit, cottontail, cottontail rabbit, Index: 330,                                                                Parents: hare and rabbits
+Leaf: indri, indris, Indri indri, Indri brevicaudatus, Index: 384,                                                           Parents: primate
+Leaf: Madagascar cat, ring-tailed lemur, Lemur catta, Index: 383,                                                            Parents: primate
+Leaf: siamang, Hylobates syndactylus, Symphalangus syndactylus, Index: 369,                                                  Parents: primate
+Leaf: gibbon, Hylobates lar, Index: 368,                                                                                     Parents: primate
+Leaf: orangutan, orang, orangutang, Pongo pygmaeus, Index: 365,                                                              Parents: primate
+Leaf: chimpanzee, chimp, Pan troglodytes, Index: 367,                                                                        Parents: primate
+Leaf: gorilla, Gorilla gorilla, Index: 366,                                                                                  Parents: primate
+Leaf: colobus, colobus monkey, Index: 375,                                                                                   Parents: primate
+Leaf: guenon, guenon monkey, Index: 370,                                                                                     Parents: primate
+Leaf: proboscis monkey, Nasalis larvatus, Index: 376,                                                                        Parents: primate
+Leaf: patas, hussar monkey, Erythrocebus patas, Index: 371,                                                                  Parents: primate
+Leaf: baboon, Index: 372,                                                                                                    Parents: primate
+Leaf: macaque, Index: 373,                                                                                                   Parents: primate
+Leaf: langur, Index: 374,                                                                                                    Parents: primate
+Leaf: titi, titi monkey, Index: 380,                                                                                         Parents: primate
+Leaf: squirrel monkey, Saimiri sciureus, Index: 382,                                                                         Parents: primate
+Leaf: spider monkey, Ateles geoffroyi, Index: 381,                                                                           Parents: primate
+Leaf: capuchin, ringtail, Cebus capucinus, Index: 378,                                                                       Parents: primate
+Leaf: howler monkey, howler, Index: 379,                                                                                     Parents: primate
+Leaf: marmoset, Index: 377,                                                                                                  Parents: primate
+Leaf: brown bear, bruin, Ursus arctos, Index: 294,                                                                           Parents: bear
+Leaf: ice bear, polar bear, Ursus Maritimus, Thalarctos maritimus, Index: 296,                                               Parents: bear
+Leaf: American black bear, black bear, Ursus americanus, Euarctos americanus, Index: 295,                                    Parents: bear
+Leaf: sloth bear, Melursus ursinus, Ursus ursinus, Index: 297,                                                               Parents: bear
+Leaf: badger, Index: 362,                                                                                                    Parents: musteline
+Leaf: mink, Index: 357,                                                                                                      Parents: musteline
+Leaf: black-footed ferret, ferret, Mustela nigripes, Index: 359,                                                             Parents: musteline
+Leaf: skunk, polecat, wood pussy, Index: 361,                                                                                Parents: musteline
+Leaf: weasel, Index: 356,                                                                                                    Parents: musteline
+Leaf: polecat, fitch, foulmart, foumart, Mustela putorius, Index: 358,                                                       Parents: musteline
+Leaf: otter, Index: 360,                                                                                                     Parents: musteline
+Leaf: lesser panda, red panda, panda, bear cat, cat bear, Ailurus fulgens, Index: 387,                                       Parents: mammal - other
+Leaf: giant panda, panda, panda bear, coon bear, Ailuropoda melanoleuca, Index: 388,                                         Parents: mammal - other
+Leaf: meerkat, mierkat, Index: 299,                                                                                          Parents: mammal - other
+Leaf: mongoose, Index: 298,                                                                                                  Parents: mammal - other
+Leaf: dhole, Cuon alpinus, Index: 274,                                                                                       Parents: wild dog
+Leaf: dingo, warrigal, warragal, Canis dingo, Index: 273,                                                                    Parents: wild dog
+Leaf: African hunting dog, hyena dog, Cape hunting dog, Lycaon pictus, Index: 275,                                           Parents: wild dog
+Leaf: hyena, hyaena, Index: 276,                                                                                             Parents: wild dog
+Leaf: kit fox, Vulpes macrotis, Index: 278,                                                                                  Parents: fox
+Leaf: red fox, Vulpes vulpes, Index: 277,                                                                                    Parents: fox
+Leaf: grey fox, gray fox, Urocyon cinereoargenteus, Index: 280,                                                              Parents: fox
+Leaf: Arctic fox, white fox, Alopex lagopus, Index: 279,                                                                     Parents: fox
+Leaf: red wolf, maned wolf, Canis rufus, Canis niger, Index: 271,                                                            Parents: wolf
+Leaf: coyote, prairie wolf, brush wolf, Canis latrans, Index: 272,                                                           Parents: wolf
+Leaf: white wolf, Arctic wolf, Canis lupus tundrarum, Index: 270,                                                            Parents: wolf
+Leaf: timber wolf, grey wolf, gray wolf, Canis lupus, Index: 269,                                                            Parents: wolf
+Leaf: jaguar, panther, Panthera onca, Felis onca, Index: 290,                                                                Parents: wildcat
+Leaf: tiger, Panthera tigris, Index: 292,                                                                                    Parents: wildcat
+Leaf: leopard, Panthera pardus, Index: 288,                                                                                  Parents: wildcat
+Leaf: snow leopard, ounce, Panthera uncia, Index: 289,                                                                       Parents: wildcat
+Leaf: lion, king of beasts, Panthera leo, Index: 291,                                                                        Parents: wildcat
+Leaf: cheetah, chetah, Acinonyx jubatus, Index: 293,                                                                         Parents: wildcat
+Leaf: cougar, puma, catamount, mountain lion, painter, panther, Felis concolor, Index: 286,                                  Parents: wildcat
+Leaf: lynx, catamount, Index: 287,                                                                                           Parents: wildcat
+Leaf: dugong, Dugong dugon, Index: 149,                                                                                      Parents: marine life
+Leaf: sea lion, Index: 150,                                                                                                  Parents: marine life
+Leaf: killer whale, killer, orca, grampus, sea wolf, Orcinus orca, Index: 148,                                               Parents: marine life
+Leaf: grey whale, gray whale, devilfish, Eschrichtius gibbosus, Eschrichtius robustus, Index: 147,                           Parents: marine life
+Leaf: zebra, Index: 340,                                                                                                     Parents: mammal - other
+Leaf: sorrel, Index: 339,                                                                                                    Parents: mammal - other
+Leaf: Arabian camel, dromedary, Camelus dromedarius, Index: 354,                                                             Parents: mammal - other
+Leaf: ram, tup, Index: 348,                                                                                                  Parents: bovid
+Leaf: gazelle, Index: 353,                                                                                                   Parents: bovid
+Leaf: impala, Aepyceros melampus, Index: 352,                                                                                Parents: bovid
+Leaf: hartebeest, Index: 351,                                                                                                Parents: bovid
+Leaf: bighorn, bighorn sheep, cimarron, Rocky Mountain bighorn, Rocky Mountain sheep, Ovis canadensis, Index: 349,           Parents: bovid
+Leaf: ibex, Capra ibex, Index: 350,                                                                                          Parents: bovid
+Leaf: bison, Index: 347,                                                                                                     Parents: bovid
+Leaf: water buffalo, water ox, Asiatic buffalo, Bubalus bubalis, Index: 346,                                                 Parents: bovid
+Leaf: ox, Index: 345,                                                                                                        Parents: bovid
+Leaf: hippopotamus, hippo, river horse, Hippopotamus amphibius, Index: 344,                                                  Parents: mammal - other
+Leaf: llama, Index: 355,                                                                                                     Parents: mammal - other
+Leaf: wild boar, boar, Sus scrofa, Index: 342,                                                                               Parents: swine
+Leaf: warthog, Index: 343,                                                                                                   Parents: swine
+Leaf: hog, pig, grunter, squealer, Sus scrofa, Index: 341,                                                                   Parents: swine
+Leaf: three-toed sloth, ai, Bradypus tridactylus, Index: 364,                                                                Parents: mammal - other
+Leaf: armadillo, Index: 363,                                                                                                 Parents: mammal - other
+Leaf: African elephant, Loxodonta africana, Index: 386,                                                                      Parents: elephant
+Leaf: Indian elephant, Elephas maximus, Index: 385,                                                                          Parents: elephant
+Leaf: porcupine, hedgehog, Index: 334,                                                                                       Parents: rodent
+Leaf: guinea pig, Cavia cobaya, Index: 338,                                                                                  Parents: rodent
+Leaf: hamster, Index: 333,                                                                                                   Parents: rodent
+Leaf: fox squirrel, eastern fox squirrel, Sciurus niger, Index: 335,                                                         Parents: rodent
+Leaf: marmot, Index: 336,                                                                                                    Parents: rodent
+Leaf: beaver, Index: 337,                                                                                                    Parents: rodent
+Leaf: tusker, Index: 101,                                                                                                    Parents: elephant
+Leaf: echidna, spiny anteater, anteater, Index: 102,                                                                         Parents: mammal - other
+Leaf: platypus, duckbill, duckbilled platypus, duck-billed platypus, Ornithorhynchus anatinus, Index: 103,                   Parents: mammal - other
+Leaf: koala, koala bear, kangaroo bear, native bear, Phascolarctos cinereus, Index: 105,                                     Parents: wombat and koala
+Leaf: wallaby, brush kangaroo, Index: 104,                                                                                   Parents: mammal - other
+Leaf: wombat, Index: 106,                                                                                                    Parents: wombat and koala
+Leaf: cock, Index: 7,                                                                                                        Parents: birds
+Leaf: hen, Index: 8,                                                                                                         Parents: birds
+Leaf: ostrich, Struthio camelus, Index: 9,                                                                                   Parents: birds
+Leaf: brambling, Fringilla montifringilla, Index: 10,                                                                        Parents: birds
+Leaf: goldfinch, Carduelis carduelis, Index: 11,                                                                             Parents: birds
+Leaf: house finch, linnet, Carpodacus mexicanus, Index: 12,                                                                  Parents: birds
+Leaf: junco, snowbird, Index: 13,                                                                                            Parents: birds
+Leaf: indigo bunting, indigo finch, indigo bird, Passerina cyanea, Index: 14,                                                Parents: birds
+Leaf: robin, American robin, Turdus migratorius, Index: 15,                                                                  Parents: birds
+Leaf: bulbul, Index: 16,                                                                                                     Parents: birds
+Leaf: jay, Index: 17,                                                                                                        Parents: birds
+Leaf: magpie, Index: 18,                                                                                                     Parents: birds
+Leaf: chickadee, Index: 19,                                                                                                  Parents: birds
+Leaf: water ouzel, dipper, Index: 20,                                                                                        Parents: birds
+Leaf: kite, Index: 21,                                                                                                       Parents: birds
+Leaf: bald eagle, American eagle, Haliaeetus leucocephalus, Index: 22,                                                       Parents: birds
+Leaf: vulture, Index: 23,                                                                                                    Parents: birds
+Leaf: great grey owl, great gray owl, Strix nebulosa, Index: 24,                                                             Parents: birds
+Leaf: black grouse, Index: 80,                                                                                               Parents: birds
+Leaf: ptarmigan, Index: 81,                                                                                                  Parents: birds
+Leaf: ruffed grouse, partridge, Bonasa umbellus, Index: 82,                                                                  Parents: birds
+Leaf: prairie chicken, prairie grouse, prairie fowl, Index: 83,                                                              Parents: birds
+Leaf: peacock, Index: 84,                                                                                                    Parents: birds
+Leaf: quail, Index: 85,                                                                                                      Parents: birds
+Leaf: partridge, Index: 86,                                                                                                  Parents: birds
+Leaf: African grey, African gray, Psittacus erithacus, Index: 87,                                                            Parents: birds
+Leaf: macaw, Index: 88,                                                                                                      Parents: birds
+Leaf: sulphur-crested cockatoo, Kakatoe galerita, Cacatua galerita, Index: 89,                                               Parents: birds
+Leaf: lorikeet, Index: 90,                                                                                                   Parents: birds
+Leaf: coucal, Index: 91,                                                                                                     Parents: birds
+Leaf: bee eater, Index: 92,                                                                                                  Parents: birds
+Leaf: hornbill, Index: 93,                                                                                                   Parents: birds
+Leaf: hummingbird, Index: 94,                                                                                                Parents: birds
+Leaf: jacamar, Index: 95,                                                                                                    Parents: birds
+Leaf: toucan, Index: 96,                                                                                                     Parents: birds
+Leaf: goose, Index: 99,                                                                                                      Parents: birds
+Leaf: drake, Index: 97,                                                                                                      Parents: birds
+Leaf: red-breasted merganser, Mergus serrator, Index: 98,                                                                    Parents: birds
+Leaf: black swan, Cygnus atratus, Index: 100,                                                                                Parents: birds
+Leaf: white stork, Ciconia ciconia, Index: 127,                                                                              Parents: birds
+Leaf: black stork, Ciconia nigra, Index: 128,                                                                                Parents: birds
+Leaf: spoonbill, Index: 129,                                                                                                 Parents: birds
+Leaf: flamingo, Index: 130,                                                                                                  Parents: birds
+Leaf: American egret, great white heron, Egretta albus, Index: 132,                                                          Parents: birds
+Leaf: little blue heron, Egretta caerulea, Index: 131,                                                                       Parents: birds
+Leaf: bittern, Index: 133,                                                                                                   Parents: birds
+Leaf: crane, Index: 134,                                                                                                     Parents: birds
+Leaf: limpkin, Aramus pictus, Index: 135,                                                                                    Parents: birds
+Leaf: American coot, marsh hen, mud hen, water hen, Fulica americana, Index: 137,                                            Parents: birds
+Leaf: bustard, Index: 138,                                                                                                   Parents: birds
+Leaf: ruddy turnstone, Arenaria interpres, Index: 139,                                                                       Parents: birds
+Leaf: red-backed sandpiper, dunlin, Erolia alpina, Index: 140,                                                               Parents: birds
+Leaf: redshank, Tringa totanus, Index: 141,                                                                                  Parents: birds
+Leaf: dowitcher, Index: 142,                                                                                                 Parents: birds
+Leaf: oystercatcher, oyster catcher, Index: 143,                                                                             Parents: birds
+Leaf: European gallinule, Porphyrio porphyrio, Index: 136,                                                                   Parents: birds
+Leaf: pelican, Index: 144,                                                                                                   Parents: birds
+Leaf: king penguin, Aptenodytes patagonica, Index: 145,                                                                      Parents: birds
+Leaf: albatross, mollymawk, Index: 146,                                                                                      Parents: birds
+Leaf: loggerhead, loggerhead turtle, Caretta caretta, Index: 33,                                                             Parents: reptiles
+Leaf: leatherback turtle, leatherback, leathery turtle, Dermochelys coriacea, Index: 34,                                     Parents: reptiles
+Leaf: mud turtle, Index: 35,                                                                                                 Parents: reptiles
+Leaf: terrapin, Index: 36,                                                                                                   Parents: reptiles
+Leaf: box turtle, box tortoise, Index: 37,                                                                                   Parents: reptiles
+Leaf: banded gecko, Index: 38,                                                                                               Parents: reptiles
+Leaf: common iguana, iguana, Iguana iguana, Index: 39,                                                                       Parents: reptiles
+Leaf: American chameleon, anole, Anolis carolinensis, Index: 40,                                                             Parents: reptiles
+Leaf: whiptail, whiptail lizard, Index: 41,                                                                                  Parents: reptiles
+Leaf: agama, Index: 42,                                                                                                      Parents: reptiles
+Leaf: frilled lizard, Chlamydosaurus kingi, Index: 43,                                                                       Parents: reptiles
+Leaf: alligator lizard, Index: 44,                                                                                           Parents: reptiles
+Leaf: Gila monster, Heloderma suspectum, Index: 45,                                                                          Parents: reptiles
+Leaf: green lizard, Lacerta viridis, Index: 46,                                                                              Parents: reptiles
+Leaf: African chameleon, Chamaeleo chamaeleon, Index: 47,                                                                    Parents: reptiles
+Leaf: Komodo dragon, Komodo lizard, dragon lizard, giant lizard, Varanus komodoensis, Index: 48,                             Parents: reptiles
+Leaf: triceratops, Index: 51,                                                                                                Parents: other
+Leaf: American alligator, Alligator mississipiensis, Index: 50,                                                              Parents: reptiles
+Leaf: African crocodile, Nile crocodile, Crocodylus niloticus, Index: 49,                                                    Parents: reptiles
+Leaf: thunder snake, worm snake, Carphophis amoenus, Index: 52,                                                              Parents: snakes
+Leaf: ringneck snake, ring-necked snake, ring snake, Index: 53,                                                              Parents: snakes
+Leaf: hognose snake, puff adder, sand viper, Index: 54,                                                                      Parents: snakes
+Leaf: green snake, grass snake, Index: 55,                                                                                   Parents: snakes
+Leaf: king snake, kingsnake, Index: 56,                                                                                      Parents: snakes
+Leaf: garter snake, grass snake, Index: 57,                                                                                  Parents: snakes
+Leaf: water snake, Index: 58,                                                                                                Parents: snakes
+Leaf: vine snake, Index: 59,                                                                                                 Parents: snakes
+Leaf: night snake, Hypsiglena torquata, Index: 60,                                                                           Parents: snakes
+Leaf: boa constrictor, Constrictor constrictor, Index: 61,                                                                   Parents: snakes
+Leaf: rock python, rock snake, Python sebae, Index: 62,                                                                      Parents: snakes
+Leaf: Indian cobra, Naja naja, Index: 63,                                                                                    Parents: snakes
+Leaf: green mamba, Index: 64,                                                                                                Parents: snakes
+Leaf: sea snake, Index: 65,                                                                                                  Parents: snakes
+Leaf: horned viper, cerastes, sand viper, horned asp, Cerastes cornutus, Index: 66,                                          Parents: snakes
+Leaf: diamondback, diamondback rattlesnake, Crotalus adamanteus, Index: 67,                                                  Parents: snakes
+Leaf: sidewinder, horned rattlesnake, Crotalus cerastes, Index: 68,                                                          Parents: snakes
+Leaf: bullfrog, Rana catesbeiana, Index: 30,                                                                                 Parents: frogs
+Leaf: tree frog, tree-frog, Index: 31,                                                                                       Parents: frogs
+Leaf: tailed frog, bell toad, ribbed toad, tailed toad, Ascaphus trui, Index: 32,                                            Parents: frogs
+Leaf: European fire salamander, Salamandra salamandra, Index: 25,                                                            Parents: marine life
+Leaf: common newt, Triturus vulgaris, Index: 26,                                                                             Parents: marine life
+Leaf: eft, Index: 27,                                                                                                        Parents: marine life
+Leaf: spotted salamander, Ambystoma maculatum, Index: 28,                                                                    Parents: marine life
+Leaf: axolotl, mud puppy, Ambystoma mexicanum, Index: 29,                                                                    Parents: marine life
+Leaf: electric ray, crampfish, numbfish, torpedo, Index: 5,                                                                  Parents: marine life
+Leaf: stingray, Index: 6,                                                                                                    Parents: marine life
+Leaf: great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias, Index: 2,                         Parents: marine life
+Leaf: tiger shark, Galeocerdo cuvieri, Index: 3,                                                                             Parents: marine life
+Leaf: hammerhead, hammerhead shark, Index: 4,                                                                                Parents: marine life
+Leaf: barracouta, snoek, Index: 389,                                                                                         Parents: marine life
+Leaf: coho, cohoe, coho salmon, blue jack, silver salmon, Oncorhynchus kisutch, Index: 391,                                  Parents: marine life
+Leaf: tench, Tinca tinca, Index: 0,                                                                                          Parents: marine life
+Leaf: goldfish, Carassius auratus, Index: 1,                                                                                 Parents: marine life
+Leaf: eel, Index: 390,                                                                                                       Parents: marine life
+Leaf: rock beauty, Holocanthus tricolor, Index: 392,                                                                         Parents: marine life
+Leaf: anemone fish, Index: 393,                                                                                              Parents: marine life
+Leaf: lionfish, Index: 396,                                                                                                  Parents: marine life
+Leaf: puffer, pufferfish, blowfish, globefish, Index: 397,                                                                   Parents: marine life
+Leaf: sturgeon, Index: 394,                                                                                                  Parents: marine life
+Leaf: gar, garfish, garpike, billfish, Lepisosteus osseus, Index: 395,                                                       Parents: marine life

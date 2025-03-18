@@ -14,6 +14,7 @@
 <body>
     <form id="save" action="{{ url_for('save_grid', username=username) }}" method="post"></form>
     <form id="jumpForm" action="{{ url_for('jump_to_class', username=username) }}" method="post"></form>
+    <form id="jumpClusterForm" action="{{ url_for('jump_to_cluster', username=username) }}" method="post"></form>
 
     <div class="legend-toggle">
         ?
@@ -44,7 +45,10 @@
         </div>
 
         <div class="image-display">
-            <div class="human-class-title">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</div>
+            <div class="class-info-container">
+                <div class="cluster-name-title">Superclass: {{ cluster_name }}</div>
+                <div class="human-class-title">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</div>
+            </div>
             <div class="image-wrapper">
                 {% for i in image_paths.keys() %}
                     <div class="image-container {{ borders[i] if i in borders else 'no-border' }}" data-index="{{ i }}">
@@ -106,6 +110,7 @@
             <div class="search-and-dropdown">
                 <input type="text" class="search-input" placeholder="Go to the image (Id)">
 
+                <!-- Class dropdown -->
                 <div class="class-dropdown">
                     <!-- Original select - will be hidden and replaced by our custom dropdown -->
                     <select id="classJump">
@@ -121,6 +126,16 @@
                     </select>
                     <!-- Custom dropdown will be inserted here by JavaScript -->
                 </div>
+
+                <!-- Cluster dropdown -->
+                <div class="cluster-dropdown">
+                    <select id="clusterJump" onchange="jumpToCluster(this.value)">
+                        <option value="">Jump to Cluster...</option>
+                        {% for cluster_name, classes in clusters.items()|sort %}
+                            <option value="{{ cluster_name }}">{{ cluster_name }} ({{ classes|length }} classes)</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -131,6 +146,9 @@
     </script>
     <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
 
+    <!-- Clusters data for JavaScript -->
+    <script id="clusters-data" type="application/json">{{ clusters|tojson }}</script>
+
     <!-- Class-specific progress data -->
     <div id="progress-data" style="display: none;">
         <span id="current-class-id">{{ label_indices[current_image_index] }}</span>
@@ -138,6 +156,7 @@
         <span id="class-corrected-images">{{ class_corrected_images }}</span>
         <span id="class-total-images">{{ class_total_images }}</span>
         <span id="num-corrected-images">{{ num_corrected_images }}</span>
+        <span id="current-cluster-name">{{ cluster_name }}</span>
     </div>
 </body>
 </html>

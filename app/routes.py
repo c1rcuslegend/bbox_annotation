@@ -11,6 +11,7 @@ from .app_utils import get_form_data, load_user_data, update_current_image_index
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
 
+
 def convert_bboxes_to_serializable(bboxes):
     """Convert bbox data to a serializable format for JSON."""
     # If bboxes already has the expected structure but with numpy arrays, convert them
@@ -83,6 +84,82 @@ def ensure_at_least_one_bbox(bboxes, threshold):
 def register_routes(app):
     # Initialize the global bbox data
     app.bbox_openclip_data = {}
+
+    # Load hierarchy files for class navigation
+    def load_hierarchy_files():
+        """Load the parent_to_children.json and index_to_parent.json files"""
+        try:
+            parent_to_children_path = os.path.join(app.config['APP_ROOT_FOLDER'], 'parent_to_children.json')
+            index_to_parent_path = os.path.join(app.config['APP_ROOT_FOLDER'], 'index_to_parent.json')
+
+            with open(parent_to_children_path, 'r') as f:
+                parent_to_children = json.load(f)
+
+            with open(index_to_parent_path, 'r') as f:
+                index_to_parent = json.load(f)
+
+            # Convert string keys to integers in index_to_parent for easier usage
+            index_to_parent = {int(k): v for k, v in index_to_parent.items()}
+
+            return parent_to_children, index_to_parent
+        except Exception as e:
+            app.logger.error(f"Error loading hierarchy files: {e}")
+            return {}, {}
+
+    # Load hierarchy data
+    app.parent_to_children, app.index_to_parent = load_hierarchy_files()
+
+    # Create a flattened ordered list of class indices based on clusters
+    def create_ordered_class_list():
+        """Create a flat list of class indices ordered by cluster hierarchy"""
+        ordered_classes = []
+
+        # If hierarchy data wasn't loaded successfully, return empty list
+        if not app.parent_to_children:
+            return []
+
+        # Add classes in order from each cluster
+        for cluster in sorted(app.parent_to_children.keys()):
+            ordered_classes.extend(app.parent_to_children[cluster])
+
+        return ordered_classes
+
+    app.ordered_class_list = create_ordered_class_list()
+
+    # Helper function to get the next class in the hierarchy
+    def get_next_class_in_hierarchy(current_class_index, direction):
+        """Get the next class index in the hierarchy based on direction (next/prev)"""
+        if not app.ordered_class_list:
+            # If there's no hierarchy data, fall back to linear navigation
+            return current_class_index + (1 if direction == "next" else -1)
+
+        try:
+            # Find the current position in the ordered list
+            current_position = app.ordered_class_list.index(current_class_index)
+
+            # Get next/prev position
+            next_position = current_position + (1 if direction == "next" else -1)
+
+            # Handle wrap-around
+            if next_position < 0:
+                next_position = len(app.ordered_class_list) - 1
+            elif next_position >= len(app.ordered_class_list):
+                next_position = 0
+
+            # Return the class at the new position
+            return app.ordered_class_list[next_position]
+        except ValueError:
+            # If current class not in ordered list, fall back to linear navigation
+            return current_class_index + (1 if direction == "next" else -1)
+
+    app.get_next_class_in_hierarchy = get_next_class_in_hierarchy
+
+    # Helper function to get cluster name for a class
+    def get_cluster_name(class_index):
+        """Get the cluster name for a given class index"""
+        return app.index_to_parent.get(class_index, "Unknown Cluster")
+
+    app.get_cluster_name = get_cluster_name
 
     def load_bbox_openclip_data(username):
         """Helper function to load bbox data for a specific image"""
@@ -189,7 +266,7 @@ def register_routes(app):
         borders = {}
         threshold = app.config.get('THRESHOLD', 0.5)
 
-        MULTILABEL_CONFIDENCE_THRESHOLD = 0.7 # We can move it to the config, anyway further discussion is needed
+        MULTILABEL_CONFIDENCE_THRESHOLD = 0.7  # We can move it to the config, anyway further discussion is needed
 
         # Used for possible multilabel detection based on the confidence
         image_conf_dict = get_image_conf_dict(proposals_info)
@@ -257,7 +334,24 @@ def register_routes(app):
             if class_dict.get_val_img_class(img_name_key) == current_class:
                 class_corrected_images += 1
 
-        print(class_corrected_images)
+
+        # Get cluster name for current class
+        cluster_name_final = app.get_cluster_name(current_class)
+
+        print(f"Cluster name for class {current_class}: {cluster_name_final}")
+
+        # Prepare clusters for dropdown menu
+        clusters = {}
+        for cluster_name in sorted(app.parent_to_children.keys()):
+            classes_in_cluster = app.parent_to_children[cluster_name]
+            clusters[cluster_name] = []
+            for class_id in classes_in_cluster:
+                if str(class_id) in label_indices_to_human_readable:
+                    class_name = label_indices_to_human_readable[str(class_id)]
+                    clusters[cluster_name].append({
+                        'id': class_id,
+                        'name': class_name
+                    })
 
         return render_template('img_grid.html',
                                image_paths=image_paths,
@@ -271,7 +365,9 @@ def register_routes(app):
                                num_corrected_images=num_corrected_images,
                                borders=borders,
                                class_corrected_images=class_corrected_images,
-                               class_total_images=50)
+                               class_total_images=50,
+                               cluster_name=cluster_name_final,  # Add cluster name to template
+                               clusters=clusters)  # Add clusters data for dropdown
 
     @app.route('/<username>/label_image')
     def label_image(username):
@@ -467,6 +563,23 @@ def register_routes(app):
         # Get the ground truth class
         class_dict = ClassDictionary()
 
+        # Get cluster name for current class
+        current_class = class_dict.get_val_img_class(current_image)
+        cluster_name_final = app.get_cluster_name(current_class)
+
+        # Prepare clusters for dropdown menu
+        clusters = {}
+        for cluster_name in sorted(app.parent_to_children.keys()):
+            classes_in_cluster = app.parent_to_children[cluster_name]
+            clusters[cluster_name] = []
+            for class_id in classes_in_cluster:
+                if str(class_id) in label_indices_to_human_readable:
+                    class_name = label_indices_to_human_readable[str(class_id)]
+                    clusters[cluster_name].append({
+                        'id': class_id,
+                        'name': class_name
+                    })
+
         end_time = timeit.default_timer()
         print(f"Total page load time: {end_time - start_time:.4f} seconds")
 
@@ -476,7 +589,7 @@ def register_routes(app):
                                username=username,
                                ground_truth_label=class_dict.get_class_name(
                                    class_dict.get_val_img_class(current_image)),
-                               ground_truth_class_index = class_dict.get_val_img_class(current_image),
+                               ground_truth_class_index=class_dict.get_val_img_class(current_image),
                                checked_categories=checked_categories,
                                comments=comments,
                                human_readable_classes_map=label_indices_to_human_readable,
@@ -487,7 +600,9 @@ def register_routes(app):
                                image_name=current_imagepath,
                                bboxes_source=bboxes_source,
                                label_type=label_type,
-                               selected_classes=selected_classes)
+                               selected_classes=selected_classes,
+                               cluster_name=cluster_name_final,  # Add cluster name to template
+                               clusters=clusters)  # Add clusters data for dropdown
 
     @app.route('/<username>/save_grid', methods=['POST'])
     def save_grid(username):
@@ -499,6 +614,8 @@ def register_routes(app):
         start = timeit.default_timer()
 
         image_paths, checkbox_values, direction, _ = get_form_data()
+
+        print(f"Saving grid data for user {username} with direction {direction}")
 
         # Get base image names only
         all_image_base_names = [os.path.basename(path) for path in image_paths.split('|')]
@@ -547,11 +664,35 @@ def register_routes(app):
             checked_images_count += 1
 
         try:
-            total_num_predictions = app.num_predictions_per_user[username]
-            update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct,
-                                       step=5)
+            # Modified to use the hierarchy-based navigation
+            current_image_index = app.current_image_index_dct.get(username, 0)
+            current_class = current_image_index // 50
+
+            print(f"Current class: {current_class}")
+            print(f"Current image index: {current_image_index}")
+
+            # Get the next class based on hierarchy
+            if direction == "next":
+                next_class = app.get_next_class_in_hierarchy(current_class, "next")
+            else:
+                next_class = app.get_next_class_in_hierarchy(current_class, "prev")
+
+            print(f"Next class: {next_class}")
+
+            if (direction == "next" and current_image_index + 5 < (current_class+1)*50) or (direction == "prev" and current_image_index - 5 >= current_class*50):
+                new_index = current_image_index + 5 if direction == "next" else current_image_index - 5
+            else:
+                # Calculate new index based on class * 50
+                new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
+
+            # Update the current image index
+            app.current_image_index_dct[username] = new_index
+
+            update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+
             # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
+
         except Exception as e:
             app.logger.error(f"Error in save_grid function for user {username}: {e}")
             return "An error occurred"
@@ -588,15 +729,40 @@ def register_routes(app):
         # Get form data - same as in save_grid
         image_paths, checkbox_values, direction, _ = get_form_data()
 
-        # Get the target image_index
+        # Get the target image_index or class/cluster
         image_index = request.form.get('image_index')
-        if not image_index:
-            return redirect(url_for('grid_image', username=username))
+        cluster_name = request.form.get('cluster_name')
+        class_id = request.form.get('class_id')
 
-        try:
-            target_index = int(image_index)
-        except (ValueError, TypeError):
-            app.logger.error(f"Invalid image index for jump: {image_index}")
+        # Determine the target index based on what was provided
+        target_index = None
+
+        # If image_index is provided directly, use it
+        if image_index:
+            try:
+                target_index = int(image_index)
+            except (ValueError, TypeError):
+                app.logger.error(f"Invalid image index for jump: {image_index}")
+                return redirect(url_for('grid_image', username=username))
+
+        # If class_id is provided, calculate the index
+        elif class_id:
+            try:
+                target_class = int(class_id)
+                target_index = target_class * 50
+            except (ValueError, TypeError):
+                app.logger.error(f"Invalid class id for jump: {class_id}")
+                return redirect(url_for('grid_image', username=username))
+
+        # If cluster_name is provided, get the first class in that cluster
+        elif cluster_name:
+            if cluster_name in app.parent_to_children and app.parent_to_children[cluster_name]:
+                target_class = app.parent_to_children[cluster_name][0]
+                target_index = target_class * 50
+            else:
+                app.logger.error(f"Invalid cluster name or empty cluster: {cluster_name}")
+                return redirect(url_for('grid_image', username=username))
+        else:
             return redirect(url_for('grid_image', username=username))
 
         # Process checkbox selections - same as in save_grid
@@ -799,11 +965,38 @@ def register_routes(app):
             checkbox_selections[base_image_name] = image_data
 
         try:
-            total_num_predictions = app.num_predictions_per_user[username]
-            update_current_image_index(app, username, direction, total_num_predictions, app.current_image_index_dct)
-            save_user_data(app, username, comments_json, checkbox_selections)
+            # Modified to use the hierarchy-based navigation
+            current_image_index = app.current_image_index_dct.get(username, 0)
+            current_class = current_image_index // 50
+
+            print(f"Current class: {current_class}")
+            print(f"Current image index: {current_image_index}")
+
+            # Get the next class based on hierarchy
+            if direction == "next":
+                next_class = app.get_next_class_in_hierarchy(current_class, "next")
+            else:
+                next_class = app.get_next_class_in_hierarchy(current_class, "prev")
+
+            print(f"Next class: {next_class}")
+
+            if (direction == "next" and current_image_index + 5 < (current_class + 1) * 50) or (
+                    direction == "prev" and current_image_index - 5 >= current_class * 50):
+                new_index = current_image_index + 5 if direction == "next" else current_image_index - 5
+            else:
+                # Calculate new index based on class * 50
+                new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
+
+            # Update the current image index
+            app.current_image_index_dct[username] = new_index
+
+            update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+
+            # Save only the checkbox_selections, leave comments unchanged
+            save_user_data(app, username, checkbox_selections=checkbox_selections)
+
         except Exception as e:
-            app.logger.error(f"Error in save function for user {username}: {e}")
+            app.logger.error(f"Error in save_grid function for user {username}: {e}")
             return "An error occurred"
 
         print(f"Time taken in save: {timeit.default_timer() - start}")
@@ -867,4 +1060,96 @@ def register_routes(app):
             app.logger.error(f"Error saving bboxes for user {username}: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    return app  # Return the configured app
+    # New endpoint to handle cluster-based navigation
+    @app.route('/<username>/jump_to_cluster', methods=['POST'])
+    def jump_to_cluster(username):
+        """
+        Handle jumping to a specific cluster while saving checkbox selections
+        This functions similar to save_grid but with a different navigation target
+        """
+        import timeit
+        start = timeit.default_timer()
+
+        # Get form data - same as in save_grid
+        image_paths, checkbox_values, direction, _ = get_form_data()
+
+        # Get the cluster name
+        cluster_name = request.form.get('cluster_name')
+
+        if not cluster_name or cluster_name not in app.parent_to_children:
+            app.logger.error(f"Invalid cluster name for jump: {cluster_name}")
+            return redirect(url_for('grid_image', username=username))
+
+        # Get the first class in the cluster
+        try:
+            target_class = app.parent_to_children[cluster_name][0]
+            target_index = target_class * 50
+
+            # Process checkbox selections - same as in save_grid
+            # Get base image names only
+            all_image_base_names = [os.path.basename(path) for path in image_paths.split('|')]
+            checked_image_base_labels = []
+            checked_image_base_names = []
+
+            if checkbox_values:
+                checked_image_base_labels = [os.path.basename(path) for path in
+                                             [temp.split('|')[1] for temp in checkbox_values]]
+                checked_image_base_names = [os.path.basename(path) for path in
+                                            [temp.split('|')[0] for temp in checkbox_values]]
+
+            # Load user data
+            _, checkbox_selections = load_user_data(app, username)
+            bboxes_dict = app.load_bbox_openclip_data(username)
+            man_annotated_bboxes_dict = read_json_file(
+                os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
+                app) or {}
+
+            checked_images_count = 0
+            # Process each image in the grid
+            for base_name in all_image_base_names:
+                if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
+                    del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
+                    continue
+                if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
+                    continue  # Skip images that are already annotated by the user
+
+                checkbox_selections[base_name] = {}
+                # Get existing data
+                if base_name in bboxes_dict:
+                    bboxes = bboxes_dict[base_name]['boxes']
+                    scores = bboxes_dict[base_name]['scores']
+                    if not bboxes:
+                        continue
+
+                    # Include at least one box per image
+                    threshold = app.config['THRESHOLD']
+                    above_threshold = [score >= threshold for score in scores]
+
+                    # If no boxes above threshold, include the highest scoring box
+                    if not any(above_threshold) and scores:
+                        highest_score_idx = scores.index(max(scores))
+                        above_threshold[highest_score_idx] = True
+                        app.logger.info(
+                            f"No boxes above threshold for {base_name}. Including highest score box {highest_score_idx}")
+
+                    if checked_images_count < len(checked_image_base_labels):
+                        checkbox_selections[base_name]['bboxes'] = [
+                            {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
+                            for box, include in zip(bboxes, above_threshold) if include
+                        ]
+                        checkbox_selections[base_name]['label_type'] = 'basic'
+                        checked_images_count += 1
+
+            # Update the in-memory index
+            update_current_image_index_simple(app, username, app.current_image_index_dct, target_index)
+
+            # Save the checkbox selections
+            save_user_data(app, username, checkbox_selections=checkbox_selections)
+
+            app.logger.info(f"User {username} jumped to cluster {cluster_name}, class {target_class}")
+
+            print(f"Time taken in jump_to_cluster: {timeit.default_timer() - start}")
+            return redirect(url_for('grid_image', username=username))
+        except (IndexError, ValueError) as e:
+            app.logger.error(f"Error jumping to cluster {cluster_name}: {e}")
+            return redirect(url_for('grid_image', username=username))
