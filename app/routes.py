@@ -1025,7 +1025,6 @@ def register_routes(app):
             for bbox in bboxes:
                 if 'coordinates' in bbox:
                     bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
-                # print(bbox.get('crowd_flag'))
 
             timestamp = data.get('timestamp', time.time())  # For debugging
 
@@ -1165,3 +1164,87 @@ def register_routes(app):
         except (IndexError, ValueError) as e:
             app.logger.error(f"Error jumping to cluster {cluster_name}: {e}")
             return redirect(url_for('grid_image', username=username))
+
+    @app.route('/<username>/refresh_examples', methods=['GET'])
+    def refresh_examples(username):
+        """
+        Refresh example images without reloading the entire page.
+        Returns new similar images as JSON.
+        """
+        try:
+            # Get current image name
+            image_name = request.args.get('image_name', '')
+            if not image_name:
+                return jsonify({'error': 'No image name provided'}), 400
+
+            # Extract base image name
+            base_image_name = os.path.basename(image_name)
+
+            # Get user data from cache
+            if username not in app.user_cache:
+                return jsonify({'error': 'User not found'}), 404
+
+            user_data = app.user_cache[username]
+            if any(value is None for value in user_data.values()):
+                return jsonify({'error': 'Error loading user data'}), 500
+
+            # Get required data from user cache
+            proposals_info = user_data['proposals_info']
+            all_sample_images = user_data['all_sample_images']
+
+            # Get class names and mappings
+            label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+
+            # Create a new random seed based on current time
+            new_seed = int(time.time() * 1000) % 10000
+            np.random.seed(new_seed)
+
+            # Find the current image data in proposals_info
+            current_image_data = None
+            current_image_index = -1
+
+            for i, data in enumerate(proposals_info):
+                if data['image_name'] == base_image_name:
+                    current_image_data = data
+                    current_image_index = i
+                    break
+
+            if current_image_data is None:
+                # If image not found by name, fallback to the current index
+                current_image_index = app.current_image_index_dct.get(username, 0)
+                current_image_data = proposals_info[current_image_index]
+
+            # Get top categories for the current image
+            image_softmax_dict = get_image_softmax_dict(proposals_info)
+            top_categories = image_softmax_dict[current_image_data['image_name']][:20]
+
+            # Get new sample images with the new random seed
+            similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
+                                                              label_indices_to_label_names,
+                                                              num_selection=app.config['NUM_EXAMPLES_PER_CLASS'])
+
+            # Copy images to static directory
+            copy_to_static_dir([], app.config['ANNOTATIONS_ROOT_FOLDER'],
+                               os.path.join(app.config['APP_ROOT_FOLDER'], app.config['STATIC_FOLDER'], 'images'))
+
+            # Convert all NumPy int64 keys to Python native integers
+            converted_similar_images = {}
+            for key, value in similar_images.items():
+                # Convert the NumPy int64 key to a standard Python int
+                python_int_key = int(key)
+                # Update the paths to include static folder
+                converted_similar_images[python_int_key] = [
+                    os.path.join(app.config['STATIC_FOLDER'], 'images', image) for image in value
+                ]
+
+            # Return the new similar images with converted keys as JSON
+            return jsonify({
+                'similar_images': converted_similar_images,
+                'seed': new_seed
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error refreshing examples for {username}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': str(e)}), 500

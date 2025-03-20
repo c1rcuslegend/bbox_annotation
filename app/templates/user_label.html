@@ -121,6 +121,7 @@
     <script src="{{ url_for('static', filename='js/bbox-editor-patch.js') }}"></script>
     <script src="{{ url_for('static', filename='js/inline-bbox-editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/whole-image-bbox.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/refresh-btn.js') }}"></script>
 </head>
 
 <body>
@@ -218,6 +219,9 @@
         <div id="page2" class="page_number" onclick="pageSelect(2);">6-10</div>
         <div id="page3" class="page_number" onclick="pageSelect(3);">11-15</div>
         <div id="page4" class="page_number" onclick="pageSelect(4);">16-20</div>
+        <div id="refreshExamples" class="page_number refresh-examples">
+            <span class="refresh-icon">↻</span> Refresh
+        </div>
     </div>
 
     <div class="row">
@@ -346,6 +350,8 @@
             </div>
         </div>
     </div>
+
+    <div id="refreshSuccess" class="refresh-success">Examples refreshed successfully!</div>
 
     <!-- Hidden elements for passing data to JavaScript -->
     <div id="ground-truth-data" style="display:none;">{{ ground_truth_class_index|default(0) }}</div>

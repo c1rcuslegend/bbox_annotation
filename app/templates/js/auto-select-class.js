@@ -198,15 +198,15 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.style.transform = 'translate(-50%, -50%) scale(1)';
         }, 10);
 
-        // Remove after 3 seconds with animation
+        // Remove after 2 seconds with animation
         setTimeout(() => {
             notification.style.opacity = '0';
             notification.style.transform = 'translate(-50%, -50%) scale(0.9)';
 
             setTimeout(() => {
                 notification.remove();
-            }, 300);
-        }, 3000);
+            }, 200);
+        }, 2000);
     }
 
     // Log the ground truth class ID for debugging
