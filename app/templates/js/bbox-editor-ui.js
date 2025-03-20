@@ -70,103 +70,181 @@ class BBoxEditorUI {
         classInputGroup.innerHTML = '';
         if (label) classInputGroup.appendChild(label);
 
-        // Create search input
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.id = 'class-search-input';
-        searchInput.placeholder = 'Search for class...';
-        searchInput.className = 'bbox-editor-selector';
-        searchInput.style.marginBottom = '5px';
+        // Create the custom class selector - a single input that acts as both search and dropdown
+        const customSelector = document.createElement('div');
+        customSelector.className = 'custom-class-selector';
 
-        // Create the select element
-        const selectElem = document.createElement('select');
-        selectElem.id = 'bbox-class-selector';
-        selectElem.className = 'bbox-editor-selector';
+        // Create the actual input field
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.id = 'class-search-input';
+        inputField.className = 'bbox-editor-selector';
+        inputField.placeholder = 'Search for class...';
+        inputField.autocomplete = 'off';
 
-        // Populate with class options
+        // Add the dropdown icon
+        const dropdownIcon = document.createElement('div');
+        dropdownIcon.className = 'dropdown-icon';
+        dropdownIcon.innerHTML = '▼';
+
+        // Create the dropdown content container
+        const dropdownContent = document.createElement('div');
+        dropdownContent.className = 'dropdown-content';
+        dropdownContent.style.display = 'none';
+
+        // Create the hidden select element that maintains the actual selection
+        const hiddenSelect = document.createElement('select');
+        hiddenSelect.id = 'bbox-class-selector';
+        hiddenSelect.style.display = 'none';
+
+        // Build the options and populate both the hidden select and dropdown content
         if (classLabels && Object.keys(classLabels).length > 0) {
             // If we have class labels, use them
             const sortedClassIds = Object.keys(classLabels).sort((a, b) => parseInt(a) - parseInt(b));
 
             sortedClassIds.forEach(classId => {
+                // Create option for the hidden select
                 const option = document.createElement('option');
                 option.value = classId;
                 option.textContent = `${classId} - ${classLabels[classId]}`;
-                option.dataset.searchtext = `${classId} ${classLabels[classId]}`.toLowerCase();
-                selectElem.appendChild(option);
+                hiddenSelect.appendChild(option);
+
+                // Create corresponding item for the dropdown
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.dataset.value = classId;
+                item.textContent = `${classId} - ${classLabels[classId]}`;
+                item.dataset.searchtext = `${classId} ${classLabels[classId]}`.toLowerCase();
+                dropdownContent.appendChild(item);
             });
         } else {
             // Otherwise create generic options 0-999
             for (let i = 0; i < 1000; i++) {
+                // Create option for the hidden select
                 const option = document.createElement('option');
                 option.value = i;
-                option.text = `Class ${i}`;
-                option.dataset.searchtext = `${i} class ${i}`.toLowerCase();
-                selectElem.appendChild(option);
+                option.textContent = `Class ${i}`;
+                hiddenSelect.appendChild(option);
+
+                // Create corresponding item for the dropdown
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.dataset.value = i.toString();
+                item.textContent = `Class ${i}`;
+                item.dataset.searchtext = `${i} class ${i}`.toLowerCase();
+                dropdownContent.appendChild(item);
             }
         }
+
+        // Add all elements to the DOM
+        customSelector.appendChild(inputField);
+        customSelector.appendChild(dropdownIcon);
+        customSelector.appendChild(dropdownContent);
+        classInputGroup.appendChild(customSelector);
+        classInputGroup.appendChild(hiddenSelect);
 
         // Set the value if we have a valid box index
         if (boxIndex >= 0 && boxIndex < bboxes.labels.length) {
-            selectElem.value = bboxes.labels[boxIndex];
+            const labelId = bboxes.labels[boxIndex];
+            hiddenSelect.value = labelId.toString();
 
-            if (classLabels && classLabels[bboxes.labels[boxIndex]]) {
-                searchInput.value = `${bboxes.labels[boxIndex]} - ${classLabels[bboxes.labels[boxIndex]]}`;
+            if (classLabels && classLabels[labelId]) {
+                inputField.value = `${labelId} - ${classLabels[labelId]}`;
             } else {
-                searchInput.value = `Class ${bboxes.labels[boxIndex]}`;
+                inputField.value = `Class ${labelId}`;
             }
         }
 
-        // Add search functionality
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
+        // Show/hide dropdown when input field is clicked or dropdown icon is clicked
+        inputField.addEventListener('click', () => {
+            dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+        });
 
-            if (searchTerm) {
-                // Filter options based on search term
-                let firstMatchFound = false;
-
-                Array.from(selectElem.options).forEach(option => {
-                    const matchesSearch = option.dataset.searchtext.includes(searchTerm);
-
-                    // Don't hide options in the actual select element as that's not well-supported
-                    // Instead, we'll just select the first matching option
-                    if (matchesSearch && !firstMatchFound) {
-                        option.selected = true;
-                        firstMatchFound = true;
-
-                        // Immediately apply the class change to the selected box
-                        if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
-                            const newClassId = parseInt(option.value);
-                            bboxes.labels[this.currentBoxIndex] = newClassId;
-
-                            // Update gt field if it exists
-                            if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
-                                bboxes.gt[this.currentBoxIndex] = newClassId;
-                                console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
-                            }
-
-                            // Update the preview canvas to show the class change
-                            this.updatePreviewCanvas();
-
-                            // Update the main editor if available
-                            if (this.editor) {
-                                this.editor.redrawCanvas();
-                            }
-                        }
-                    }
-                });
+        dropdownIcon.addEventListener('click', () => {
+            dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+            if (dropdownContent.style.display === 'block') {
+                inputField.focus();
             }
         });
 
-        // Set search input value when select changes
-        selectElem.addEventListener('change', () => {
-            const selectedOption = selectElem.options[selectElem.selectedIndex];
-            if (selectedOption) {
-                searchInput.value = selectedOption.textContent;
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!customSelector.contains(e.target)) {
+                dropdownContent.style.display = 'none';
+            }
+        });
 
-                // Also update the label for the selected bbox if one is selected
+        // Filter dropdown items on input
+        inputField.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = dropdownContent.querySelectorAll('.dropdown-item');
+
+            // Show dropdown when typing
+            dropdownContent.style.display = 'block';
+
+            let matchFound = false;
+            let firstMatchValue = null;
+
+            items.forEach(item => {
+                const searchText = item.dataset.searchtext;
+                if (searchText.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    if (!matchFound) {
+                        matchFound = true;
+                        firstMatchValue = item.dataset.value;
+                        item.classList.add('selected');
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                } else {
+                    item.style.display = 'none';
+                    item.classList.remove('selected');
+                }
+            });
+
+            // Update the selection immediately on the first match
+            if (matchFound && this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
+                const newClassId = parseInt(firstMatchValue);
+                hiddenSelect.value = firstMatchValue;
+                bboxes.labels[this.currentBoxIndex] = newClassId;
+
+                // Update gt field if it exists
+                if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
+                    bboxes.gt[this.currentBoxIndex] = newClassId;
+                    console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
+                }
+
+                // Update the preview canvas to show the class change
+                this.updatePreviewCanvas();
+
+                // Update the bbox selector dropdown to reflect the changed class
+                this.updateBboxSelector(bboxes, this.currentBoxIndex, this.threshold, this.editor.classLabels);
+
+                // Update the main editor if available
+                if (this.editor) {
+                    this.editor.redrawCanvas();
+                }
+            }
+        });
+
+        // Handle click on dropdown items
+        dropdownContent.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const selectedValue = item.dataset.value;
+                const selectedText = item.textContent;
+
+                // Update input field with selected text
+                inputField.value = selectedText;
+
+                // Update hidden select value
+                hiddenSelect.value = selectedValue;
+
+                // Hide dropdown
+                dropdownContent.style.display = 'none';
+
+                // Update the bbox class if one is selected
                 if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
-                    const newClassId = parseInt(selectedOption.value);
+                    const newClassId = parseInt(selectedValue);
                     bboxes.labels[this.currentBoxIndex] = newClassId;
 
                     // Update gt field if it exists
@@ -175,14 +253,69 @@ class BBoxEditorUI {
                         console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
                     }
 
+                    // Update the preview canvas
                     this.updatePreviewCanvas();
+
+                    // Update the bbox selector dropdown
+                    this.updateBboxSelector(bboxes, this.currentBoxIndex, this.threshold, this.editor.classLabels);
+
+                    // Update the main editor
+                    if (this.editor) {
+                        this.editor.redrawCanvas();
+                    }
+                }
+            });
+        });
+
+        // Add keyboard navigation
+        inputField.addEventListener('keydown', (e) => {
+            if (dropdownContent.style.display === 'block') {
+                const items = Array.from(dropdownContent.querySelectorAll('.dropdown-item')).filter(
+                    item => item.style.display !== 'none'
+                );
+                const selectedItem = dropdownContent.querySelector('.dropdown-item.selected');
+                const selectedIndex = selectedItem ? items.indexOf(selectedItem) : -1;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        // Remove current selection
+                        if (selectedItem) {
+                            selectedItem.classList.remove('selected');
+                        }
+
+                        // Select next item (or first if none selected)
+                        const nextIndex = selectedIndex < 0 || selectedIndex >= items.length - 1 ? 0 : selectedIndex + 1;
+                        items[nextIndex].classList.add('selected');
+                        items[nextIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        // Remove current selection
+                        if (selectedItem) {
+                            selectedItem.classList.remove('selected');
+                        }
+
+                        // Select previous item (or last if none selected)
+                        const prevIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+                        items[prevIndex].classList.add('selected');
+                        items[prevIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedItem) {
+                        selectedItem.click();
+                    } else if (items.length === 1) {
+                        // If only one item visible, select it
+                        items[0].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    dropdownContent.style.display = 'none';
                 }
             }
         });
-
-        // Add elements to the class input group
-        classInputGroup.appendChild(searchInput);
-        classInputGroup.appendChild(selectElem);
     }
 
     static setupEventListeners(bboxes, editor) {
@@ -215,6 +348,8 @@ class BBoxEditorUI {
                         console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
                     }
 
+                    this.updateBboxSelector(bboxes, this.currentBoxIndex, editor.threshold, editor.classLabels);
+
                     // Update coordinates
                     bboxes.boxes[this.currentBoxIndex] = [
                         Math.min(x1, x2),
@@ -240,7 +375,7 @@ class BBoxEditorUI {
                     // Store the index being deleted
                     const deletedIndex = this.currentBoxIndex;
 
-                                        // Remove box, score and label from the arrays
+                    // Remove box, score and label from the arrays
                     bboxes.boxes.splice(deletedIndex, 1);
                     bboxes.scores.splice(deletedIndex, 1);
                     if (bboxes.labels) bboxes.labels.splice(deletedIndex, 1);
@@ -501,7 +636,15 @@ class BBoxEditorUI {
         const bboxSelector = document.getElementById('bbox-selector');
         if (!bboxSelector) return;
 
+        // Clear existing options
         bboxSelector.innerHTML = '';
+
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "-1";
+        defaultOption.text = "-- Select a box --";
+        bboxSelector.appendChild(defaultOption);
+
         bboxes.boxes.forEach((_, i) => {
             if (bboxes.scores[i] >= threshold) {
                 const option = document.createElement('option');
@@ -1014,7 +1157,7 @@ class BBoxEditorUI {
             if (this.isDrawingNew) {
                 const imgCoords = toImageCoords(x, y);
 
-                                // Create a temporary box for visualization
+                // Create a temporary box for visualization
                 this.tempBox = [
                     Math.min(newBoxStart.x, imgCoords.x),
                     Math.min(newBoxStart.y, imgCoords.y),
@@ -1258,4 +1401,4 @@ class BBoxEditorUI {
 // Export the module for use in other scripts
 window.BBoxEditorUI = BBoxEditorUI;
 
-console.log('BBox Editor UI loaded with ground truth class support and radio button integration');
+console.log('BBox Editor UI loaded with integrated searchable dropdown and ground truth support');
