@@ -954,6 +954,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dropdownContent = document.querySelector('.dropdown-content');
                 if (dropdownContent) {
                     dropdownContent.style.display = 'none';
+
+                    // Update which item is marked as selected in the dropdown
+                    // First, remove the 'selected' class from all items
+                    const allItems = dropdownContent.querySelectorAll('.dropdown-item');
+                    allItems.forEach(item => {
+                        item.classList.remove('selected');
+                    });
+
+                    // Now add the 'selected' class to the matching item
+                    const selectedItem = dropdownContent.querySelector(`.dropdown-item[data-value="${labelId}"]`);
+                    if (selectedItem) {
+                        selectedItem.classList.add('selected');
+                        debug(`Updated dropdown selected item to class ${labelId}`);
+                    }
                 }
             }
         }
@@ -1628,32 +1642,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update UI
             updateBboxSelector();
 
-            // Update class selectors
-            if (inlineClassSelector && inlineClassSearch &&
-                inlineEditor.bboxes.labels && boxIndex < inlineEditor.bboxes.labels.length) {
-
-                const labelId = inlineEditor.bboxes.labels[boxIndex];
-
-                // Set the selector value
-                inlineClassSelector.value = labelId.toString();
-
-                // Find the proper option text
-                const selectedOption = Array.from(inlineClassSelector.options).find(
-                    option => option.value === labelId.toString()
-                );
-
-                // Update search input
-                if (selectedOption) {
-                    inlineClassSearch.value = selectedOption.textContent;
-                } else if (inlineEditor.classLabels && inlineEditor.classLabels[labelId]) {
-                    inlineClassSearch.value = `${labelId} - ${inlineEditor.classLabels[labelId]}`;
-                } else {
-                    inlineClassSearch.value = `Class ${labelId}`;
-                }
-            }
-
-            // Update the crowd checkbox
-            updateCrowdCheckbox(boxIndex);
+            // Call selectBox to properly update all UI elements including class selector
+            selectBox(boxIndex);
 
             debug(`Started dragging box ${boxIndex}`);
         }
@@ -1725,32 +1715,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update UI
             updateBboxSelector();
 
-            // Update class selectors
-            if (inlineClassSelector && inlineClassSearch &&
-                inlineEditor.bboxes.labels && boxIndex < inlineEditor.bboxes.labels.length) {
-
-                const labelId = inlineEditor.bboxes.labels[boxIndex];
-
-                // Set the selector value
-                inlineClassSelector.value = labelId.toString();
-
-                // Find the proper option text
-                const selectedOption = Array.from(inlineClassSelector.options).find(
-                    option => option.value === labelId.toString()
-                );
-
-                // Update search input
-                if (selectedOption) {
-                    inlineClassSearch.value = selectedOption.textContent;
-                } else if (inlineEditor.classLabels && inlineEditor.classLabels[labelId]) {
-                    inlineClassSearch.value = `${labelId} - ${inlineEditor.classLabels[labelId]}`;
-                } else {
-                    inlineClassSearch.value = `Class ${labelId}`;
-                }
-            }
-
-            // Update the crowd checkbox
-            updateCrowdCheckbox(boxIndex);
+            // Call selectBox to properly update all UI elements including class selector
+            selectBox(boxIndex);
 
             debug(`Started resizing box ${boxIndex} from ${corner}`);
         }
