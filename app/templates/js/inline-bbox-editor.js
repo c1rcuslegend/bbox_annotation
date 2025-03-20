@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get DOM elements for controls
     const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+    const inlineCrowdCheckbox = document.getElementById("inline-crowd-checkbox");
     const inlineClassSearch = document.getElementById('inline-class-search');
     const inlineClassSelector = document.getElementById('inline-class-selector');
     const deleteBoxBtn = document.getElementById('inline-bbox-delete');
@@ -92,6 +93,13 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (inlineEditor.bboxes.labels) {
                 debug(`Labels found: ${JSON.stringify(inlineEditor.bboxes.labels)}`);
                 inlineEditor.labelsInitialized = true;
+            }
+            // Ensure crowd flags array exists
+            else if (!inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.boxes) {
+                debug('Creating missing crowd flags array with default values');
+                inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+            } else if (inlineEditor.bboxes.crowd_flags) {
+                debug(`Crowd flags found: ${JSON.stringify(inlineEditor.bboxes.crowd_flags)}`);
             }
 
             if (inlineEditor.bboxes.boxes && inlineEditor.bboxes.scores) {
@@ -337,7 +345,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 bboxDataArray.push({
                     coordinates: box,
-                    label: label
+                    label: label,
+                    crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
                 });
             }
         });
@@ -713,6 +722,9 @@ document.addEventListener('DOMContentLoaded', function() {
             debug(`Selected box ${boxIndex} with label: ${inlineEditor.bboxes.labels[boxIndex]}`);
         }
 
+        // Update the checkbox based on crowd flag
+        updateCrowdCheckbox(boxIndex)
+
         // Make sure the correct class is selected in the UI
         if (inlineClassSelector && inlineClassSearch &&
             inlineEditor.bboxes.labels && boxIndex < inlineEditor.bboxes.labels.length) {
@@ -755,6 +767,29 @@ document.addEventListener('DOMContentLoaded', function() {
         debug(`Selected box ${boxIndex}`);
     }
 
+    if (inlineCrowdCheckbox) {
+        inlineCrowdCheckbox.addEventListener('change', handleCrowdCheckboxChange);
+    }
+
+    function handleCrowdCheckboxChange() {
+        if (inlineEditor.currentBoxIndex < 0) return;
+
+        // Update the crowd_flags array based on the checkbox state
+        inlineEditor.bboxes.crowd_flags[inlineEditor.currentBoxIndex] = inlineCrowdCheckbox.checked;
+
+        // Update hidden form field
+        updateHiddenBboxesField();
+
+        debug(`Updated crowd flag for box ${inlineEditor.currentBoxIndex} to: ${inlineCrowdCheckbox.checked}`);
+    }
+
+    function updateCrowdCheckbox(boxIndex) {
+        if (inlineCrowdCheckbox && inlineEditor.bboxes.crowd_flags) {
+            inlineCrowdCheckbox.checked = inlineEditor.bboxes.crowd_flags[boxIndex];
+            debug(`Set crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
+        }
+    }
+
     // Delete the current box
     function deleteCurrentBox() {
         if (inlineEditor.currentBoxIndex < 0 || !inlineEditor.bboxes ||
@@ -771,6 +806,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (inlineEditor.bboxes.labels) {
             inlineEditor.bboxes.labels.splice(deletedIndex, 1);
+        }
+
+        // Also remove crowd flag if it exists
+        if (inlineEditor.bboxes.crowd_flags) {
+            inlineEditor.bboxes.crowd_flags.splice(deletedIndex, 1);
         }
         
         // Also remove from gt if it exists
@@ -803,11 +843,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Clear all bounding boxes, scores, and labels
+        // Clear all bounding boxes, scores, labels, and crowd flags
         inlineEditor.bboxes.boxes = [];
         inlineEditor.bboxes.scores = [];
         if (inlineEditor.bboxes.labels) {
             inlineEditor.bboxes.labels = [];
+        }
+        if (inlineEditor.bboxes.crowd_flags) {
+            inlineEditor.bboxes.crowd_flags = [];
         }
         if (inlineEditor.bboxes.gt) {
             inlineEditor.bboxes.gt = [];
@@ -942,7 +985,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 bboxDataArray.push({
                     coordinates: box,
-                    label: label
+                    label: label,
+                    crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
                 });
             }
         });
@@ -1303,8 +1347,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         debug(`Added new box to gt array with class ${classId}`);
                     }
 
+                    // Ensure crowd_flags array exists
+                    if (!inlineEditor.bboxes.crowd_flags) {
+                        inlineEditor.bboxes.crowd_flags = Array(inlineEditor.bboxes.boxes.length).fill(false);
+                        debug('Created missing crowd_flags array during drawing');
+                    }
+
                     // Select the new box
                     inlineEditor.currentBoxIndex = inlineEditor.bboxes.boxes.length - 1;
+
+                    // Add the new box's crowd flag
+                    inlineEditor.bboxes.crowd_flags.push(false);
+                    updateCrowdCheckbox(inlineEditor.currentBoxIndex)
 
                     // Update editor if available
                     if (inlineEditor.editor) {
@@ -1401,6 +1455,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // Update the crowd checkbox
+            updateCrowdCheckbox(boxIndex);
+
             debug(`Started dragging box ${boxIndex}`);
         }
 
@@ -1494,6 +1551,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     inlineClassSearch.value = `Class ${labelId}`;
                 }
             }
+
+            // Update the crowd checkbox
+            updateCrowdCheckbox(boxIndex);
 
             debug(`Started resizing box ${boxIndex} from ${corner}`);
         }

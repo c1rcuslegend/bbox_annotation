@@ -29,6 +29,10 @@ USER_PATHS = {
     "c1rcuslegend": {
         "ANNOTATIONS_ROOT_FOLDER": "D:\\imagenet_val",
         "EXAMPLES_DATASET_ROOT_DIR": "D:\\imagenet_val"
+    },
+    "tetiana": {
+        "ANNOTATIONS_ROOT_FOLDER": "./imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./imagenet_val"
     }
 }
 

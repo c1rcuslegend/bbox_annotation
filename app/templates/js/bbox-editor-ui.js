@@ -51,6 +51,11 @@ class BBoxEditorUI {
             bboxes.labels = Array(bboxes.boxes.length).fill(0);
         }
 
+        // Ensure crowd flags exists in bboxes
+        else if (!bboxes.crowd_flags) {
+            bboxes.crowd_flags = Array(bboxes.boxes.length).fill(false);
+        }
+
         // Find the class selector input group
         const classInputGroup = document.querySelector('.bbox-editor-input-group:has(label[for="bbox-class-selector"])') ||
                                document.querySelector('.bbox-editor-input-group:nth-of-type(5)');
@@ -240,6 +245,9 @@ class BBoxEditorUI {
                     bboxes.scores.splice(deletedIndex, 1);
                     if (bboxes.labels) bboxes.labels.splice(deletedIndex, 1);
 
+                    // Also remove crowd flag if it exists
+                    if (bboxes.crowd_flags) bboxes.crowd_flags.splice(deletedIndex, 1);
+
                     // Also update gt field if it exists
                     if (bboxes.gt) {
                         bboxes.gt.splice(deletedIndex, 1);
@@ -270,10 +278,11 @@ class BBoxEditorUI {
         const deleteAllButton = document.getElementById('bbox-delete-all');
         if (deleteAllButton) {
             deleteAllButton.onclick = () => {
-                // Remove all boxes, scores, and labels from the arrays
+                // Remove all boxes, scores, labels and crowd flags from the arrays
                 bboxes.boxes = [];
                 bboxes.scores = [];
                 if (bboxes.labels) bboxes.labels = [];
+                if (bboxes.crowd_flags) bboxes.crowd_flags = [];
 
                 // Also clear gt field if it exists
                 if (bboxes.gt) {
@@ -328,8 +337,28 @@ class BBoxEditorUI {
             };
         }
 
+        // Crowd checkbox
+        const crowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+        if (crowdCheckbox) {
+            crowdCheckbox.onchange = () => {
+                if (this.currentBoxIndex < 0) return;
+                // Update the crowd_flags array based on the checkbox state
+                editor.bboxes.crowd_flags[this.currentBoxIndex] = crowdCheckbox.checked;
+                console.log(`Updated crowd flag for box ${this.currentBoxIndex} to: ${crowdCheckbox.checked}`);
+            };
+        }
+
         // Setup input field change events
         this.setupInputEvents(bboxes, editor);
+    }
+
+    // Update the checkbox based on crowd flag
+    static updateCrowdCheckbox(boxIndex) {
+        const crowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+        if (crowdCheckbox && this.bboxes.crowd_flags) {
+            crowdCheckbox.checked = this.bboxes.crowd_flags[boxIndex];
+            console.log(`Set crowd checkbox to: ${crowdCheckbox.checked}`);
+        }
     }
 
     // Helper method to reset form fields when a box is deleted
@@ -406,6 +435,8 @@ class BBoxEditorUI {
                 if (selectedIndex >= 0 && selectedIndex < bboxes.boxes.length) {
                     // Update the current box index reference for the class
                     this.currentBoxIndex = selectedIndex;
+                    // Update the crowd checkbox
+                    this.updateCrowdCheckbox(this.currentBoxIndex);
 
                     // Update editor selection
                     editor.selectedBboxIndex = selectedIndex;
@@ -825,6 +856,9 @@ class BBoxEditorUI {
                     this.editor.selectedBboxIndex = clickedBoxIndex;
                 }
 
+                // Update the crowd checkbox
+                this.updateCrowdCheckbox(this.selectedIndex);
+
                 // Update UI
                 this.updateBoxValues(this.bboxes.boxes[clickedBoxIndex]);
 
@@ -935,6 +969,9 @@ class BBoxEditorUI {
                         break;
                 }
 
+                // Update the crowd checkbox
+                this.updateCrowdCheckbox(this.selectedIndex);
+
                 // Update input fields
                 this.updateBoxValues(box);
                 this.updatePreviewCanvas();
@@ -963,6 +1000,9 @@ class BBoxEditorUI {
                 // Update start position for next move
                 startX = x;
                 startY = y;
+
+                // Update the crowd checkbox
+                this.updateCrowdCheckbox(this.selectedIndex);
 
                 // Update input fields
                 this.updateBoxValues(box);
@@ -1089,6 +1129,10 @@ class BBoxEditorUI {
                         this.editor.selectedBboxIndex = this.selectedIndex;
                     }
 
+                    // Add the new box's crowd flag
+                    this.bboxes.crowd_flags.push(false);
+                    this.updateCrowdCheckbox(this.selectedIndex);
+
                     // Update UI
                     this.updateBoxValues(this.tempBox);
 
@@ -1176,7 +1220,8 @@ class BBoxEditorUI {
 
                 bboxDataArray.push({
                     coordinates: box,
-                    label: label
+                    label: label,
+                    crowd_flag: this.bboxes.crowd_flags && this.bboxes.crowd_flags[i]
                 });
             }
         });

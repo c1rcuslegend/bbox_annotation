@@ -34,6 +34,9 @@ def convert_bboxes_to_serializable(bboxes):
             if 'gt' in bboxes:
                 result['gt'] = bboxes['gt']
 
+            if 'crowd_flags' in bboxes:
+                result['crowd_flags'] = bboxes['crowd_flags']
+
             return result
 
     return bboxes  # Return as is if not in expected format
@@ -477,6 +480,7 @@ def register_routes(app):
                     boxes = []
                     scores = []
                     labels = []
+                    crowd_flags = []
                     # Track unique labels for checked categories
                     checked_labels = set()
 
@@ -485,6 +489,7 @@ def register_routes(app):
                         label = bbox.get('label', 0)
                         labels.append(label)
                         scores.append(100)
+                        crowd_flags.append(bbox.get('crowd_flag', False))
 
                         # Track unique labels
                         checked_labels.add(str(label))
@@ -494,7 +499,7 @@ def register_routes(app):
                         checked_categories = [label_id for label_id in checked_labels if
                                               label_id in label_indices_to_label_names]
 
-                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels}
+                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags}
                     bboxes_source = 'checkbox_selections_new_format'
                     print(f"Found {len(boxes)} bboxes in checkbox_selections")
 
@@ -506,6 +511,7 @@ def register_routes(app):
                 boxes = []
                 scores = []
                 labels = []
+                crowd_flags = []
                 checked_labels = set()
 
                 for bbox in data:
@@ -513,6 +519,7 @@ def register_routes(app):
                     label = bbox.get('label', 0)
                     labels.append(label)
                     scores.append(100)  # Default high confidence score
+                    crowd_flags.append(bbox.get('crowd_flag', False))
 
                     # Track unique labels for checked categories
                     checked_labels.add(str(label))
@@ -521,7 +528,7 @@ def register_routes(app):
                 checked_categories = [label_id for label_id in checked_labels if
                                       label_id in label_indices_to_label_names]
 
-                bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels}
+                bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags}
                 bboxes_source = 'checkbox_selections_legacy'
                 print(f"Found {len(boxes)} bboxes in annotator format")
 
@@ -538,6 +545,7 @@ def register_routes(app):
                 bbox_data = ensure_at_least_one_bbox(bbox_data, threshold)
 
                 bboxes = bbox_data
+                bboxes['crowd_flags'] = [False for i in range(len(bboxes['boxes']))]
                 bboxes_source = 'general_bboxes'
 
                 # Extract checked categories from bbox labels
@@ -553,7 +561,7 @@ def register_routes(app):
 
         # If still no bboxes, create empty structure
         if bboxes is None:
-            bboxes = {'boxes': [], 'scores': [], 'labels': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': []}
             bboxes_source = 'empty'
             print(f"No bboxes found for {current_image}")
 
@@ -900,7 +908,8 @@ def register_routes(app):
                     # Using a placeholder position (could be refined in future)
                     new_bbox = {
                         'coordinates': [10, 10, 50, 50],
-                        'label': int(checkbox_value)
+                        'label': int(checkbox_value),
+                        'crowd_flag': False
                     }
                     existing_bboxes.append(new_bbox)
 
@@ -942,7 +951,8 @@ def register_routes(app):
             for checkbox_value in checkbox_values:
                 new_bbox = {
                     'coordinates': [10, 10, 50, 50],
-                    'label': int(checkbox_value)
+                    'label': int(checkbox_value),
+                    'crowd_flag': False
                 }
                 new_bboxes.append(new_bbox)
 
@@ -980,9 +990,10 @@ def register_routes(app):
 
             print(f"Next class: {next_class}")
 
-            if (direction == "next" and current_image_index + 5 < (current_class + 1) * 50) or (
-                    direction == "prev" and current_image_index - 5 >= current_class * 50):
-                new_index = current_image_index + 5 if direction == "next" else current_image_index - 5
+            # Fixed skipping 5 images at once when pressing the next/prev button
+            if (direction == "next" and current_image_index + 1 < (current_class + 1) * 50) or (
+                    direction == "prev" and current_image_index - 1 >= current_class * 50):
+                new_index = current_image_index + 1 if direction == "next" else current_image_index - 1
             else:
                 # Calculate new index based on class * 50
                 new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
@@ -1014,6 +1025,7 @@ def register_routes(app):
             for bbox in bboxes:
                 if 'coordinates' in bbox:
                     bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
+                # print(bbox.get('crowd_flag'))
 
             timestamp = data.get('timestamp', time.time())  # For debugging
 
