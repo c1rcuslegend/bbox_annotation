@@ -7,6 +7,23 @@ import shutil
 from tqdm import tqdm
 
 
+def copy_favicon_to_static(app):
+    """
+    Copies the favicon file from the 'assets' folder to the 'static' folder.
+    """
+    # Define source and destination paths
+    source_path = os.path.join('.', 'assets', 'vrg_favicon.ico')
+    destination_path = os.path.join(app.root_path, app.config['STATIC_FOLDER'], 'vrg_favicon.ico')
+
+    # Ensure the static folder exists
+    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+
+    # Copy the file from assets to static
+    shutil.copyfile(source_path, destination_path)
+
+    print(f"Copied {source_path} to {destination_path}")
+
+
 def copy_styles_file_to_static(app):
     """
     Copies the 'styles.css' file from the 'templates' folder to the 'static' folder.
@@ -255,9 +272,8 @@ def check_annotator_task_files(app, annotators_directories):
     :return:
     """
     for annotator_dir in annotators_directories:
-        app.logger.error(f"Checking the required annotation task files for annotator -- {annotator_dir}")
+        app.logger.info(f"Checking the required annotation task files for annotator -- {annotator_dir}")
         if not check_user_files_exist(app, annotator_dir):
-            # app.log(f"Incomplete annotation task file for user {annotator_dir}")
             return False
     return True
 
@@ -277,6 +293,7 @@ def check_that_needed_files_exist(app):
     # Copy styles.css from templates directory to static directory
     copy_styles_file_to_static(app)
     copy_js_files_to_static(app)
+    copy_favicon_to_static(app)
 
     if not os.path.isdir(app.config['ANNOTATORS_ROOT_DIRECTORY']):
         app.logger.error(f"Annotation task root directory does not exist: {app.config['ANNOTATORS_ROOT_DIRECTORY']}")
@@ -319,11 +336,16 @@ def check_that_needed_files_exist(app):
 
 
 def check_dataset_dirs_have_same_names(app):
+    def filter_hidden_files(dir_list):
+        return [f for f in dir_list if not f.startswith('.')]
+
     # label folder names match
     annot_dataset_dir = app.config['ANNOTATIONS_ROOT_FOLDER']
     examples_dataset_dir = app.config['EXAMPLES_DATASET_ROOT_DIR']
-    annot_dataset_label_names = os.listdir(annot_dataset_dir)
-    examples_dataset_label_names = os.listdir(examples_dataset_dir)
+
+    annot_dataset_label_names = filter_hidden_files(os.listdir(annot_dataset_dir))
+    examples_dataset_label_names = filter_hidden_files(os.listdir(examples_dataset_dir))
+
     # assert that annotation dataset label names are a subset of the examples dataset label names
     if not set(annot_dataset_label_names).issubset(set(examples_dataset_label_names)):
         app.logger.error(f"Annotation dataset label names are not a subset of the examples dataset label names. "
