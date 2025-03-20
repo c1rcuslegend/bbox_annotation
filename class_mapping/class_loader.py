@@ -13,25 +13,25 @@ class ClassDictionary:
         class2name (dict): A dictionary to store the class data for ImageNet2012.
         class2short_class (dict): A dictionary to store the class data for ImageNet21k.
     """
-    def __init__(self, filename: str = 'imagenet2012_classes.npy', custom_cls_filename='class_names_mod_v2.npy',
-                 filename_21k: str = 'imagenet21k_classes.npy', filename_21k_r: str = 'imagenet21k_classes_r.npy',
-                 filename_val_class: str = 'val_img_classes_pairs.npy'):
+    def __init__(self, filename = 'imagenet2012_classes.npy', custom_cls_filename='class_names_mod_v2.npy',
+                 filename_21k = 'imagenet21k_classes.npy', filename_21k_r = 'imagenet21k_classes_r.npy',
+                 filename_val_class = 'val_img_classes_pairs.npy'):
         current_dir = os.path.dirname(__file__)
-        self.filename: str = os.path.join(current_dir, filename)
-        self.custom_cls_filename: str = os.path.join(current_dir, '../data/class_names', custom_cls_filename)
-        self.filename_21k: str = os.path.join(current_dir, filename_21k)
-        self.filename_21k_r: str = os.path.join(current_dir, filename_21k_r)
-        self.filename_val_class: str = os.path.join(current_dir, filename_val_class)
-        self.class2name: dict[int, list[str]] = {}
+        self.filename = os.path.join(current_dir, filename)
+        self.custom_cls_filename = os.path.join(current_dir, '../data/class_names', custom_cls_filename)
+        self.filename_21k = os.path.join(current_dir, filename_21k)
+        self.filename_21k_r = os.path.join(current_dir, filename_21k_r)
+        self.filename_val_class = os.path.join(current_dir, filename_val_class)
+        self.class2name = {}
         self.class2custom_name = None
-        self.class2short_class: dict[str, int] = {}
-        self.class2short_class_r: dict[int, str] = {}
-        self.val2short_class: dict[str, int] = {}
-        self._data_loaded: bool = False
-        self._custom_data_loaded: bool = False
-        self._data_21k_loaded: bool = False
-        self._data_21k_r_loaded: bool = False
-        self._val_class_loaded: bool = False
+        self.class2short_class = {}
+        self.class2short_class_r = {}
+        self.val2short_class = {}
+        self._data_loaded = False
+        self._custom_data_loaded = False
+        self._data_21k_loaded = False
+        self._data_21k_r_loaded = False
+        self._val_class_loaded = False
 
     def __load_class2name_mapping(self):
         """Loads class data from the file into the class2name dictionary."""
@@ -108,7 +108,7 @@ class ClassDictionary:
             print(f"An unexpected error occurred: {e}")
             self._val_class_loaded = False
 
-    def get_class_name(self, key: int) -> list[str] | None:
+    def get_class_name(self, key):
         """
         Retrieves the class names associated with a given key.
 
@@ -122,7 +122,7 @@ class ClassDictionary:
             self.__load_class2name_mapping()
         return self.class2name.get(key)
 
-    def get_custom_class_name(self, key: int) -> str | None:
+    def get_custom_class_name(self, key):
         """
         Retrieves the custom class names associated with a given key.
 
@@ -136,7 +136,7 @@ class ClassDictionary:
             self.__load_class2custom_name_mapping()
         return self.class2custom_name[key]
 
-    def get_class_1k(self, key: str) -> int | None:
+    def get_class_1k(self, key):
         """
         Retrieves the class names associated with a given key from the ImageNet21k file.
 
@@ -150,7 +150,7 @@ class ClassDictionary:
             self.__load_class2short_class_mapping()
         return self.class2short_class.get(key)
 
-    def get_class_1k_r(self, key: int) -> str | None:
+    def get_class_1k_r(self, key):
         """
         Retrieves the numeric class names associated with a given key from the ImageNet21k file.
 
@@ -164,7 +164,7 @@ class ClassDictionary:
             self.__load_class2short_class_r_mapping()
         return self.class2short_class_r.get(key)
 
-    def get_val_img_class(self, key: str) -> str | None:
+    def get_val_img_class(self, key):
         """
         Retrieves the numeric class names associated with a given image key from the ImageNet21k file.
 
