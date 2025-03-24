@@ -418,6 +418,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Event listener for modal close to sync crowd checkbox state
+    document.addEventListener('bbox-modal-closed', function(e) {
+        debug('Advanced editor modal closed, syncing crowd checkbox state');
+
+        // If we have a selected box, update the inline crowd checkbox
+        if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
+            inlineEditor.bboxes.crowd_flags &&
+            inlineEditor.currentBoxIndex < inlineEditor.bboxes.crowd_flags.length) {
+
+            // Get the current crowd flag state from the bboxes data
+            const isCrowd = inlineEditor.bboxes.crowd_flags[inlineEditor.currentBoxIndex];
+
+            // Update the inline checkbox
+            if (inlineCrowdCheckbox) {
+                inlineCrowdCheckbox.checked = isCrowd;
+                debug(`Synced inline crowd checkbox to: ${isCrowd} after modal close`);
+            }
+        }
+    });
+
     // Check for main editor and connect to it
     const checkForEditor = setInterval(() => {
         if (window.bboxEditor) {
@@ -985,6 +1005,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the crowd_flags array based on the checkbox state
         inlineEditor.bboxes.crowd_flags[inlineEditor.currentBoxIndex] = inlineCrowdCheckbox.checked;
 
+        // Also update the checkbox in the advanced editor if it's open
+        const advancedCrowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+        if (advancedCrowdCheckbox) {
+            advancedCrowdCheckbox.checked = inlineCrowdCheckbox.checked;
+            debug(`Synced advanced crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
+        }
+
         // Update hidden form field
         updateHiddenBboxesField();
 
@@ -995,6 +1022,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (inlineCrowdCheckbox && inlineEditor.bboxes.crowd_flags) {
             inlineCrowdCheckbox.checked = inlineEditor.bboxes.crowd_flags[boxIndex];
             debug(`Set crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
+
+            // Also update the advanced editor's checkbox if it exists
+            const advancedCrowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+            if (advancedCrowdCheckbox) {
+                advancedCrowdCheckbox.checked = inlineEditor.bboxes.crowd_flags[boxIndex];
+                debug(`Synced advanced crowd checkbox to: ${inlineEditor.bboxes.crowd_flags[boxIndex]}`);
+            }
         }
     }
 

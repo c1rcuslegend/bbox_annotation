@@ -1169,13 +1169,26 @@ def register_routes(app):
     def refresh_examples(username):
         """
         Refresh example images without reloading the entire page.
-        Returns new similar images as JSON.
+        Refreshes only a specific page of examples.
         """
         try:
             # Get current image name
             image_name = request.args.get('image_name', '')
             if not image_name:
                 return jsonify({'error': 'No image name provided'}), 400
+
+            # Get page number and class IDs if provided
+            page = request.args.get('page', None)
+            class_ids_param = request.args.get('class_ids', None)
+
+            # Parse class IDs if provided
+            specific_class_ids = None
+            if class_ids_param:
+                try:
+                    specific_class_ids = [int(cid) for cid in class_ids_param.split(',') if cid.strip()]
+                    app.logger.info(f"Refreshing specific classes: {specific_class_ids}")
+                except ValueError:
+                    app.logger.warning(f"Invalid class IDs: {class_ids_param}")
 
             # Extract base image name
             base_image_name = os.path.basename(image_name)
@@ -1218,6 +1231,32 @@ def register_routes(app):
             image_softmax_dict = get_image_softmax_dict(proposals_info)
             top_categories = image_softmax_dict[current_image_data['image_name']][:20]
 
+            # If we have specific class IDs, filter top categories to only include those
+            if specific_class_ids:
+                # Create a map from position to actual class ID for lookup
+                class_id_map = {i: int(cat) for i, cat in enumerate(top_categories)}
+
+                # If page is specified, determine the range
+                if page:
+                    page_num = int(page)
+                    start_idx = (page_num - 1) * 5
+                    end_idx = start_idx + 5
+
+                    # Only get examples for classes in the current page
+                    filtered_top_categories = [cat for i, cat in enumerate(top_categories)
+                                               if i >= start_idx and i < end_idx]
+                else:
+                    # If specific class IDs are provided but no page, use those directly
+                    filtered_top_categories = []
+                    for cid in specific_class_ids:
+                        for cat in top_categories:
+                            if int(cat) == int(cid):
+                                filtered_top_categories.append(cat)
+                                break
+
+                top_categories = filtered_top_categories
+                app.logger.info(f"Filtered to {len(top_categories)} categories")
+
             # Get new sample images with the new random seed
             similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
                                                               label_indices_to_label_names,
@@ -1240,7 +1279,9 @@ def register_routes(app):
             # Return the new similar images with converted keys as JSON
             return jsonify({
                 'similar_images': converted_similar_images,
-                'seed': new_seed
+                'seed': new_seed,
+                'page': page,
+                'class_ids': specific_class_ids
             })
 
         except Exception as e:

@@ -480,6 +480,13 @@ class BBoxEditorUI {
                 // Update the crowd_flags array based on the checkbox state
                 editor.bboxes.crowd_flags[this.currentBoxIndex] = crowdCheckbox.checked;
                 console.log(`Updated crowd flag for box ${this.currentBoxIndex} to: ${crowdCheckbox.checked}`);
+
+                // Also sync with inline editor's checkbox if it exists
+                const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
+                if (inlineCrowdCheckbox) {
+                    inlineCrowdCheckbox.checked = crowdCheckbox.checked;
+                    console.log(`Synced inline crowd checkbox to: ${crowdCheckbox.checked}`);
+                }
             };
         }
 
