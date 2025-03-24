@@ -5,10 +5,25 @@ import numpy as np
 import json
 
 
+def orjson_load(fname):
+    with open(fname, 'rb') as f:
+        bbox_data = orjson.loads(f.read())
+    return bbox_data
+
+def std_json_load(fname):
+    with open(fname, 'r') as f:
+        bbox_data = json.load(f)
+        return bbox_data
+try:
+    import orjson
+    load_json = orjson_load
+except:
+    print ("Consider installing orjson for speed up")
+    load_json = std_json_load
+
 def read_json_file(file_path, app):
     try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
+        return load_json(file_path)
     except FileNotFoundError:
         app.logger.error(f"File not found: {file_path}")
         return None

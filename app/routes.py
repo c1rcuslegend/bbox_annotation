@@ -12,6 +12,22 @@ from .app_utils import get_form_data, load_user_data, update_current_image_index
 from class_mapping.class_loader import ClassDictionary
 
 
+def orjson_load(fname):
+    with open(fname, 'rb') as f:
+        bbox_data = orjson.loads(f.read())
+    return bbox_data
+
+def std_json_load(fname):
+    with open(file_path, 'r') as f:
+        bbox_data = json.load(f)
+        return bbox_data
+try:
+    import orjson
+    load_json = orjson_load
+except:
+    print ("Consider installing orjson for speed up")
+    load_json = std_json_load
+
 def convert_bboxes_to_serializable(bboxes):
     """Convert bbox data to a serializable format for JSON."""
     # If bboxes already has the expected structure but with numpy arrays, convert them
@@ -44,10 +60,11 @@ def convert_bboxes_to_serializable(bboxes):
 
 def get_bboxes_from_file(file_path, image_name=None):
     """Load bboxes directly from file without caching"""
-    try:
-        with open(file_path, 'r') as f:
-            bbox_data = json.load(f)
 
+    try:
+        t=time.time()
+        bbox_data = load_json(file_path)
+        print("bbox load", time.time()-t)
         # If we're looking for a specific image, extract just that image's data
         if image_name and bbox_data and isinstance(bbox_data, dict):
             result = bbox_data.get(image_name, {'boxes': [], 'scores': [], 'labels': [], 'gt': []})
@@ -216,6 +233,7 @@ def register_routes(app):
             Rendered 'img_grid.html' template with relevant image data
             if user exists and data is available, otherwise a string error message.
         """
+        t=time.time()
         if username not in app.user_cache:
             return "No such user exists. Please check it again."
 
@@ -270,10 +288,11 @@ def register_routes(app):
         threshold = app.config.get('THRESHOLD', 0.5)
 
         MULTILABEL_CONFIDENCE_THRESHOLD = 0.7  # We can move it to the config, anyway further discussion is needed
-
+        print ("time before ing conf", time.time() -t )
+        t=time.time()
         # Used for possible multilabel detection based on the confidence
-        image_conf_dict = get_image_conf_dict(proposals_info)
-
+        #image_conf_dict = get_image_conf_dict(proposals_info)
+        image_conf_dict = get_image_conf_dict([proposals_info[oo] for oo in selected_indices])
         for selected_index, image_path in zip(selected_indices, selected_images):
             image_basename = os.path.basename(image_path)
 
@@ -308,14 +327,21 @@ def register_routes(app):
                             bboxes['labels'].append(bbox['label'])
                             bboxes['scores'].append(100)  # Default high confidence score
             else:
+                print ("we go for open clip data")
+                tt=time.time()
                 data = app.load_bbox_openclip_data(username)[image_basename]
+                print("open clip load", time.time() -tt)
+                tt=time.time()
                 for box, label, score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
                     bboxes['scores'].append(score)
-
+                #print("open clip PROCESS 1", time.time() -tt)
+                tt=time.time()
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
+                #print("open clip PROCESS 2", time.time() -tt)
+                
 
             print(bboxes)
             bbox_data[selected_index] = convert_bboxes_to_serializable(bboxes)
@@ -324,9 +350,10 @@ def register_routes(app):
             image_paths[selected_index] = os.path.join(app.config['STATIC_FOLDER'], 'images', image_path)
 
         assert len(image_paths) == len(label_indices) == NUM_IMG_TO_FETCH
-
+        print ("time bbox", time.time() -t )
+        
         print("bbox_data: ", bbox_data)
-
+        t=time.time()
         # Load class_corrected_images from checkbox selection file
         class_dict = ClassDictionary()
         current_class = current_image_index // 50
@@ -355,6 +382,7 @@ def register_routes(app):
                         'id': class_id,
                         'name': class_name
                     })
+        print("time to load the rest", time.time()-t)
 
         return render_template('img_grid.html',
                                image_paths=image_paths,
@@ -388,6 +416,7 @@ def register_routes(app):
             if user exists and data is available, otherwise a string error message.
         """
         start_time = timeit.default_timer()
+        t=time.time()
         print(f"Started loading page at: {time.strftime('%H:%M:%S')}")
 
         if username not in app.user_cache:
@@ -407,7 +436,7 @@ def register_routes(app):
         # Assert both are not None
         assert label_indices_to_label_names is not None and label_indices_to_human_readable is not None
 
-        image_softmax_dict = get_image_softmax_dict(proposals_info)
+        #image_softmax_dict = get_image_softmax_dict(proposals_info)
 
         # Set current image index
         current_image_index = request.args.get('image_index')
@@ -426,7 +455,8 @@ def register_routes(app):
         current_class_name = label_indices_to_label_names[str(current_gt_class)]
         current_imagepath = [os.path.join(current_class_name, current_image)]
 
-        top_categories = image_softmax_dict[current_image][:20]
+        #top_categories = image_softmax_dict[current_image][:20]
+        top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
         similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
                                                           label_indices_to_label_names,
                                                           num_selection=app.config['NUM_EXAMPLES_PER_CLASS'])
@@ -589,6 +619,7 @@ def register_routes(app):
                     })
 
         end_time = timeit.default_timer()
+        print(time.time() - t, "for load")
         print(f"Total page load time: {end_time - start_time:.4f} seconds")
 
         return render_template('user_label.html',
@@ -1215,9 +1246,9 @@ def register_routes(app):
                 current_image_data = proposals_info[current_image_index]
 
             # Get top categories for the current image
-            image_softmax_dict = get_image_softmax_dict(proposals_info)
-            top_categories = image_softmax_dict[current_image_data['image_name']][:20]
-
+            #image_softmax_dict = get_image_softmax_dict(proposals_info)
+            #top_categories = image_softmax_dict[current_image_data['image_name']][:20]
+            top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
             # Get new sample images with the new random seed
             similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
                                                               label_indices_to_label_names,
