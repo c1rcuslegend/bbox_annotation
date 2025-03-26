@@ -28,7 +28,7 @@
         </div>
         <div class="legend-item">
             <div class="legend-box border-poss-m"></div>
-            <span>Possibly Multilabel</span>
+            <span>Possibly Problematic</span>
         </div>
         <div class="legend-item">
             <div class="legend-box border-m"></div>
@@ -37,6 +37,10 @@
         <div class="legend-item">
             <div class="legend-box border-ood"></div>
             <span>Out of Distribution</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box border-not-sure"></div>
+            <span>Not Sure</span>
         </div>
     </div>
 
@@ -47,7 +51,41 @@
 
         <div class="image-display">
             <div class="class-info-container">
-                <div class="cluster-name-title">Superclass: {{ cluster_name }}</div>
+                <div class="superclass-info">
+                    <div class="cluster-name-title">Superclass: {{ cluster_name }}</div>
+
+                    <!-- Class counter with dropdown -->
+                    <div class="class-counter dropdown-trigger">
+                        {% set current_class_id = label_indices[current_image_index]|string %}
+                        {% set superclass_classes = clusters[cluster_name] %}
+                        {% set found_index = namespace(value=-1) %}
+
+                        {% for class_obj in superclass_classes %}
+                            {% if class_obj.id|string == current_class_id %}
+                                {% set found_index.value = loop.index0 %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if found_index.value == -1 %}
+                            {% set found_index.value = 0 %}
+                        {% endif %}
+
+                        Class {{ found_index.value + 1 }} of {{ superclass_classes|length }} ▼
+
+                        <!-- Dropdown menu for classes in this superclass -->
+                        <div class="superclass-dropdown">
+                            {% for class_obj in superclass_classes %}
+                                {% set class_id = class_obj.id|string %}
+                                {% set class_name = class_obj.name %}
+                                <div class="dropdown-item {% if class_id == current_class_id %}active{% endif %}"
+                                     data-class-id="{{ class_id }}">
+                                    {{ class_id }} - {{ class_name }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="human-class-title">{{ human_readable_classes_map[label_indices[current_image_index]|string] }}</div>
             </div>
             <div class="image-wrapper">

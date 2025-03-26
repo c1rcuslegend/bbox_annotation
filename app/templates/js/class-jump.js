@@ -444,3 +444,73 @@ function jumpToCluster(clusterName) {
     // Submit the form
     form.submit();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up class dropdown navigation
+    const dropdownItems = document.querySelectorAll('.superclass-dropdown .dropdown-item');
+    const dropdownTrigger = document.querySelector('.class-counter');
+    const dropdown = document.querySelector('.superclass-dropdown');
+
+    // Toggle dropdown when clicking on the trigger
+    if (dropdownTrigger && dropdown) {
+        dropdownTrigger.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent this click from closing the dropdown
+
+            // Toggle the dropdown
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                dropdown.style.display = 'block';
+            }
+        });
+    }
+
+    // Handle clicking on dropdown items
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent this click from bubbling to document
+
+            const classId = this.getAttribute('data-class-id');
+
+            // Set class ID in form
+            const jumpForm = document.getElementById('jumpForm');
+
+            // Clear any existing inputs (to avoid duplicates)
+            jumpForm.innerHTML = '';
+
+            // Add the class_id input
+            const classInput = document.createElement('input');
+            classInput.type = 'hidden';
+            classInput.name = 'class_id';
+            classInput.value = classId;
+            jumpForm.appendChild(classInput);
+
+            // Add the image_name input
+            const imageNameInput = document.querySelector('input[name="image_name"]');
+            if (imageNameInput) {
+                const imagePathsInput = document.createElement('input');
+                imagePathsInput.type = 'hidden';
+                imagePathsInput.name = 'image_name';
+                imagePathsInput.value = imageNameInput.value;
+                jumpForm.appendChild(imagePathsInput);
+            }
+
+            // Add direction input
+            const directionInput = document.createElement('input');
+            directionInput.type = 'hidden';
+            directionInput.name = 'direction';
+            directionInput.value = 'next';
+            jumpForm.appendChild(directionInput);
+
+            // Submit the form
+            jumpForm.submit();
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function() {
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    });
+});

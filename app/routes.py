@@ -289,6 +289,8 @@ def register_routes(app):
                 data = man_annotated_bboxes_dict[image_basename]
                 if data.get('label_type') == 'ood':
                     borders[selected_index] = 'border-ood'
+                elif data.get('label_type') == 'uncertain':
+                    borders[selected_index] = 'border-not-sure'
                 elif len(data.get('bboxes', [])) > 1:
                     labels = set()
                     for bbox in data['bboxes']:
@@ -348,12 +350,13 @@ def register_routes(app):
         for cluster_name in sorted(app.parent_to_children.keys()):
             classes_in_cluster = app.parent_to_children[cluster_name]
             clusters[cluster_name] = []
-            for class_id in classes_in_cluster:
+            for i,class_id in enumerate(classes_in_cluster):
                 if str(class_id) in label_indices_to_human_readable:
                     class_name = label_indices_to_human_readable[str(class_id)]
                     clusters[cluster_name].append({
                         'id': class_id,
-                        'name': class_name
+                        'name': class_name,
+                        'rel_class_id': i
                     })
 
         return render_template('img_grid.html',
@@ -742,8 +745,7 @@ def register_routes(app):
         cluster_name = request.form.get('cluster_name')
         class_id = request.form.get('class_id')
 
-        # Determine the target index based on what was provided
-        target_index = None
+        print(f"Jumping to class for user {username} with image index {image_index}, class {class_id}, ")
 
         # If image_index is provided directly, use it
         if image_index:
