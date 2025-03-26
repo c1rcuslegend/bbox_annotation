@@ -271,7 +271,8 @@ def check_annotator_task_files(app, annotators_directories):
     :param annotators_directories:
     :return:
     """
-    for annotator_dir in annotators_directories:
+    non_hidden_directories = filter_hidden_files(annotators_directories)
+    for annotator_dir in non_hidden_directories:
         app.logger.info(f"Checking the required annotation task files for annotator -- {annotator_dir}")
         if not check_user_files_exist(app, annotator_dir):
             return False
@@ -335,9 +336,11 @@ def check_that_needed_files_exist(app):
     return True
 
 
+def filter_hidden_files(dir_list):
+    return [f for f in dir_list if not f.startswith('.')]
+
+
 def check_dataset_dirs_have_same_names(app):
-    def filter_hidden_files(dir_list):
-        return [f for f in dir_list if not f.startswith('.')]
 
     # label folder names match
     annot_dataset_dir = app.config['ANNOTATIONS_ROOT_FOLDER']
