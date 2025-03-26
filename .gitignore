@@ -2,5 +2,8 @@
 __pycache__
 app/__pycache__
 app/static/images
+app/demo_data/annotator_dirs/demo/checkbox_selections_demo.json
+app/demo_data/annotator_dirs/demo/comments_demo.json
+app/demo_data/annotator_dirs/demo/current_image_index_demo.txt
 static
 app.log

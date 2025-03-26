@@ -2,7 +2,12 @@
 
 This repository hosts the **Multilabelfy** Flask application, a simple tool for enhancing the label quality of single-label datasets that are arguably multi-label. The app is specifically designed to streamline the annotation process for computer vision datasets, providing an intuitive web interface for annotators/researchers to efficiently review and refine image labels.
 
-![Multilabelfy Interface](assets/images/multi_label_website.png)
+![Grid Interface](assets/images/grid_interface.png)
+![Detailed Interface](assets/images/detailed_interface.png)
+![Advanced Edtitor](assets/images/advanced_editor.png)
+
+<!--
+[Multilabelfy Interface](assets/images/multi_label_website.png)
 
 ## USE CASE: ImageNetV2 Label Enhancement
 
@@ -63,3 +68,5 @@ pip install -r requirements.txt
 # Run the Flask app
 python run.py
 ```
+
+-->
