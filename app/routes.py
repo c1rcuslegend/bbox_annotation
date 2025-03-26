@@ -274,7 +274,7 @@ def register_routes(app):
         print ("time before ing conf", time.time() -t )
         t=time.time()
         # Used for possible multilabel detection based on the confidence
-        #image_conf_dict = get_image_conf_dict(proposals_info)
+        # image_conf_dict = get_image_conf_dict(proposals_info)
         image_conf_dict = get_image_conf_dict([proposals_info[idx] for idx in selected_indices])
         for selected_index, image_path in zip(selected_indices, selected_images):
             image_basename = os.path.basename(image_path)
@@ -310,20 +310,18 @@ def register_routes(app):
                             bboxes['labels'].append(bbox['label'])
                             bboxes['scores'].append(100)  # Default high confidence score
             else:
-                print ("we go for open clip data")
+                # print ("we go for open clip data")
                 tt=time.time()
                 data = app.load_bbox_openclip_data(username)[image_basename]
-                print("open clip load", time.time() -tt)
+                # print("open clip load", time.time() -tt)
                 tt=time.time()
                 for box, label, score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
                     bboxes['scores'].append(score)
-                #print("open clip PROCESS 1", time.time() -tt)
                 tt=time.time()
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
-                #print("open clip PROCESS 2", time.time() -tt)
 
 
             print(bboxes)
@@ -419,7 +417,7 @@ def register_routes(app):
         # Assert both are not None
         assert label_indices_to_label_names is not None and label_indices_to_human_readable is not None
 
-        #image_softmax_dict = get_image_softmax_dict(proposals_info)
+        # image_softmax_dict = get_image_softmax_dict(proposals_info)
 
         # Set current image index
         current_image_index = request.args.get('image_index')
@@ -438,7 +436,7 @@ def register_routes(app):
         current_class_name = label_indices_to_label_names[str(current_gt_class)]
         current_imagepath = [os.path.join(current_class_name, current_image)]
 
-        #top_categories = image_softmax_dict[current_image][:20]
+        # top_categories = image_softmax_dict[current_image][:20]
 
         # load softmax values only for the current image, not for all at once
         top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
@@ -604,7 +602,7 @@ def register_routes(app):
                     })
 
         end_time = timeit.default_timer()
-        print(time.time() - t, "for load")
+        # print(time.time() - t, "for load")
         print(f"Total page load time: {end_time - start_time:.4f} seconds")
 
         return render_template('user_label.html',
@@ -1241,20 +1239,17 @@ def register_routes(app):
             if current_image_data is None:
                 # If image not found by name, fallback to the current index
                 current_image_index = app.current_image_index_dct.get(username, 0)
-                current_image_data = proposals_info[current_image_index]
+                # current_image_data = proposals_info[current_image_index]
 
             # Get top categories for the current image
-            #image_softmax_dict = get_image_softmax_dict(proposals_info)
-            #top_categories = image_softmax_dict[current_image_data['image_name']][:20]
+            # image_softmax_dict = get_image_softmax_dict(proposals_info)
+            # top_categories = image_softmax_dict[current_image_data['image_name']][:20]
 
             # load softmax values only for the current image, not for all at once
             top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
 
             # If we have specific class IDs, filter top categories to only include those
             if specific_class_ids:
-                # Create a map from position to actual class ID for lookup
-                class_id_map = {i: int(cat) for i, cat in enumerate(top_categories)}
-
                 # If page is specified, determine the range
                 if page:
                     page_num = int(page)
