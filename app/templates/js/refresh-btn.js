@@ -16,19 +16,45 @@ function refreshExampleImages() {
     const pathParts = window.location.pathname.split('/');
     const username = pathParts[1]; // First part after the initial slash
 
+    // Determine which page is currently selected
+    let currentPage = 1;
+    for (let i = 1; i <= 4; i++) {
+        if (document.getElementById('page' + i).classList.contains('selected')) {
+            currentPage = i;
+            break;
+        }
+    }
+
+    // Calculate the range of classes to refresh based on the current page
+    const startIndex = (currentPage - 1) * 5;
+    const endIndex = startIndex + 5;
+
     console.log("Refreshing examples for user:", username, "and image:", imageName);
 
-    // Show loading message or indicator
-    const allImageColumns = document.querySelectorAll('.row > .column.page1_element, .row > .column.page2_element, .row > .column.page3_element, .row > .column.page4_element');
-    allImageColumns.forEach(column => {
+    // Get the class IDs from the visible columns
+    const visibleColumns = document.querySelectorAll(`.column.page${currentPage}_element`);
+    const classIds = [];
+
+    visibleColumns.forEach(column => {
+        // Get the class ID from the radio button in this column
+        const radio = column.querySelector('input[type="radio"]');
+        if (radio && radio.value) {
+            classIds.push(radio.value);
+        }
+    });
+
+    console.log("Refreshing classes:", classIds);
+
+    // Show loading indicator only in the visible columns
+    visibleColumns.forEach(column => {
         const rightDivs = column.querySelectorAll('.right');
         rightDivs.forEach(div => {
             div.innerHTML = '<div class="loading-indicator">Loading</div>';
         });
     });
 
-    // Fetch new examples via AJAX - fixed URL construction
-    const refreshUrl = `/${username}/refresh_examples?image_name=${encodeURIComponent(imageName)}`;
+    // Fetch new examples via AJAX - include page and class IDs
+    const refreshUrl = `/${username}/refresh_examples?image_name=${encodeURIComponent(imageName)}&page=${currentPage}&class_ids=${classIds.join(',')}`;
     console.log("Fetching from URL:", refreshUrl);
 
     fetch(refreshUrl, {
@@ -46,77 +72,78 @@ function refreshExampleImages() {
         return response.json();
     })
     .then(data => {
-        // Update the example images in the DOM
+        // Update only the example images for the current page
         if (data.similar_images) {
-            updateExampleImages(data.similar_images);
+            updatePageExamples(data.similar_images, currentPage);
             console.log('Examples refreshed with seed:', data.seed);
+
+            // Show success notification
+            const successNotification = document.getElementById('refreshSuccess');
+            if (successNotification) {
+                successNotification.classList.add('show');
+                setTimeout(() => {
+                    successNotification.classList.remove('show');
+                }, 3000);
+            }
         } else {
             console.error('No similar images returned:', data);
         }
 
         // Stop the spinning animation
         refreshIcon.classList.remove('spinning');
-        refreshBtn.classList.remove('loading'); // Remove loading class
+        refreshBtn.classList.remove('loading');
     })
     .catch(error => {
-        console.error('Error refreshing example images:', error);
+        console.error('Error refreshing examples:', error);
         refreshIcon.classList.remove('spinning');
-        refreshBtn.classList.remove('loading'); // Remove loading class
+        refreshBtn.classList.remove('loading');
 
-        // Show error message in the UI
-        allImageColumns.forEach(column => {
+        // Show error message only in the visible columns
+        visibleColumns.forEach(column => {
             const rightDivs = column.querySelectorAll('.right');
             rightDivs.forEach(div => {
                 div.innerHTML = '<div class="error-message">Failed to load examples</div>';
             });
         });
     });
-
-    // After successful refresh:
-    const successNotification = document.getElementById('refreshSuccess');
-    successNotification.classList.add('show');
-    setTimeout(() => {
-        successNotification.classList.remove('show');
-    }, 3000);
 }
 
 /**
- * Updates the example images in the DOM with new data
+ * Updates only the examples for a specific page
  */
-function updateExampleImages(similarImages) {
-    // Find all columns
-    const columns = document.querySelectorAll('.row > .column.page1_element, .row > .column.page2_element, .row > .column.page3_element, .row > .column.page4_element');
+function updatePageExamples(similarImages, pageNumber) {
+    // Find all columns for the current page
+    const columns = document.querySelectorAll(`.column.page${pageNumber}_element`);
+    console.log(`Updating ${columns.length} columns for page ${pageNumber}`);
 
-    // Track which classes we've processed
-    const processedClasses = new Set();
+    // Process each column and match it with the right class data
+    columns.forEach(column => {
+        // Get the class ID from the radio button or category label
+        let classId = null;
 
-    // Get number of similar images per class
-    const numSimilarImages = parseInt(document.querySelector('.page1_element .right').querySelectorAll('img').length) || 3;
-
-    // Process each category (up to 20)
-    let index = 0;
-
-    // Convert the similarImages object to an array of entries for easier processing
-    const entries = Object.entries(similarImages);
-
-    // Process up to 20 categories
-    for (let i = 0; i < Math.min(entries.length, 20); i++) {
-        const [predInfo, images] = entries[i];
-
-        // Skip if we've already processed this class
-        if (processedClasses.has(predInfo)) {
-            continue;
+        // Try to get from radio button
+        const radio = column.querySelector('input[type="radio"]');
+        if (radio && radio.value) {
+            classId = radio.value;
         }
-        processedClasses.add(predInfo);
 
-        // Find the column for this class (1-based index)
-        const columnIndex = index % 20;
-        const column = columns[columnIndex];
-
-        if (!column) {
-            console.error(`Column not found for index ${columnIndex}`);
-            continue;
+        // Skip if we couldn't find the class ID
+        if (!classId) {
+            console.warn("Could not determine class ID for column:", column);
+            return;
         }
+
+        console.log(`Processing column for class ${classId}`);
+
+        // Get the images for this class
+        const images = similarImages[classId];
+        if (!images || !images.length) {
+            console.warn(`No images found for class ${classId}`);
+            return;
+        }
+
+        // Get number of similar images per class
+        const numSimilarImages = parseInt(document.querySelector('.page1_element .right').querySelectorAll('img').length) || 3;
 
         // Update the images in the right divs
         let rightDivs = column.querySelectorAll('.right');
@@ -158,19 +185,7 @@ function updateExampleImages(similarImages) {
             // Add it to the current right div
             currentRightDiv.appendChild(img);
         });
-
-        index++;
-    }
-
-    // Apply page visibility based on current selection
-    let currentPage = 1;
-    for (let i = 1; i <= 4; i++) {
-        if (document.getElementById('page' + i).classList.contains('selected')) {
-            currentPage = i;
-            break;
-        }
-    }
-    pageSelect(currentPage);
+    });
 }
 
 // Add event listener once DOM is loaded

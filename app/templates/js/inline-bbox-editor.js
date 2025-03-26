@@ -418,6 +418,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Event listener for modal close to sync crowd checkbox state
+    document.addEventListener('bbox-modal-closed', function(e) {
+        debug('Advanced editor modal closed, syncing crowd checkbox state');
+
+        // If we have a selected box, update the inline crowd checkbox
+        if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
+            inlineEditor.bboxes.crowd_flags &&
+            inlineEditor.currentBoxIndex < inlineEditor.bboxes.crowd_flags.length) {
+
+            // Get the current crowd flag state from the bboxes data
+            const isCrowd = inlineEditor.bboxes.crowd_flags[inlineEditor.currentBoxIndex];
+
+            // Update the inline checkbox
+            if (inlineCrowdCheckbox) {
+                inlineCrowdCheckbox.checked = isCrowd;
+                debug(`Synced inline crowd checkbox to: ${isCrowd} after modal close`);
+            }
+        }
+    });
+
     // Check for main editor and connect to it
     const checkForEditor = setInterval(() => {
         if (window.bboxEditor) {
@@ -503,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {
             debug(`Labels after connection: ${JSON.stringify(inlineEditor.bboxes.labels)}`);
         }
 
-        // IMPORTANT: Find the canvas element that the main editor created
+        // Find the canvas element that the main editor created
         if (imageContainer) {
             const canvas = imageContainer.querySelector('canvas');
             if (canvas) {
@@ -886,7 +906,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const option = document.createElement('option');
                     option.value = i;
 
-                    // IMPORTANT: Ensure proper class label display
+                    // Ensure proper class label display
                     let labelText = `Box ${i + 1}`;
                     if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
                         const labelId = inlineEditor.bboxes.labels[i];
@@ -985,6 +1005,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the crowd_flags array based on the checkbox state
         inlineEditor.bboxes.crowd_flags[inlineEditor.currentBoxIndex] = inlineCrowdCheckbox.checked;
 
+        // Also update the checkbox in the advanced editor if it's open
+        const advancedCrowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+        if (advancedCrowdCheckbox) {
+            advancedCrowdCheckbox.checked = inlineCrowdCheckbox.checked;
+            debug(`Synced advanced crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
+        }
+
         // Update hidden form field
         updateHiddenBboxesField();
 
@@ -995,6 +1022,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (inlineCrowdCheckbox && inlineEditor.bboxes.crowd_flags) {
             inlineCrowdCheckbox.checked = inlineEditor.bboxes.crowd_flags[boxIndex];
             debug(`Set crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
+
+            // Also update the advanced editor's checkbox if it exists
+            const advancedCrowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+            if (advancedCrowdCheckbox) {
+                advancedCrowdCheckbox.checked = inlineEditor.bboxes.crowd_flags[boxIndex];
+                debug(`Synced advanced crowd checkbox to: ${inlineEditor.bboxes.crowd_flags[boxIndex]}`);
+            }
         }
     }
 
@@ -1248,27 +1282,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         debug('Setting up canvas interaction handlers');
 
+        // Track if we're in an active operation (drawing/dragging/resizing)
+        let isActiveOperation = false;
+
         // Helper function to get canvas coordinates
         function getCanvasCoordinates(event) {
             const rect = canvasElement.getBoundingClientRect();
 
-            // Calculate scaling factor - IMPORTANT: use the canvas dimensions
+            // Calculate scaling factor - use the canvas dimensions
             const scaleX = canvasElement.width / rect.width;
             const scaleY = canvasElement.height / rect.height;
 
             // Calculate position relative to the canvas
-            const x = (event.clientX - rect.left) * scaleX;
-            const y = (event.clientY - rect.top) * scaleY;
+            let x = (event.clientX - rect.left) * scaleX;
+            let y = (event.clientY - rect.top) * scaleY;
 
-            return {
-                x: Math.max(0, Math.min(canvasElement.width, x)),
-                y: Math.max(0, Math.min(canvasElement.height, y))
-            };
+            // Constrain to canvas boundaries
+            x = Math.max(0, Math.min(canvasElement.width, x));
+            y = Math.max(0, Math.min(canvasElement.height, y));
+
+            return { x, y };
         }
 
         // Mouse down - start drawing or selection
         canvasElement.addEventListener('mousedown', function(e) {
             e.preventDefault();
+
+            // Set flag that we're in an active operation
+            isActiveOperation = true;
 
             // Get coordinates
             const coords = getCanvasCoordinates(e);
@@ -1292,11 +1333,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Mouse move - update drawing/dragging/resizing
-        canvasElement.addEventListener('mousemove', function(e) {
-            if (!inlineEditor.bboxes) return;
+        // Add mousemove listener to document to catch events outside canvas
+        document.addEventListener('mousemove', function(e) {
+            if (!inlineEditor.bboxes || !isActiveOperation) return;
 
-            const coords = getCanvasCoordinates(e);
+            // Convert global coordinates to canvas coordinates
+            const rect = canvasElement.getBoundingClientRect();
+
+            // Calculate relative position and scale
+            let x = (e.clientX - rect.left) * (canvasElement.width / rect.width);
+            let y = (e.clientY - rect.top) * (canvasElement.height / rect.height);
+
+            // Constrain to canvas boundaries
+            x = Math.max(0, Math.min(canvasElement.width, x));
+            y = Math.max(0, Math.min(canvasElement.height, y));
+
+            const coords = { x, y };
 
             if (inlineEditor.isDrawing) {
                 // Update drawing
@@ -1307,14 +1359,27 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (inlineEditor.isResizing) {
                 // Update resizing
                 updateResizing(coords);
-            } else {
-                // Update cursor based on hover position
+            }
+        });
+
+        // The original canvas mousemove for cursor updates
+        canvasElement.addEventListener('mousemove', function(e) {
+            if (!inlineEditor.bboxes) return;
+
+            const coords = getCanvasCoordinates(e);
+
+            if (!isActiveOperation) {
+                // Only update cursor when not in an active operation
                 updateCursor(coords, canvasElement);
             }
         });
 
         // Mouse up - finish drawing/dragging/resizing
-        canvasElement.addEventListener('mouseup', function() {
+        document.addEventListener('mouseup', function() {
+            if (!isActiveOperation) return;
+
+            isActiveOperation = false;
+
             if (inlineEditor.isDrawing) {
                 // Finish drawing
                 finishDrawing();
@@ -1327,13 +1392,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Mouse leave - cancel operations
-        canvasElement.addEventListener('mouseleave', function() {
-            cancelOperation();
-        });
-
         // Find box under cursor with detection for corners and borders
-        // MODIFIED: Only detect borders and corners, not interior clicks
+        // Only detect borders and corners, not interior clicks
         function findBoxUnderCursor(x, y) {
             const result = {
                 found: false,
@@ -1370,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Check all boxes from top to bottom (visual layers)
-            // IMPORTANT: Only check borders and corners, not inside box
+            // Only check borders and corners, not inside box
             for (let i = inlineEditor.bboxes.boxes.length - 1; i >= 0; i--) {
                 if (inlineEditor.bboxes.scores[i] < inlineEditor.threshold) continue;
 
@@ -1393,8 +1453,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     result.isBorder = true;
                     return result;
                 }
-
-                // REMOVED: Interior click detection - we only want to detect borders and corners
             }
 
             return result;
@@ -1549,7 +1607,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Add the new box's class
                     inlineEditor.bboxes.labels.push(classId);
 
-                    // IMPORTANT FIX: Also update gt array if it exists
+                    // Also update gt array if it exists
                     if (inlineEditor.bboxes.gt) {
                         inlineEditor.bboxes.gt.push(classId);
                         debug(`Added new box to gt array with class ${classId}`);
@@ -1672,7 +1730,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 newY1 + height
             ];
 
-            // Important: Redraw to show real-time updates
+            // Redraw to show real-time updates
             if (inlineEditor.editor) {
                 inlineEditor.editor.redrawCanvas();
             }
@@ -1749,7 +1807,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update the box
             inlineEditor.bboxes.boxes[inlineEditor.currentBoxIndex] = box;
 
-            // Important: Redraw to show real-time updates
+            // Redraw to show real-time updates
             if (inlineEditor.editor) {
                 inlineEditor.editor.redrawCanvas();
             }
@@ -1772,45 +1830,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateHiddenBboxesField();
 
             debug(`Finished resizing box ${inlineEditor.currentBoxIndex}`);
-        }
-
-        // Cancel any ongoing operation
-        function cancelOperation() {
-            if (inlineEditor.isDrawing) {
-                inlineEditor.isDrawing = false;
-                inlineEditor.tempBox = null;
-                debug('Drawing cancelled');
-            }
-
-            if (inlineEditor.isDragging) {
-                inlineEditor.isDragging = false;
-
-                // Restore original box position
-                if (inlineEditor.dragStartBox && inlineEditor.currentBoxIndex >= 0) {
-                    inlineEditor.bboxes.boxes[inlineEditor.currentBoxIndex] = [...inlineEditor.dragStartBox];
-                }
-
-                inlineEditor.dragStartBox = null;
-                debug('Dragging cancelled');
-            }
-
-            if (inlineEditor.isResizing) {
-                inlineEditor.isResizing = false;
-                inlineEditor.resizeCorner = null;
-
-                // Restore original box size
-                if (inlineEditor.dragStartBox && inlineEditor.currentBoxIndex >= 0) {
-                    inlineEditor.bboxes.boxes[inlineEditor.currentBoxIndex] = [...inlineEditor.dragStartBox];
-                }
-
-                inlineEditor.dragStartBox = null;
-                debug('Resizing cancelled');
-            }
-
-            // Make sure to redraw after cancellation
-            if (inlineEditor.editor) {
-                inlineEditor.editor.redrawCanvas();
-            }
         }
     }
 
