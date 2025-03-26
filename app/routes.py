@@ -6,27 +6,11 @@ import timeit
 from flask import render_template, request, redirect, url_for, jsonify
 
 from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict, \
-    get_image_conf_dict
+    get_image_conf_dict, load_json
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
 
-
-def orjson_load(fname):
-    with open(fname, 'rb') as f:
-        bbox_data = orjson.loads(f.read())
-    return bbox_data
-
-def std_json_load(fname):
-    with open(file_path, 'r') as f:
-        bbox_data = json.load(f)
-        return bbox_data
-try:
-    import orjson
-    load_json = orjson_load
-except:
-    print ("Consider installing orjson for speed up")
-    load_json = std_json_load
 
 def convert_bboxes_to_serializable(bboxes):
     """Convert bbox data to a serializable format for JSON."""
@@ -292,7 +276,7 @@ def register_routes(app):
         t=time.time()
         # Used for possible multilabel detection based on the confidence
         #image_conf_dict = get_image_conf_dict(proposals_info)
-        image_conf_dict = get_image_conf_dict([proposals_info[oo] for oo in selected_indices])
+        image_conf_dict = get_image_conf_dict([proposals_info[idx] for idx in selected_indices])
         for selected_index, image_path in zip(selected_indices, selected_images):
             image_basename = os.path.basename(image_path)
 
@@ -456,6 +440,8 @@ def register_routes(app):
         current_imagepath = [os.path.join(current_class_name, current_image)]
 
         #top_categories = image_softmax_dict[current_image][:20]
+
+        # load softmax values only for the current image, not for all at once
         top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
         similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
                                                           label_indices_to_label_names,
@@ -1248,6 +1234,8 @@ def register_routes(app):
             # Get top categories for the current image
             #image_softmax_dict = get_image_softmax_dict(proposals_info)
             #top_categories = image_softmax_dict[current_image_data['image_name']][:20]
+
+            # load softmax values only for the current image, not for all at once
             top_categories = np.argsort(proposals_info[current_image_index]["softmax_val"])[::-1][:20]
             # Get new sample images with the new random seed
             similar_images = get_sample_images_for_categories(top_categories, all_sample_images,
