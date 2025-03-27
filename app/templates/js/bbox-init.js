@@ -4,7 +4,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get bounding box data from the backend
     const bboxes = JSON.parse(document.getElementById('bbox-data').textContent);
-    const threshold = parseFloat(document.getElementById('threshold').textContent);
     const humanReadableClasses = JSON.parse(document.getElementById('human-readable-classes').textContent);
 
     const img = document.querySelector('#image-with-bboxes img');
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create the editor instance
     new BBoxEditor({
         bboxes: bboxes,
-        threshold: threshold,
         img: img,
         canvas: canvas,
         classLabels: classLabels
@@ -52,21 +50,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Create a clean dictionary format for saving
                 const saveData = {};
                 bboxes.boxes.forEach((box, i) => {
-                    if (bboxes.scores[i] >= threshold) {
-                        // Check labels first, then gt, then default to 0
-                        let label = 0;
-                        if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                            label = bboxes.labels[i];
-                        } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
-                            label = bboxes.gt[i];
-                            console.log(`Using gt[${i}] (${label}) for saved data`);
-                        }
-
-                        saveData[i] = {
-                            coordinates: box,
-                            label: label
-                        };
+                    // Check labels first, then gt, then default to 0
+                    let label = 0;
+                    if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                        label = bboxes.labels[i];
+                    } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                        label = bboxes.gt[i];
+                        console.log(`Using gt[${i}] (${label}) for saved data`);
                     }
+
+                    saveData[i] = {
+                        coordinates: box,
+                        label: label
+                    };
                 });
 
                 bboxesInput.value = JSON.stringify(saveData);

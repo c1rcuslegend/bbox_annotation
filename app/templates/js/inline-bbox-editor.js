@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resizeCorner: null,
         drawStartPos: { x: 0, y: 0 },
         classLabels: {},
-        threshold: 0.5,
         tempBox: null,
         canvasElement: null,
         lastSelectedClassId: null, // Track the last selected class ID
@@ -53,16 +52,6 @@ document.addEventListener('DOMContentLoaded', function() {
             debug(`Loaded ${Object.keys(inlineEditor.classLabels).length} class labels`);
         } catch (e) {
             console.error('Error parsing class labels:', e);
-        }
-    }
-
-    // Load threshold value
-    const thresholdElement = document.getElementById('threshold');
-    if (thresholdElement && thresholdElement.textContent) {
-        try {
-            inlineEditor.threshold = parseFloat(JSON.parse(thresholdElement.textContent));
-        } catch (e) {
-            console.error('Error parsing threshold:', e);
         }
     }
 
@@ -100,10 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 debug(`Crowd flags found: ${JSON.stringify(inlineEditor.bboxes.crowd_flags)}`);
             }
 
-            if (inlineEditor.bboxes.boxes && inlineEditor.bboxes.scores) {
-                debug(`Loaded ${inlineEditor.bboxes.boxes.length} boxes, ${inlineEditor.bboxes.boxes.filter((_, i) => 
-                    inlineEditor.bboxes.scores[i] >= inlineEditor.threshold).length} above threshold`);
-            }
         } catch (e) {
             console.error('Error parsing bbox data:', e);
         }
@@ -336,17 +321,15 @@ document.addEventListener('DOMContentLoaded', function() {
         debug(`Current labels: ${JSON.stringify(inlineEditor.bboxes.labels)}`);
 
         inlineEditor.bboxes.boxes.forEach((box, i) => {
-            if (inlineEditor.bboxes.scores[i] >= inlineEditor.threshold) {
-                const label = inlineEditor.bboxes.labels &&
-                              inlineEditor.bboxes.labels[i] !== undefined ?
-                              inlineEditor.bboxes.labels[i] : 0;
+            const label = inlineEditor.bboxes.labels &&
+                          inlineEditor.bboxes.labels[i] !== undefined ?
+                          inlineEditor.bboxes.labels[i] : 0;
 
-                bboxDataArray.push({
-                    coordinates: box,
-                    label: label,
-                    crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
-                });
-            }
+            bboxDataArray.push({
+                coordinates: box,
+                label: label,
+                crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+            });
         });
 
         // Update the hidden field with JSON string
@@ -502,11 +485,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Make sure we have class labels
         if (Object.keys(inlineEditor.classLabels).length === 0 && inlineEditor.editor.classLabels) {
             inlineEditor.classLabels = inlineEditor.editor.classLabels;
-        }
-
-        // Get threshold from editor
-        if (inlineEditor.editor.threshold) {
-            inlineEditor.threshold = inlineEditor.editor.threshold;
         }
 
         // Make sure we have labels after connection
@@ -894,34 +872,26 @@ document.addEventListener('DOMContentLoaded', function() {
         defaultOption.text = "-- Select a box --";
         inlineBboxSelector.appendChild(defaultOption);
 
-        // Count boxes above threshold for debugging
-        let aboveThresholdCount = 0;
 
         // Add options for each box
         if (inlineEditor.bboxes.boxes && inlineEditor.bboxes.scores) {
             inlineEditor.bboxes.boxes.forEach((_, i) => {
-                if (inlineEditor.bboxes.scores[i] >= inlineEditor.threshold) {
-                    aboveThresholdCount++;
+                const option = document.createElement('option');
+                option.value = i;
 
-                    const option = document.createElement('option');
-                    option.value = i;
-
-                    // Ensure proper class label display
-                    let labelText = `Box ${i + 1}`;
-                    if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
-                        const labelId = inlineEditor.bboxes.labels[i];
-                        const labelName = inlineEditor.classLabels[labelId] || `Class ${labelId}`;
-                        labelText = `Box ${i + 1}: ${labelId} - ${labelName}`;
-                    }
-
-                    option.text = labelText;
-                    option.selected = i === inlineEditor.currentBoxIndex;
-                    inlineBboxSelector.appendChild(option);
+                // Ensure proper class label display
+                let labelText = `Box ${i + 1}`;
+                if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
+                    const labelId = inlineEditor.bboxes.labels[i];
+                    const labelName = inlineEditor.classLabels[labelId] || `Class ${labelId}`;
+                    labelText = `Box ${i + 1}: ${labelId} - ${labelName}`;
                 }
+
+                option.text = labelText;
+                option.selected = i === inlineEditor.currentBoxIndex;
+                inlineBboxSelector.appendChild(option);
             });
         }
-
-        debug(`Added ${aboveThresholdCount} boxes to the selector (threshold: ${inlineEditor.threshold})`);
 
         // Update selected value
         if (inlineEditor.currentBoxIndex >= 0) {
@@ -1215,22 +1185,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         inlineEditor.bboxes.boxes.forEach((box, i) => {
-            if (inlineEditor.bboxes.scores[i] >= inlineEditor.threshold) {
-                // Ensure we have a proper label for this box
-                // First check labels, fall back to gt if needed
-                let label = 0;
-                if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
-                    label = inlineEditor.bboxes.labels[i];
-                } else if (inlineEditor.bboxes.gt && inlineEditor.bboxes.gt[i] !== undefined) {
-                    label = inlineEditor.bboxes.gt[i];
-                }
-
-                bboxDataArray.push({
-                    coordinates: box,
-                    label: label,
-                    crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
-                });
+            // Ensure we have a proper label for this box
+            // First check labels, fall back to gt if needed
+            let label = 0;
+            if (inlineEditor.bboxes.labels && inlineEditor.bboxes.labels[i] !== undefined) {
+                label = inlineEditor.bboxes.labels[i];
+            } else if (inlineEditor.bboxes.gt && inlineEditor.bboxes.gt[i] !== undefined) {
+                label = inlineEditor.bboxes.gt[i];
             }
+
+            bboxDataArray.push({
+                coordinates: box,
+                label: label,
+                crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+            });
         });
 
         // Create request object
@@ -1432,7 +1400,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check all boxes from top to bottom (visual layers)
             // Only check borders and corners, not inside box
             for (let i = inlineEditor.bboxes.boxes.length - 1; i >= 0; i--) {
-                if (inlineEditor.bboxes.scores[i] < inlineEditor.threshold) continue;
 
                 const box = inlineEditor.bboxes.boxes[i];
 

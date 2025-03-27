@@ -129,7 +129,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!this.bboxes || !this.bboxes.boxes) return -1;
 
             for (let i = 0; i < this.bboxes.boxes.length; i++) {
-                if (this.bboxes.scores && this.bboxes.scores[i] < this.threshold) continue;
 
                 const box = this.bboxes.boxes[i];
 

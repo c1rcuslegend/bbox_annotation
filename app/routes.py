@@ -12,34 +12,34 @@ from .app_utils import get_form_data, load_user_data, update_current_image_index
 from class_mapping.class_loader import ClassDictionary
 
 
-def convert_bboxes_to_serializable(bboxes):
+def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
     """Convert bbox data to a serializable format for JSON."""
     # If bboxes already has the expected structure but with numpy arrays, convert them
-    if isinstance(bboxes, dict):
-        if 'boxes' in bboxes:
-            boxes = bboxes['boxes'].tolist() if isinstance(bboxes['boxes'], np.ndarray) else bboxes['boxes']
-            scores = bboxes['scores'].tolist() if isinstance(bboxes['scores'], np.ndarray) else bboxes['scores']
-
+    if isinstance(bboxes_unprocessed, dict):
+        if 'boxes' in bboxes_unprocessed:
             result = {
-                'boxes': boxes,
-                'scores': scores
+                'boxes': [],
+                'scores': [],
+                'labels': [],
+                'gt': [],
+                'crowd_flags': []
             }
 
-            # Include labels if present
-            if 'labels' in bboxes:
-                result['labels'] = bboxes['labels'].tolist() if isinstance(bboxes['labels'], np.ndarray) else bboxes[
-                    'labels']
-
-            # Include ground truth if present
-            if 'gt' in bboxes:
-                result['gt'] = bboxes['gt']
-
-            if 'crowd_flags' in bboxes:
-                result['crowd_flags'] = bboxes['crowd_flags']
+            for i in range(len(bboxes_unprocessed['boxes'])):
+                if bboxes_unprocessed['scores'][i] < threshold:
+                    continue
+                result['boxes'].append(bboxes_unprocessed['boxes'][i])
+                result['scores'].append(bboxes_unprocessed['scores'][i])
+                if 'labels' in bboxes_unprocessed:
+                    result['labels'].append(bboxes_unprocessed['labels'][i])
+                if 'gt' in bboxes_unprocessed:
+                    result['gt'].append(bboxes_unprocessed['gt'][i])
+                if 'crowd_flags' in bboxes_unprocessed:
+                    result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i])
 
             return result
 
-    return bboxes  # Return as is if not in expected format
+    return bboxes_unprocessed  # Return as is if not in expected format
 
 
 def get_bboxes_from_file(file_path, image_name=None):
@@ -327,7 +327,7 @@ def register_routes(app):
 
 
             print(bboxes)
-            bbox_data[selected_index] = convert_bboxes_to_serializable(bboxes)
+            bbox_data[selected_index] = convert_bboxes_to_serializable(bboxes, threshold)
 
             # Set image path
             image_paths[selected_index] = os.path.join(app.config['STATIC_FOLDER'], 'images', image_path)
@@ -373,7 +373,6 @@ def register_routes(app):
                                label_indices=label_indices,
                                checked_labels=checked_labels,
                                bbox_data=bbox_data,  # Pass bbox data to template
-                               threshold=threshold,
                                username=username,
                                human_readable_classes_map=label_indices_to_human_readable,
                                current_image_index=current_image_index,
@@ -562,18 +561,8 @@ def register_routes(app):
 
                 bboxes = bbox_data
                 bboxes['crowd_flags'] = [False for i in range(len(bboxes['boxes']))]
+                bboxes['labels'] = [str(gt) for gt in bboxes['gt']]
                 bboxes_source = 'general_bboxes'
-
-                # Extract checked categories from bbox labels
-                if 'labels' in bbox_data and bbox_data['labels']:
-                    checked_labels = set()
-                    for label in bbox_data['labels']:
-                        checked_labels.add(str(label))
-
-                    checked_categories = [label_id for label_id in checked_labels if
-                                          label_id in label_indices_to_label_names]
-
-                    print(f"Extracted {len(checked_categories)} checked categories from bbox labels")
 
         # If still no bboxes, create empty structure
         if bboxes is None:
@@ -582,7 +571,7 @@ def register_routes(app):
             print(f"No bboxes found for {current_image}")
 
         # Ensure bboxes is properly serializable
-        bboxes = convert_bboxes_to_serializable(bboxes)
+        bboxes = convert_bboxes_to_serializable(bboxes, threshold)
 
         # Get the ground truth class
         class_dict = ClassDictionary()
@@ -621,7 +610,6 @@ def register_routes(app):
                                current_image_index=current_image_index,
                                num_similar_images=app.config['NUM_EXAMPLES_PER_CLASS'],
                                bboxes=bboxes,
-                               threshold=threshold,
                                image_name=current_imagepath,
                                bboxes_source=bboxes_source,
                                label_type=label_type,

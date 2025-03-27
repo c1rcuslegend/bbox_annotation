@@ -34,10 +34,10 @@ class BBoxEditorUI {
         this.updateBoxValues(box);
 
         // Initialize the preview canvas
-        this.initPreviewCanvas(previewCanvas, editor.img, bboxes, boxIndex, editor.threshold);
+        this.initPreviewCanvas(previewCanvas, editor.img, bboxes, boxIndex);
 
         // Update bbox selector with available boxes
-        this.updateBboxSelector(bboxes, boxIndex, editor.threshold, editor.classLabels);
+        this.updateBboxSelector(bboxes, boxIndex, editor.classLabels);
     }
 
     static setupEnhancedClassSelector(boxIndex, bboxes, classLabels) {
@@ -218,7 +218,7 @@ class BBoxEditorUI {
                 this.updatePreviewCanvas();
 
                 // Update the bbox selector dropdown to reflect the changed class
-                this.updateBboxSelector(bboxes, this.currentBoxIndex, this.threshold, this.editor.classLabels);
+                this.updateBboxSelector(bboxes, this.currentBoxIndex, this.editor.classLabels);
 
                 // Update the main editor if available
                 if (this.editor) {
@@ -257,7 +257,7 @@ class BBoxEditorUI {
                     this.updatePreviewCanvas();
 
                     // Update the bbox selector dropdown
-                    this.updateBboxSelector(bboxes, this.currentBoxIndex, this.threshold, this.editor.classLabels);
+                    this.updateBboxSelector(bboxes, this.currentBoxIndex, this.editor.classLabels);
 
                     // Update the main editor
                     if (this.editor) {
@@ -348,7 +348,7 @@ class BBoxEditorUI {
                         console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
                     }
 
-                    this.updateBboxSelector(bboxes, this.currentBoxIndex, editor.threshold, editor.classLabels);
+                    this.updateBboxSelector(bboxes, this.currentBoxIndex, editor.classLabels);
 
                     // Update coordinates
                     bboxes.boxes[this.currentBoxIndex] = [
@@ -359,7 +359,7 @@ class BBoxEditorUI {
                     ];
 
                     // Save bboxes via AJAX
-                    this.saveBboxes(bboxes, editor.threshold);
+                    this.saveBboxes(bboxes);
 
                     editor.redrawCanvas();
                     document.getElementById('bbox-modal-container').classList.remove('show-modal');
@@ -400,7 +400,7 @@ class BBoxEditorUI {
                     editor.forceRedraw();
 
                     // Update the dropdown selector
-                    this.updateBboxSelector(bboxes, -1, editor.threshold, editor.classLabels);
+                    this.updateBboxSelector(bboxes, -1, editor.classLabels);
 
                     // Immediately clear form fields and redraw the canvas
                     this.resetFormFields();
@@ -436,7 +436,7 @@ class BBoxEditorUI {
                 editor.forceRedraw();
 
                 // Update the dropdown selector
-                this.updateBboxSelector(bboxes, -1, editor.threshold, editor.classLabels);
+                this.updateBboxSelector(bboxes, -1, editor.classLabels);
 
                 // Immediately clear form fields and redraw the canvas
                 this.resetFormFields();
@@ -639,7 +639,7 @@ class BBoxEditorUI {
         }
     }
 
-    static updateBboxSelector(bboxes, selectedIndex, threshold, classLabels) {
+    static updateBboxSelector(bboxes, selectedIndex, classLabels) {
         const bboxSelector = document.getElementById('bbox-selector');
         if (!bboxSelector) return;
 
@@ -653,43 +653,40 @@ class BBoxEditorUI {
         bboxSelector.appendChild(defaultOption);
 
         bboxes.boxes.forEach((_, i) => {
-            if (bboxes.scores[i] >= threshold) {
-                const option = document.createElement('option');
-                option.value = i;
+            const option = document.createElement('option');
+            option.value = i;
 
-                // Try labels first, then gt
-                let labelId;
-                let labelText = `Box ${i + 1}`;
+            // Try labels first, then gt
+            let labelId;
+            let labelText = `Box ${i + 1}`;
 
-                if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                    labelId = bboxes.labels[i];
-                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
-                    labelId = bboxes.gt[i];
-                    console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for selector option`);
-                } else {
-                    labelId = 0; // Default
-                }
-
-                if (labelId !== undefined) {
-                    const labelName = classLabels[labelId] || `Class ${labelId}`;
-                    labelText += ` (${labelId} - ${labelName})`;
-                } else {
-                    labelText += ` (Score: ${bboxes.scores[i].toFixed(2)})`;
-                }
-
-                option.text = labelText;
-                option.selected = i === selectedIndex;
-                bboxSelector.appendChild(option);
+            if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                labelId = bboxes.labels[i];
+            } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                labelId = bboxes.gt[i];
+                console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for selector option`);
+            } else {
+                labelId = 0; // Default
             }
+
+            if (labelId !== undefined) {
+                const labelName = classLabels[labelId] || `Class ${labelId}`;
+                labelText += ` (${labelId} - ${labelName})`;
+            } else {
+                labelText += ` (Score: ${bboxes.scores[i].toFixed(2)})`;
+            }
+
+            option.text = labelText;
+            option.selected = i === selectedIndex;
+            bboxSelector.appendChild(option);
         });
     }
 
-    static initPreviewCanvas(previewCanvas, img, bboxes, selectedIndex, threshold) {
+    static initPreviewCanvas(previewCanvas, img, bboxes, selectedIndex) {
         this.previewCtx = previewCanvas.getContext('2d');
         this.bboxes = bboxes;
         this.selectedIndex = selectedIndex;
         this.img = img;
-        this.threshold = threshold;
 
         // Make sure we have a labels array
         if (!bboxes.labels && bboxes.gt) {
@@ -751,98 +748,96 @@ class BBoxEditorUI {
 
         // Draw existing boxes
         this.bboxes.boxes.forEach((box, i) => {
-            if (this.bboxes.scores[i] >= this.threshold) {
-                // Determine if this box is selected
-                const isSelected = i === this.selectedIndex;
+            // Determine if this box is selected
+            const isSelected = i === this.selectedIndex;
 
-                // Set box styles
-                ctx.strokeStyle = isSelected ? '#2196F3' : '#e74c3c';
-                ctx.lineWidth = isSelected ? 3 : 2;
+            // Set box styles
+            ctx.strokeStyle = isSelected ? '#2196F3' : '#e74c3c';
+            ctx.lineWidth = isSelected ? 3 : 2;
 
-                const x = box[0] * this.scale + this.offsetX;
-                const y = box[1] * this.scale + this.offsetY;
-                const width = (box[2] - box[0]) * this.scale;
-                const height = (box[3] - box[1]) * this.scale;
+            const x = box[0] * this.scale + this.offsetX;
+            const y = box[1] * this.scale + this.offsetY;
+            const width = (box[2] - box[0]) * this.scale;
+            const height = (box[3] - box[1]) * this.scale;
 
-                // Draw the box
-                ctx.strokeRect(x, y, width, height);
+            // Draw the box
+            ctx.strokeRect(x, y, width, height);
 
-                // Draw handles for selected box
-                if (isSelected) {
-                    this.drawHandles(ctx, x, y, width, height);
-                }
-
-                // Check if box is at top edge or is a whole-image box
-                const isAtTopEdge = box[1] <= 5; // within 5px of top edge
-                const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
-                                   Math.abs(box[2] - this.img.naturalWidth) <= 5 &&
-                                   Math.abs(box[3] - this.img.naturalHeight) <= 5;
-
-                // Position label inside the box if it's at top edge
-                const labelX = x + 5; // Add small padding from left edge
-                const labelY = isAtTopEdge ? y + 20 : y - 8; // Move label inside box if at top edge
-
-                // Get label ID with fallback to gt field if needed
-                let labelId;
-                if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
-                    labelId = this.bboxes.labels[i];
-                } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
-                    labelId = this.bboxes.gt[i];
-                    console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for label display`);
-                } else {
-                    labelId = 0; // Default fallback
-                }
-
-                // Prepare label text
-                const labelName = this.editor.classLabels[labelId] || labelId;
-                const labelText = `${labelId} - ${labelName}`; // Simplified format
-
-                // Save current context state
-                ctx.save();
-
-                // Text properties
-                const fontSize = 16;
-                const padding = 6;
-                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-
-                // Calculate text metrics for background
-                const textMetrics = ctx.measureText(labelText);
-                const textWidth = textMetrics.width;
-
-                // Background for better visibility
-                ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
-
-                // Create rounded rectangle path
-                const cornerRadius = 4;
-                ctx.beginPath();
-                ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-                ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-                ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
-                ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-                ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
-                ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-                ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
-                ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-                ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
-                ctx.closePath();
-                ctx.fill();
-
-                // Add a subtle border
-                ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-
-                // Draw text with shadow for depth
-                ctx.fillStyle = 'white';
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 2;
-                ctx.shadowOffsetX = 1;
-                ctx.shadowOffsetY = 1;
-                ctx.fillText(labelText, labelX, labelY);
-
-                // Restore context
-                ctx.restore();
+            // Draw handles for selected box
+            if (isSelected) {
+                this.drawHandles(ctx, x, y, width, height);
             }
+
+            // Check if box is at top edge or is a whole-image box
+            const isAtTopEdge = box[1] <= 5; // within 5px of top edge
+            const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
+                               Math.abs(box[2] - this.img.naturalWidth) <= 5 &&
+                               Math.abs(box[3] - this.img.naturalHeight) <= 5;
+
+            // Position label inside the box if it's at top edge
+            const labelX = x + 5; // Add small padding from left edge
+            const labelY = isAtTopEdge ? y + 20 : y - 8; // Move label inside box if at top edge
+
+            // Get label ID with fallback to gt field if needed
+            let labelId;
+            if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
+                labelId = this.bboxes.labels[i];
+            } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
+                labelId = this.bboxes.gt[i];
+                console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for label display`);
+            } else {
+                labelId = 0; // Default fallback
+            }
+
+            // Prepare label text
+            const labelName = this.editor.classLabels[labelId] || labelId;
+            const labelText = `${labelId} - ${labelName}`; // Simplified format
+
+            // Save current context state
+            ctx.save();
+
+            // Text properties
+            const fontSize = 16;
+            const padding = 6;
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+
+            // Calculate text metrics for background
+            const textMetrics = ctx.measureText(labelText);
+            const textWidth = textMetrics.width;
+
+            // Background for better visibility
+            ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
+
+            // Create rounded rectangle path
+            const cornerRadius = 4;
+            ctx.beginPath();
+            ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+            ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+            ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+            ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+            ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+            ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+            ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+            ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+            ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add a subtle border
+            ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw text with shadow for depth
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillText(labelText, labelX, labelY);
+
+            // Restore context
+            ctx.restore();
         });
 
         // Draw temporary box if needed
@@ -879,24 +874,22 @@ class BBoxEditorUI {
     static findBoxByBorderOnly(x, y, borderWidth = 5) {
         // Only detect clicks on borders, not inside the box
         for (let i = 0; i < this.bboxes.boxes.length; i++) {
-            if (this.bboxes.scores[i] >= this.threshold) {
-                const box = this.bboxes.boxes[i];
+            const box = this.bboxes.boxes[i];
 
-                // Convert box coordinates to canvas coordinates
-                const sx1 = box[0] * this.scale + this.offsetX;
-                const sy1 = box[1] * this.scale + this.offsetY;
-                const sx2 = box[2] * this.scale + this.offsetX;
-                const sy2 = box[3] * this.scale + this.offsetY;
+            // Convert box coordinates to canvas coordinates
+            const sx1 = box[0] * this.scale + this.offsetX;
+            const sy1 = box[1] * this.scale + this.offsetY;
+            const sx2 = box[2] * this.scale + this.offsetX;
+            const sy2 = box[3] * this.scale + this.offsetY;
 
-                // Check if we clicked on any of the four borders
-                const onLeftBorder = Math.abs(x - sx1) <= borderWidth && y >= sy1 && y <= sy2;
-                const onRightBorder = Math.abs(x - sx2) <= borderWidth && y >= sy1 && y <= sy2;
-                const onTopBorder = Math.abs(y - sy1) <= borderWidth && x >= sx1 && x <= sx2;
-                const onBottomBorder = Math.abs(y - sy2) <= borderWidth && x >= sx1 && x <= sx2;
+            // Check if we clicked on any of the four borders
+            const onLeftBorder = Math.abs(x - sx1) <= borderWidth && y >= sy1 && y <= sy2;
+            const onRightBorder = Math.abs(x - sx2) <= borderWidth && y >= sy1 && y <= sy2;
+            const onTopBorder = Math.abs(y - sy1) <= borderWidth && x >= sx1 && x <= sx2;
+            const onBottomBorder = Math.abs(y - sy2) <= borderWidth && x >= sx1 && x <= sx2;
 
-                if (onLeftBorder || onRightBorder || onTopBorder || onBottomBorder) {
-                    return i;
-                }
+            if (onLeftBorder || onRightBorder || onTopBorder || onBottomBorder) {
+                return i;
             }
         }
         return -1;
@@ -1287,7 +1280,7 @@ class BBoxEditorUI {
                     this.updateBoxValues(this.tempBox);
 
                     // Update bbox selector dropdown
-                    this.updateBboxSelector(this.bboxes, this.selectedIndex, this.threshold, this.editor ? this.editor.classLabels : {});
+                    this.updateBboxSelector(this.bboxes, this.selectedIndex, this.editor ? this.editor.classLabels : {});
 
                     // Update class selector
                     const classSelector = document.getElementById('bbox-class-selector');
@@ -1345,7 +1338,7 @@ class BBoxEditorUI {
     }
 
     // Method to save bboxes directly via AJAX
-    static saveBboxes(bboxes, threshold) {
+    static saveBboxes(bboxes) {
         // Get the current image name
         const imageNameInput = document.querySelector('input[name="image_name"]');
         const imageName = imageNameInput ? imageNameInput.value : 'unknown';
@@ -1357,23 +1350,20 @@ class BBoxEditorUI {
         // Format the data as required: only including bboxes above threshold
         let bboxDataArray = [];
         bboxes.boxes.forEach((box, i) => {
-            // Only include boxes above threshold
-            if (bboxes.scores[i] >= threshold) {
-                // Check labels first, then gt, then default to 0
-                let label = 0;
-                if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                    label = bboxes.labels[i];
-                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
-                    label = bboxes.gt[i];
-                    console.log(`BBoxEditorUI: Using gt[${i}] (${label}) for saved data`);
-                }
-
-                bboxDataArray.push({
-                    coordinates: box,
-                    label: label,
-                    crowd_flag: this.bboxes.crowd_flags && this.bboxes.crowd_flags[i]
-                });
+            // Check labels first, then gt, then default to 0
+            let label = 0;
+            if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                label = bboxes.labels[i];
+            } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                label = bboxes.gt[i];
+                console.log(`BBoxEditorUI: Using gt[${i}] (${label}) for saved data`);
             }
+
+            bboxDataArray.push({
+                coordinates: box,
+                label: label,
+                crowd_flag: this.bboxes.crowd_flags && this.bboxes.crowd_flags[i]
+            });
         });
 
         // Create the object for the request

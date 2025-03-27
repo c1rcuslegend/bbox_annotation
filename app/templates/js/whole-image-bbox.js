@@ -192,12 +192,10 @@ function createWholeImageBBox() {
             let bboxDataArray = [];
 
             bboxes.boxes.forEach((box, i) => {
-                if (bboxes.scores[i] >= 0.5) { // Default threshold if not specified
-                    bboxDataArray.push({
-                        coordinates: box,
-                        label: bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0
-                    });
-                }
+                bboxDataArray.push({
+                    coordinates: box,
+                    label: bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0
+                });
             });
 
             bboxesField.value = JSON.stringify(bboxDataArray);
@@ -227,29 +225,27 @@ function createWholeImageBBox() {
             // Add options for all boxes above threshold
             let hasSelectedOption = false;
             bboxes.boxes.forEach((box, i) => {
-                if (bboxes.scores[i] >= 0.5) { // Default threshold
-                    const option = document.createElement('option');
-                    option.value = i.toString();
+                const option = document.createElement('option');
+                option.value = i.toString();
 
-                    // Get proper class name if available
-                    let className = `Class ${bboxes.labels[i]}`;
-                    const classesElement = document.getElementById('human-readable-classes');
-                    if (classesElement && classesElement.textContent) {
-                        try {
-                            const classLabels = JSON.parse(classesElement.textContent);
-                            if (classLabels[bboxes.labels[i]]) {
-                                className = classLabels[bboxes.labels[i]];
-                            }
-                        } catch (e) {}
-                    }
+                // Get proper class name if available
+                let className = `Class ${bboxes.labels[i]}`;
+                const classesElement = document.getElementById('human-readable-classes');
+                if (classesElement && classesElement.textContent) {
+                    try {
+                        const classLabels = JSON.parse(classesElement.textContent);
+                        if (classLabels[bboxes.labels[i]]) {
+                            className = classLabels[bboxes.labels[i]];
+                        }
+                    } catch (e) {}
+                }
 
-                    option.text = `Box ${i + 1}: ${bboxes.labels[i]} - ${className}`;
-                    option.selected = i === newBoxIndex;
-                    inlineBboxSelector.appendChild(option);
+                option.text = `Box ${i + 1}: ${bboxes.labels[i]} - ${className}`;
+                option.selected = i === newBoxIndex;
+                inlineBboxSelector.appendChild(option);
 
-                    if (i === newBoxIndex) {
-                        hasSelectedOption = true;
-                    }
+                if (i === newBoxIndex) {
+                    hasSelectedOption = true;
                 }
             });
 
@@ -350,18 +346,16 @@ function createWholeImageBBox() {
 
                     // Add options for all boxes above threshold
                     bboxes.boxes.forEach((box, i) => {
-                        if (bboxes.scores[i] >= 0.5) { // Default threshold
-                            const option = document.createElement('option');
-                            option.value = i;
+                        const option = document.createElement('option');
+                        option.value = i;
 
-                            // Get proper class name if available
-                            const classLabels = editor.classLabels || {};
-                            const labelName = classLabels[bboxes.labels[i]] || `Class ${bboxes.labels[i]}`;
+                        // Get proper class name if available
+                        const classLabels = editor.classLabels || {};
+                        const labelName = classLabels[bboxes.labels[i]] || `Class ${bboxes.labels[i]}`;
 
-                            option.text = `Box ${i + 1} (${bboxes.labels[i]} - ${labelName})`;
-                            option.selected = i === newBoxIndex; // SELECT THE NEW BOX
-                            boxSelector.appendChild(option);
-                        }
+                        option.text = `Box ${i + 1} (${bboxes.labels[i]} - ${labelName})`;
+                        option.selected = i === newBoxIndex; // SELECT THE NEW BOX
+                        boxSelector.appendChild(option);
                     });
 
                     // Set the value explicitly

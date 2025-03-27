@@ -13,7 +13,6 @@ class BBoxEditor {
             this.bboxes.labels = this.bboxes.gt;
         }
 
-        this.threshold = config.threshold || 0.5;
         this.img = config.img;
         this.canvas = config.canvas || document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -50,7 +49,96 @@ class BBoxEditor {
         this.ctx.drawImage(this.img, 0, 0);
 
         this.bboxes.boxes.forEach((box, index) => {
-            if (this.bboxes.scores[index] >= this.threshold) {
+            // Use different color for selected box
+            this.ctx.strokeStyle = this.selectedBboxIndex === index ? '#2196F3' : '#e74c3c';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+
+            // Show label info for each box with enhanced readability
+            const isSelected = this.selectedBboxIndex === index;
+
+            // Check if box is at top edge or is a whole-image box
+            const isAtTopEdge = box[1] <= 5; // within 5px of top edge
+            const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
+                                 Math.abs(box[2] - this.canvas.width) <= 5 &&
+                                 Math.abs(box[3] - this.canvas.height) <= 5;
+
+            // Position label inside the box if it's at top edge
+            const labelX = box[0] + 5; // Add small padding from left edge
+            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
+
+            // Get label ID with fallback to gt field if needed
+            let labelId;
+            if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
+                labelId = this.bboxes.labels[index];
+            } else if (this.bboxes.gt && this.bboxes.gt[index] !== undefined) {
+                labelId = this.bboxes.gt[index];
+                console.log(`BBoxEditor: Using gt[${index}] (${labelId}) for display`);
+            } else {
+                labelId = 0; // Default fallback
+            }
+
+            // Prepare label text
+            const labelName = this.classLabels[labelId] || labelId;
+            const labelText = `${labelId} - ${labelName}`; // Simplified format
+
+            // Save current context state
+            this.ctx.save();
+
+            // Text properties
+            const fontSize = 14;
+            const padding = 4;
+            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textMetrics = this.ctx.measureText(labelText);
+            const textWidth = textMetrics.width;
+
+            // Background for better visibility
+            this.ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
+
+            // Draw rounded rectangle background
+            const cornerRadius = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+            this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+            this.ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+            this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+            this.ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+            this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+            this.ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+            this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+            this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Add a subtle border
+            this.ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // Draw text with shadow for depth
+            this.ctx.fillStyle = 'white';
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 2;
+            this.ctx.shadowOffsetX = 1;
+            this.ctx.shadowOffsetY = 1;
+            this.ctx.fillText(labelText, labelX, labelY);
+
+            // Restore context
+            this.ctx.restore();
+        });
+    }
+
+    // Force a complete redraw of the canvas
+    forceRedraw() {
+        // Clear everything
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Start fresh with the base image
+        this.ctx.drawImage(this.img, 0, 0);
+
+        // Draw only the boxes that still exist and meet the threshold
+        if (this.bboxes && this.bboxes.boxes) {
+            this.bboxes.boxes.forEach((box, index) => {
                 // Use different color for selected box
                 this.ctx.strokeStyle = this.selectedBboxIndex === index ? '#2196F3' : '#e74c3c';
                 this.ctx.lineWidth = 3;
@@ -68,6 +156,7 @@ class BBoxEditor {
                 // Position label inside the box if it's at top edge
                 const labelX = box[0] + 5; // Add small padding from left edge
                 const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
+
 
                 // Get label ID with fallback to gt field if needed
                 let labelId;
@@ -127,100 +216,6 @@ class BBoxEditor {
 
                 // Restore context
                 this.ctx.restore();
-            }
-        });
-    }
-
-    // Force a complete redraw of the canvas
-    forceRedraw() {
-        // Clear everything
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Start fresh with the base image
-        this.ctx.drawImage(this.img, 0, 0);
-
-        // Draw only the boxes that still exist and meet the threshold
-        if (this.bboxes && this.bboxes.boxes) {
-            this.bboxes.boxes.forEach((box, index) => {
-                if (this.bboxes.scores[index] >= this.threshold) {
-                    // Use different color for selected box
-                    this.ctx.strokeStyle = this.selectedBboxIndex === index ? '#2196F3' : '#e74c3c';
-                    this.ctx.lineWidth = 3;
-                    this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
-
-                    // Show label info for each box with enhanced readability
-                    const isSelected = this.selectedBboxIndex === index;
-
-                    // Check if box is at top edge or is a whole-image box
-                    const isAtTopEdge = box[1] <= 5; // within 5px of top edge
-                    const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
-                                         Math.abs(box[2] - this.canvas.width) <= 5 &&
-                                         Math.abs(box[3] - this.canvas.height) <= 5;
-
-                    // Position label inside the box if it's at top edge
-                    const labelX = box[0] + 5; // Add small padding from left edge
-                    const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
-
-
-                    // Get label ID with fallback to gt field if needed
-                    let labelId;
-                    if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
-                        labelId = this.bboxes.labels[index];
-                    } else if (this.bboxes.gt && this.bboxes.gt[index] !== undefined) {
-                        labelId = this.bboxes.gt[index];
-                        console.log(`BBoxEditor: Using gt[${index}] (${labelId}) for display`);
-                    } else {
-                        labelId = 0; // Default fallback
-                    }
-
-                    // Prepare label text
-                    const labelName = this.classLabels[labelId] || labelId;
-                    const labelText = `${labelId} - ${labelName}`; // Simplified format
-
-                    // Save current context state
-                    this.ctx.save();
-
-                    // Text properties
-                    const fontSize = 14;
-                    const padding = 4;
-                    this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-                    const textMetrics = this.ctx.measureText(labelText);
-                    const textWidth = textMetrics.width;
-
-                    // Background for better visibility
-                    this.ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
-
-                    // Draw rounded rectangle background
-                    const cornerRadius = 3;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-                    this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-                    this.ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
-                    this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-                    this.ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
-                    this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-                    this.ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
-                    this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-                    this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
-                    this.ctx.closePath();
-                    this.ctx.fill();
-
-                    // Add a subtle border
-                    this.ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.stroke();
-
-                    // Draw text with shadow for depth
-                    this.ctx.fillStyle = 'white';
-                    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.shadowBlur = 2;
-                    this.ctx.shadowOffsetX = 1;
-                    this.ctx.shadowOffsetY = 1;
-                    this.ctx.fillText(labelText, labelX, labelY);
-
-                    // Restore context
-                    this.ctx.restore();
-                }
             });
         }
     }
@@ -229,7 +224,6 @@ class BBoxEditor {
     findBoxByBorderOnly(x, y, borderWidth = 5) {
         // Only detect clicks on borders, not inside the box
         for (let i = this.bboxes.boxes.length - 1; i >= 0; i--) {
-            if (this.bboxes.scores[i] < this.threshold) continue;
 
             const box = this.bboxes.boxes[i];
 

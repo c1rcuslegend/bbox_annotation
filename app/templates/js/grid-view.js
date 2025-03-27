@@ -56,18 +56,6 @@ function updateProgressBar(correctedImages, totalImages, className) {
 
 // Initialize the page on load
 window.onload = function() {
-    // Load the global threshold value
-    const thresholdData = document.getElementById('threshold-data');
-    let threshold = 0.5; // Default value
-    if (thresholdData) {
-        try {
-            const thresholdConfig = JSON.parse(thresholdData.textContent);
-            threshold = thresholdConfig.threshold || 0.5;
-            console.log(`Using threshold: ${threshold}`);
-        } catch (e) {
-            console.error("Error parsing threshold data:", e);
-        }
-    }
 
     // Load class label mappings if available
     const classesElement = document.getElementById('human-readable-classes');
@@ -82,7 +70,7 @@ window.onload = function() {
     }
 
     // Draw bounding boxes after a short delay to ensure images are loaded
-    setTimeout(() => renderAllBoundingBoxes(threshold), 200);
+    setTimeout(() => renderAllBoundingBoxes(), 200);
 
     // Check initial checkbox state
     checkInitialCheckboxState();
@@ -110,8 +98,7 @@ window.onload = function() {
 };
 
 // Function to render bounding boxes for all images
-function renderAllBoundingBoxes(threshold) {
-    console.log("Rendering all bounding boxes with threshold:", threshold);
+function renderAllBoundingBoxes() {
     const imageContainers = document.querySelectorAll('.image-container');
 
     imageContainers.forEach(container => {
@@ -138,10 +125,10 @@ function renderAllBoundingBoxes(threshold) {
 
             // Wait for image to load to get proper dimensions
             if (img.complete) {
-                renderBoundingBoxes(overlay, bboxesData, img, threshold, imageIndex);
+                renderBoundingBoxes(overlay, bboxesData, img, imageIndex);
             } else {
                 img.onload = function() {
-                    renderBoundingBoxes(overlay, bboxesData, img, threshold, imageIndex);
+                    renderBoundingBoxes(overlay, bboxesData, img, imageIndex);
                 };
             }
         } catch (e) {
@@ -151,7 +138,7 @@ function renderAllBoundingBoxes(threshold) {
 }
 
 // Function to render bounding boxes on an overlay element
-function renderBoundingBoxes(overlay, bboxData, img, threshold, imageIndex) {
+function renderBoundingBoxes(overlay, bboxData, img, imageIndex) {
     console.log(`Rendering bboxes for image ${imageIndex}`);
 
     // Clear existing boxes
@@ -181,11 +168,11 @@ function renderBoundingBoxes(overlay, bboxData, img, threshold, imageIndex) {
     if (bboxData && typeof bboxData === 'object') {
         // Format 1: {boxes: [[x1,y1,x2,y2],...], scores: [], labels: []}
         if (Array.isArray(bboxData.boxes)) {
-            renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold, displayHeight);
+            renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, displayHeight);
         }
         // Format 2: {imageIndex: {boxes: [...], scores: [...], labels: [...]}}
         else if (bboxData[imageIndex] && bboxData[imageIndex].boxes) {
-            renderBoxesFormat1(overlay, bboxData[imageIndex], imgLeft, imgTop, scaleX, scaleY, threshold, displayHeight);
+            renderBoxesFormat1(overlay, bboxData[imageIndex], imgLeft, imgTop, scaleX, scaleY, displayHeight);
         }
         // Format 3: Array of box objects
         else if (Array.isArray(bboxData)) {
@@ -195,18 +182,13 @@ function renderBoundingBoxes(overlay, bboxData, img, threshold, imageIndex) {
 }
 
 // Render boxes in format {boxes: [[x1,y1,x2,y2],...], scores: [], labels: []}
-function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, threshold, imgHeight) {
+function renderBoxesFormat1(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeight) {
     if (!bboxData.boxes || !Array.isArray(bboxData.boxes) || bboxData.boxes.length === 0) {
         return;
     }
 
     // Draw each box
     bboxData.boxes.forEach((box, index) => {
-        // Skip if the score is below threshold
-        if (bboxData.scores && bboxData.scores[index] < threshold) {
-            return;
-        }
-
         if (box && box.length === 4) {
             // Original coordinates [x1, y1, x2, y2]
             const [x1, y1, x2, y2] = box;
@@ -343,14 +325,7 @@ function createLabelElement(labelId, boxLeft, boxTop, imgHeight, imgTop) {
 // Add window resize handler to redraw bounding boxes
 window.addEventListener('resize', function() {
     setTimeout(function() {
-        const thresholdData = document.getElementById('threshold-data');
-        let threshold = 0.5;
-        if (thresholdData) {
-            try {
-                threshold = JSON.parse(thresholdData.textContent).threshold || 0.5;
-            } catch (e) {}
-        }
-        renderAllBoundingBoxes(threshold);
+        renderAllBoundingBoxes();
     }, 100);
 });
 
