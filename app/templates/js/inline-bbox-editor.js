@@ -515,20 +515,115 @@ document.addEventListener('DOMContentLoaded', function() {
         // Override the editor's redraw to handle our temp box
         const originalRedraw = inlineEditor.editor.redrawCanvas;
         inlineEditor.editor.redrawCanvas = function() {
-            // Call original redraw
-            originalRedraw.call(this);
+          // Call original redraw
+          originalRedraw.call(this);
 
-            // Add our temp box if we're drawing
-            if (inlineEditor.isDrawing && inlineEditor.tempBox) {
-                this.ctx.strokeStyle = '#00FF00'; // Green
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(
-                    inlineEditor.tempBox[0],
-                    inlineEditor.tempBox[1],
-                    inlineEditor.tempBox[2] - inlineEditor.tempBox[0],
-                    inlineEditor.tempBox[3] - inlineEditor.tempBox[1]
-                );
+          if (
+            this.bboxes &&
+            Array.isArray(this.bboxes.boxes) &&
+            typeof this.selectedBboxIndex === 'number' &&
+            this.selectedBboxIndex >= 0 &&
+            this.selectedBboxIndex < this.bboxes.boxes.length
+          ) {
+            // Save context to re-draw the selected box
+            this.ctx.save();
+
+            // Draw the selected box on top with a blue color and thicker line
+            this.ctx.strokeStyle = '#2196F3';
+            this.ctx.lineWidth = 3;
+            const box = this.bboxes.boxes[this.selectedBboxIndex];
+            this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+
+            // Get label info from bboxes.labels and classLabels
+            let labelId = 0;
+            if (this.bboxes.labels && this.bboxes.labels[this.selectedBboxIndex] !== undefined) {
+              labelId = this.bboxes.labels[this.selectedBboxIndex];
             }
+            const labelName =
+              this.classLabels && this.classLabels[labelId] ? this.classLabels[labelId] : labelId;
+            const labelText = `${labelId} - ${labelName}`;
+
+            // Calculate label position similarly to the original drawing code
+            const isAtTopEdge = box[1] <= 5;
+            const labelX = box[0] + 5;
+            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5;
+
+            // Save context for label drawing
+            this.ctx.save();
+            const fontSize = 14;
+            const padding = 4;
+            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textWidth = this.ctx.measureText(labelText).width;
+            const cornerRadius = 3;
+
+            // Draw label background with rounded corners
+            this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)';
+            this.ctx.beginPath();
+            this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+            this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+            this.ctx.arcTo(
+              labelX + textWidth + padding,
+              labelY - fontSize - padding,
+              labelX + textWidth + padding,
+              labelY - fontSize - padding + cornerRadius,
+              cornerRadius
+            );
+            this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+            this.ctx.arcTo(
+              labelX + textWidth + padding,
+              labelY + padding,
+              labelX + textWidth + padding - cornerRadius,
+              labelY + padding,
+              cornerRadius
+            );
+            this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+            this.ctx.arcTo(
+              labelX - padding,
+              labelY + padding,
+              labelX - padding,
+              labelY + padding - cornerRadius,
+              cornerRadius
+            );
+            this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+            this.ctx.arcTo(
+              labelX - padding,
+              labelY - fontSize - padding,
+              labelX - padding + cornerRadius,
+              labelY - fontSize - padding,
+              cornerRadius
+            );
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Draw subtle border around label background
+            this.ctx.strokeStyle = '#1565C0';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // Draw the class label text with shadow for readability
+            this.ctx.fillStyle = 'white';
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 2;
+            this.ctx.shadowOffsetX = 1;
+            this.ctx.shadowOffsetY = 1;
+            this.ctx.fillText(labelText, labelX, labelY);
+            this.ctx.restore();
+
+            // Restore the canvas context
+            this.ctx.restore();
+          }
+
+          // Draw temporary box if in drawing mode
+          if (inlineEditor.isDrawing && inlineEditor.tempBox) {
+            this.ctx.strokeStyle = '#00FF00';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(
+              inlineEditor.tempBox[0],
+              inlineEditor.tempBox[1],
+              inlineEditor.tempBox[2] - inlineEditor.tempBox[0],
+              inlineEditor.tempBox[3] - inlineEditor.tempBox[1]
+            );
+          }
         };
 
         // Initialize UI

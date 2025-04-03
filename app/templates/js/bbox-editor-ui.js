@@ -852,6 +852,110 @@ class BBoxEditorUI {
 
             ctx.strokeRect(x, y, width, height);
         }
+
+        if (
+        this.bboxes &&
+        Array.isArray(this.bboxes.boxes) &&
+        typeof this.selectedIndex === 'number' &&
+        this.selectedIndex >= 0 &&
+        this.selectedIndex < this.bboxes.boxes.length
+        ) {
+            // Save context for drawing the selected bounding box and its label using the advanced style
+            this.previewCtx.save();
+
+            // Calculate scaled coordinates using the advanced editor's scale and offsets
+            const box = this.bboxes.boxes[this.selectedIndex];
+            const scaledX = box[0] * this.scale + this.offsetX;
+            const scaledY = box[1] * this.scale + this.offsetY;
+            const scaledWidth = (box[2] - box[0]) * this.scale;
+            const scaledHeight = (box[3] - box[1]) * this.scale;
+
+            // Draw the selected box on top with advanced style (blue border, thicker line)
+            this.previewCtx.strokeStyle = '#2196F3';
+            this.previewCtx.lineWidth = 3;
+            this.previewCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Determine label info using the advanced menu’s method of generating class names
+            // (Note: here we use this.editor.classLabels if available)
+            let labelId = 0;
+            if (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] !== undefined) {
+            labelId = this.bboxes.labels[this.selectedIndex];
+            }
+            const labelName =
+            this.editor && this.editor.classLabels && this.editor.classLabels[labelId]
+            ? this.editor.classLabels[labelId]
+            : labelId;
+            const labelText = `${labelId} - ${labelName}`;
+
+            // Calculate label position. If the box touches the top edge, position the label inside.
+            const isAtTopEdge = box[1] <= 5;
+            const labelX = scaledX + 5;
+            const labelY = isAtTopEdge ? scaledY + 20 : scaledY - 8;
+
+            // Draw label background with rounded corners using the advanced editor's style.
+            this.previewCtx.save();
+            const fontSize = 16;
+            const padding = 6;
+            this.previewCtx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textWidth = this.previewCtx.measureText(labelText).width;
+            const cornerRadius = 4;
+
+            // Advanced style for label background
+            this.previewCtx.fillStyle = 'rgba(33, 150, 243, 0.85)';
+            this.previewCtx.beginPath();
+            this.previewCtx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+            this.previewCtx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+            this.previewCtx.arcTo(
+            labelX + textWidth + padding,
+            labelY - fontSize - padding,
+            labelX + textWidth + padding,
+            labelY - fontSize - padding + cornerRadius,
+            cornerRadius
+            );
+            this.previewCtx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+            this.previewCtx.arcTo(
+            labelX + textWidth + padding,
+            labelY + padding,
+            labelX + textWidth + padding - cornerRadius,
+            labelY + padding,
+            cornerRadius
+            );
+            this.previewCtx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+            this.previewCtx.arcTo(
+            labelX - padding,
+            labelY + padding,
+            labelX - padding,
+            labelY + padding - cornerRadius,
+            cornerRadius
+            );
+            this.previewCtx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+            this.previewCtx.arcTo(
+            labelX - padding,
+            labelY - fontSize - padding,
+            labelX - padding + cornerRadius,
+            labelY - fontSize - padding,
+            cornerRadius
+            );
+            this.previewCtx.closePath();
+            this.previewCtx.fill();
+
+            // Draw a subtle border using the advanced menu’s style
+            this.previewCtx.strokeStyle = '#1565C0';
+            this.previewCtx.lineWidth = 1;
+            this.previewCtx.stroke();
+
+            // Draw the class label text with shadow effect (as in the advanced menu)
+            this.previewCtx.fillStyle = 'white';
+            this.previewCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.previewCtx.shadowBlur = 2;
+            this.previewCtx.shadowOffsetX = 1;
+            this.previewCtx.shadowOffsetY = 1;
+            this.previewCtx.fillText(labelText, labelX, labelY);
+            this.previewCtx.restore();
+
+            // Restore the context after drawing the selected box and label
+            this.previewCtx.restore();
+        }
     }
 
     static drawHandles(ctx, x, y, width, height) {
