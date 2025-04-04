@@ -69,17 +69,19 @@
                     selectedClasses[classId] = className;
                 });
 
-                // Store the selected classes as JSON in the hidden input
-                document.getElementById('selected_classes').value = JSON.stringify(selectedClasses);
+                // Instead of submitting the form immediately, store the selected classes globally.
+                window.selectedUncertainClasses = selectedClasses;
+                // Set a global flag to indicate uncertainty mode is active.
+                window.uncertainty_mode = true;
 
-                // Set the label type
+                // Also update the hidden input to mark the entire image as uncertain.
                 document.getElementById('label_type').value = 'uncertain';
 
-                // Submit the form
-                document.getElementById('save').submit();
+                // Hide the uncertainty modal so that the user can now draw the uncertain box.
+                document.getElementById('uncertainty-modal-container').classList.remove('show-modal');
 
-                // Hide the modal
-                uncertaintyModal.classList.remove('show-modal');
+                // Optionally, notify the user that they can now draw the box.
+                console.log('Uncertainty mode activated. Now draw a box for uncertain labeling.');
             });
         };
 

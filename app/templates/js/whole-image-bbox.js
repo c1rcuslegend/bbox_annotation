@@ -1,6 +1,7 @@
 /**
  * Add whole image bounding box functionality
  * Updated to use ground truth class index from backend
+ * Added support for uncertainty mode
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Registering Whole Image BBox functionality');
@@ -16,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (wholeImageBtn2) {
         wholeImageBtn2.addEventListener('click', function() {
             createWholeImageBBox();
+
+            // Close the advanced editor modal if it's open
+            const modal = document.getElementById('bbox-modal-container');
+            if (modal && modal.classList.contains('show-modal')) {
+                modal.classList.remove('show-modal');
+            }
         });
     }
 });
@@ -24,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Creates a bounding box covering the entire image and selects it
  * Works in both inline editor and advanced editor modes
  * Uses ground_truth_class_index from the backend
+ * Supports uncertainty mode
  */
 function createWholeImageBBox() {
     // Try different ways to get editor references
@@ -44,8 +52,8 @@ function createWholeImageBBox() {
             editor = window.bboxEditor;
         }
 
-        // Get bboxes from inline editor
-        bboxes = window.inlineEditor.bboxes;
+        // Get bboxes from inline editor - make a deep copy to avoid reference issues
+        bboxes = JSON.parse(JSON.stringify(window.inlineEditor.bboxes));
 
         // Get the image element
         img = document.querySelector('#image-with-bboxes img');
@@ -54,14 +62,14 @@ function createWholeImageBBox() {
     else if (window.BBoxEditorUI && window.BBoxEditorUI.editor) {
         console.log('Using advanced editor reference');
         editor = window.BBoxEditorUI.editor;
-        bboxes = editor.bboxes;
+        bboxes = JSON.parse(JSON.stringify(editor.bboxes)); // Deep copy
         img = editor.img;
     }
     // Check if there's a global editor reference (from the main page)
     else if (window.bboxEditor) {
         console.log('Using global editor reference');
         editor = window.bboxEditor;
-        bboxes = editor.bboxes;
+        bboxes = JSON.parse(JSON.stringify(editor.bboxes)); // Deep copy
         img = editor.img;
 
         // Check if we're still in inline mode
@@ -104,6 +112,21 @@ function createWholeImageBBox() {
         bboxes.labels = [];
     }
 
+    // Ensure we have uncertain_flags array
+    if (!bboxes.uncertain_flags) {
+        bboxes.uncertain_flags = Array(bboxes.boxes.length).fill(false);
+    }
+
+    // Ensure we have possible_labels array
+    if (!bboxes.possible_labels) {
+        bboxes.possible_labels = Array(bboxes.boxes.length).fill([]);
+    }
+
+    // Ensure we have crowd_flags array
+    if (!bboxes.crowd_flags) {
+        bboxes.crowd_flags = Array(bboxes.boxes.length).fill(false);
+    }
+
     // Get the image dimensions
     const imgWidth = img.naturalWidth;
     const imgHeight = img.naturalHeight;
@@ -111,59 +134,190 @@ function createWholeImageBBox() {
     // Create a box covering the whole image
     const wholeImageBox = [0, 0, imgWidth, imgHeight];
 
+    // Store the index before adding the new box
+    const newBoxIndex = bboxes.boxes.length;
+
     // Add box to bboxes with a score of 100%
-    bboxes.boxes.push(wholeImageBox);
+    bboxes.boxes.push([...wholeImageBox]); // Use array copy
     bboxes.scores.push(100);
 
-    // Determine the class ID to use
-    let classId = 0;
+    // Check if we are in uncertainty mode
+    const isUncertaintyMode = (window.inlineEditor && window.inlineEditor.uncertaintyMode) ||
+                              window.uncertaintyMode;
 
-    // Use our global helper function for consistent class selection
-    if (typeof window.getClassForNewBBox === 'function') {
-        classId = window.getClassForNewBBox();
-        console.log(`Using getClassForNewBBox helper function, got class ID: ${classId}`);
-    }
-    else {
-        // Fallback if helper function is not available
+    if (isUncertaintyMode) {
+        console.log('Creating whole-image bounding box in uncertainty mode');
 
-        // Try to get the ground truth class ID from the hidden element first
-        const gtDataElement = document.getElementById('ground-truth-data');
-        if (gtDataElement && gtDataElement.textContent) {
-            try {
-                const gtClassId = parseInt(gtDataElement.textContent.trim());
-                if (!isNaN(gtClassId)) {
-                    classId = gtClassId;
-                    console.log(`Using ground truth class ID from data element: ${classId}`);
-                }
-            } catch (e) {
-                console.error('Error parsing ground truth class ID:', e);
+        // Ensure all arrays have the correct length before adding new values
+        while (bboxes.uncertain_flags.length < newBoxIndex) {
+            bboxes.uncertain_flags.push(false);
+        }
+        while (bboxes.crowd_flags.length < newBoxIndex) {
+            bboxes.crowd_flags.push(false);
+        }
+        while (bboxes.possible_labels.length < newBoxIndex) {
+            bboxes.possible_labels.push([]);
+        }
+        while (bboxes.labels.length < newBoxIndex) {
+            bboxes.labels.push(0);
+        }
+        if (bboxes.gt) {
+            while (bboxes.gt.length < newBoxIndex) {
+                bboxes.gt.push(0);
             }
         }
-        // If that fails, check if there's a global groundTruthClassId variable
-        else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
-            classId = parseInt(window.groundTruthClassId);
-            console.log(`Using global groundTruthClassId: ${classId}`);
+
+        // Mark this box as uncertain - add at the end of array
+        bboxes.uncertain_flags.push(true);
+        bboxes.crowd_flags.push(false);
+
+        // Get selected uncertainty classes
+        let selectedClasses = [];
+        if (window.inlineEditor && window.inlineEditor.selectedUncertainClasses &&
+            window.inlineEditor.selectedUncertainClasses.length) {
+            // Make a copy to avoid reference issues
+            selectedClasses = [...window.inlineEditor.selectedUncertainClasses];
+        } else if (window.selectedUncertainClasses && window.selectedUncertainClasses.length) {
+            selectedClasses = [...window.selectedUncertainClasses];
         }
-        // Last resort, try to get class from radio selection
-        else if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
-            classId = parseInt(window.lastSelectedClassId);
-            console.log(`Using global lastSelectedClassId: ${classId}`);
+
+        // Store possible classes - add at the end of array
+        bboxes.possible_labels.push(selectedClasses);
+
+        // Use -1 as the label for uncertain boxes - add at the end of array
+        bboxes.labels.push(-1);
+
+        // If there's a gt field, add -1 there too
+        if (bboxes.gt) {
+            bboxes.gt.push(-1);
+        }
+
+        // Set the label_type to uncertain
+        const labelTypeField = document.getElementById('label_type');
+        if (labelTypeField) {
+            labelTypeField.value = "uncertain";
+        }
+
+        console.log(`Created uncertain whole-image box with possible_labels: ${selectedClasses.join(', ')}`);
+
+        // Reset uncertainty mode flags
+        if (window.inlineEditor) {
+            window.inlineEditor.uncertaintyMode = false;
+        }
+        window.uncertaintyMode = false;
+
+        // Remove visual indicator if it exists
+        const indicator = document.getElementById('uncertainty-mode-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+
+        // Remove border highlight
+        const imageContainer = document.querySelector('.image-editor-right');
+        if (imageContainer) {
+            imageContainer.style.border = '';
+        }
+
+        // Reset checkboxes in the uncertainty modal
+        const checkboxes = document.querySelectorAll('.uncertainty-class-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Clear the search field
+        const searchInput = document.getElementById('uncertainty-search-input');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        // Reset the stored selected classes
+        if (window.inlineEditor) {
+            window.inlineEditor.selectedUncertainClasses = [];
+        }
+        window.selectedUncertainClasses = [];
+    } else {
+        // Normal mode (not uncertainty)
+        console.log('Creating whole-image bounding box in normal mode');
+
+        // Ensure all arrays have the correct length before adding new values
+        while (bboxes.uncertain_flags.length < newBoxIndex) {
+            bboxes.uncertain_flags.push(false);
+        }
+        while (bboxes.crowd_flags.length < newBoxIndex) {
+            bboxes.crowd_flags.push(false);
+        }
+        while (bboxes.possible_labels.length < newBoxIndex) {
+            bboxes.possible_labels.push([]);
+        }
+        while (bboxes.labels.length < newBoxIndex) {
+            bboxes.labels.push(0);
+        }
+        if (bboxes.gt) {
+            while (bboxes.gt.length < newBoxIndex) {
+                bboxes.gt.push(0);
+            }
+        }
+
+        // Mark this box as NOT uncertain - add at the end of array
+        bboxes.uncertain_flags.push(false);
+        bboxes.crowd_flags.push(false);
+        bboxes.possible_labels.push([]);
+
+        // Determine the class ID to use
+        let classId = 0;
+
+        // Use our global helper function for consistent class selection
+        if (typeof window.getClassForNewBBox === 'function') {
+            classId = window.getClassForNewBBox();
+            console.log(`Using getClassForNewBBox helper function, got class ID: ${classId}`);
+        }
+        else {
+            // Fallback if helper function is not available
+
+            // Try to get the ground truth class ID from the hidden element first
+            const gtDataElement = document.getElementById('ground-truth-data');
+            if (gtDataElement && gtDataElement.textContent) {
+                try {
+                    const gtClassId = parseInt(gtDataElement.textContent.trim());
+                    if (!isNaN(gtClassId)) {
+                        classId = gtClassId;
+                        console.log(`Using ground truth class ID from data element: ${classId}`);
+                    }
+                } catch (e) {
+                    console.error('Error parsing ground truth class ID:', e);
+                }
+            }
+            // If that fails, check if there's a global groundTruthClassId variable
+            else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
+                classId = parseInt(window.groundTruthClassId);
+                console.log(`Using global groundTruthClassId: ${classId}`);
+            }
+            // Last resort, try to get class from radio selection
+            else if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
+                classId = parseInt(window.lastSelectedClassId);
+                console.log(`Using global lastSelectedClassId: ${classId}`);
+            }
+        }
+
+        // Add label with the determined class ID - add at the end of array
+        bboxes.labels.push(classId);
+
+        // Also update gt field if it exists
+        if (bboxes.gt) {
+            bboxes.gt.push(classId);
+            console.log(`Added whole-image box to gt array with class ${classId}`);
+        }
+
+        // Only set label_type to basic if there are no uncertain boxes
+        if (!bboxes.uncertain_flags.includes(true)) {
+            const labelTypeField = document.getElementById('label_type');
+            if (labelTypeField) {
+                labelTypeField.value = "basic";
+            }
         }
     }
 
-    // Add label with the determined class ID
-    bboxes.labels.push(classId);
-
-    // Also update gt field if it exists
-    if (bboxes.gt) {
-        bboxes.gt.push(classId);
-        console.log(`Added whole-image box to gt array with class ${classId}`);
-    }
-
-    // Update the selected box index
-    const newBoxIndex = bboxes.boxes.length - 1;
-
-    console.log(`Created whole-image bounding box [${wholeImageBox.join(', ')}] with class ${classId}`);
+    console.log(`Created whole-image bounding box [${wholeImageBox.join(', ')}]`);
 
     // Update the UI based on which mode we're in
     if (isInlineMode) {
@@ -192,14 +346,39 @@ function createWholeImageBBox() {
             let bboxDataArray = [];
 
             bboxes.boxes.forEach((box, i) => {
-                bboxDataArray.push({
+                // Check if this is an uncertain box - by flag or by label value of -1
+                const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                                   (bboxes.labels && bboxes.labels[i] === -1);
+
+                let bboxData = {
                     coordinates: box,
-                    label: bboxes.labels && bboxes.labels[i] !== undefined ? bboxes.labels[i] : 0
-                });
+                    crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i]
+                };
+
+                if (isUncertain) {
+                    // For uncertain boxes
+                    bboxData.uncertain_flag = true;
+                    bboxData.possible_labels = bboxes.possible_labels && bboxes.possible_labels[i] ?
+                        bboxes.possible_labels[i] : [];
+                    bboxData.label = -1; // Use -1 for uncertain boxes
+                } else {
+                    // For regular boxes
+                    bboxData.label = bboxes.labels && bboxes.labels[i] !== undefined ?
+                        bboxes.labels[i] : 0;
+                }
+
+                bboxDataArray.push(bboxData);
             });
 
-            bboxesField.value = JSON.stringify(bboxDataArray);
-            console.log('Updated hidden bboxes field in inline mode');
+            // Create object with label_type
+            const labelType = document.getElementById('label_type')?.value || "basic";
+            const formData = {
+                bboxes: bboxDataArray,
+                label_type: labelType
+            };
+
+            bboxesField.value = JSON.stringify(formData);
+            console.log(`Updated hidden bboxes field in inline mode with label_type: ${labelType}`);
         }
 
         // Update the bbox data element
@@ -228,19 +407,33 @@ function createWholeImageBBox() {
                 const option = document.createElement('option');
                 option.value = i.toString();
 
-                // Get proper class name if available
-                let className = `Class ${bboxes.labels[i]}`;
-                const classesElement = document.getElementById('human-readable-classes');
-                if (classesElement && classesElement.textContent) {
-                    try {
-                        const classLabels = JSON.parse(classesElement.textContent);
-                        if (classLabels[bboxes.labels[i]]) {
-                            className = classLabels[bboxes.labels[i]];
-                        }
-                    } catch (e) {}
+                // Check if this is an uncertain box - by flag or by label value of -1
+                const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                                   (bboxes.labels && bboxes.labels[i] === -1);
+
+                let optionText = `Box ${i + 1}`;
+
+                if (isUncertain) {
+                    // For uncertain boxes, just show "Not Sure"
+                    optionText = `Box ${i + 1}: Not Sure`;
+                } else {
+                    // For normal boxes, show the class name
+                    // Get proper class name if available
+                    let className = `Class ${bboxes.labels[i]}`;
+                    const classesElement = document.getElementById('human-readable-classes');
+                    if (classesElement && classesElement.textContent) {
+                        try {
+                            const classLabels = JSON.parse(classesElement.textContent);
+                            if (classLabels[bboxes.labels[i]]) {
+                                className = classLabels[bboxes.labels[i]];
+                            }
+                        } catch (e) {}
+                    }
+
+                    optionText = `Box ${i + 1}: ${bboxes.labels[i]} - ${className}`;
                 }
 
-                option.text = `Box ${i + 1}: ${bboxes.labels[i]} - ${className}`;
+                option.text = optionText;
                 option.selected = i === newBoxIndex;
                 inlineBboxSelector.appendChild(option);
 
@@ -267,16 +460,39 @@ function createWholeImageBBox() {
             }
         }
 
+        // Check if the new box is uncertain
+        const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[newBoxIndex]) ||
+                           (bboxes.labels && bboxes.labels[newBoxIndex] === -1);
+
         // Manually update the class selector and search field
         const inlineClassSelector = document.getElementById('inline-class-selector');
         const inlineClassSearch = document.getElementById('inline-class-search');
 
-        if (inlineClassSelector) {
-            inlineClassSelector.value = classId.toString();
-            console.log(`Set inline class selector to ${classId}`);
+        if (inlineClassSearch) {
+            if (isUncertain) {
+                // For uncertain boxes, show "Not Sure" and disable search
+                inlineClassSearch.value = "Not Sure";
+                inlineClassSearch.disabled = true;
+                console.log('Set class search to "Not Sure" for uncertain box');
 
-            // Also update the class search if it exists
-            if (inlineClassSearch) {
+                // Set hidden select value for uncertain boxes
+                if (inlineClassSelector) {
+                    inlineClassSelector.value = "-1";
+                }
+
+                // Close dropdown for uncertain boxes
+                const dropdownContent = document.querySelector('.dropdown-content');
+                if (dropdownContent) {
+                    dropdownContent.style.display = 'none';
+                }
+            } else if (inlineClassSelector) {
+                // For regular boxes, enable search and set proper class
+                inlineClassSearch.disabled = false;
+
+                const classId = bboxes.labels[newBoxIndex];
+                inlineClassSelector.value = classId.toString();
+                console.log(`Set inline class selector to ${classId}`);
+
                 // Try to get the proper class name
                 let displayText = `Class ${classId}`;
 
@@ -310,8 +526,8 @@ function createWholeImageBBox() {
         }
 
         // Try to call the updateSelectedBoxClass function if it exists
-        if (window.inlineEditor && typeof window.inlineEditor.updateSelectedBoxClass === 'function') {
-            window.inlineEditor.updateSelectedBoxClass(classId);
+        if (!isUncertain && window.inlineEditor && typeof window.inlineEditor.updateSelectedBoxClass === 'function') {
+            window.inlineEditor.updateSelectedBoxClass(bboxes.labels[newBoxIndex]);
             console.log('Called updateSelectedBoxClass to ensure proper class display');
         }
 
@@ -338,6 +554,10 @@ function createWholeImageBBox() {
                 window.BBoxEditorUI.selectedIndex = newBoxIndex;
                 window.BBoxEditorUI.currentBoxIndex = newBoxIndex;
 
+                // Check if the new box is uncertain
+                const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[newBoxIndex]) ||
+                                   (bboxes.labels && bboxes.labels[newBoxIndex] === -1);
+
                 // Update box selector dropdown - SELECT THE NEW BOX
                 const boxSelector = document.getElementById('bbox-selector');
                 if (boxSelector) {
@@ -349,11 +569,21 @@ function createWholeImageBBox() {
                         const option = document.createElement('option');
                         option.value = i;
 
-                        // Get proper class name if available
-                        const classLabels = editor.classLabels || {};
-                        const labelName = classLabels[bboxes.labels[i]] || `Class ${bboxes.labels[i]}`;
+                        // Check if this is an uncertain box
+                        const boxUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                                           (bboxes.labels && bboxes.labels[i] === -1);
 
-                        option.text = `Box ${i + 1} (${bboxes.labels[i]} - ${labelName})`;
+                        let optionText;
+                        if (boxUncertain) {
+                            optionText = `Box ${i + 1} (Not Sure)`;
+                        } else {
+                            // Get proper class name if available
+                            const classLabels = editor.classLabels || {};
+                            const labelName = classLabels[bboxes.labels[i]] || `Class ${bboxes.labels[i]}`;
+                            optionText = `Box ${i + 1} (${bboxes.labels[i]} - ${labelName})`;
+                        }
+
+                        option.text = optionText;
                         option.selected = i === newBoxIndex; // SELECT THE NEW BOX
                         boxSelector.appendChild(option);
                     });
@@ -371,14 +601,30 @@ function createWholeImageBBox() {
                 const classSearch = document.getElementById('class-search-input');
 
                 if (classSelector) {
-                    classSelector.value = classId.toString();
+                    if (isUncertain) {
+                        // For uncertain boxes, disable the class selector
+                        classSelector.disabled = true;
+                        if (classSearch) {
+                            classSearch.value = "Not Sure";
+                            classSearch.disabled = true;
+                        }
+                    } else {
+                        // For regular boxes, enable the class selector
+                        classSelector.disabled = false;
+                        if (classSearch) {
+                            classSearch.disabled = false;
+                        }
 
-                    // Update search input if it exists
-                    if (classSearch) {
-                        // Find the proper option text
-                        const classLabels = editor.classLabels || {};
-                        const labelName = classLabels[classId] || `Class ${classId}`;
-                        classSearch.value = `${classId} - ${labelName}`;
+                        const classId = bboxes.labels[newBoxIndex];
+                        classSelector.value = classId.toString();
+
+                        // Update search input if it exists
+                        if (classSearch) {
+                            // Find the proper option text
+                            const classLabels = editor.classLabels || {};
+                            const labelName = classLabels[classId] || `Class ${classId}`;
+                            classSearch.value = `${classId} - ${labelName}`;
+                        }
                     }
                 }
 

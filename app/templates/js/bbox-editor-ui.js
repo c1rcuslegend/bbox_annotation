@@ -21,6 +21,10 @@ class BBoxEditorUI {
             bboxes.labels = bboxes.gt;
         }
 
+        // Initialize Not Sure boxes
+        this.bboxes = bboxes;
+        this.initializeNotSureBoxes();
+
         // Show the modal
         modal.classList.add('show-modal');
 
@@ -38,6 +42,50 @@ class BBoxEditorUI {
 
         // Update bbox selector with available boxes
         this.updateBboxSelector(bboxes, boxIndex, editor.classLabels);
+
+        // Add event listener to handle modal close event
+        document.addEventListener('bbox-modal-closed', function handleModalClose(e) {
+            // Update the main editor to ensure correct display of Not Sure boxes
+            if (editor && editor.bboxes) {
+                // Force redraw of main canvas
+                if (typeof editor.forceRedraw === 'function') {
+                    editor.forceRedraw();
+                } else if (typeof editor.redrawCanvas === 'function') {
+                    editor.redrawCanvas();
+                }
+            }
+
+            // Also update inline editor if it exists
+            if (window.inlineEditor) {
+                // Make sure uncertain flags are properly set for -1 labels
+                if (window.inlineEditor.bboxes && window.inlineEditor.bboxes.labels) {
+                    const labels = window.inlineEditor.bboxes.labels;
+                    if (!window.inlineEditor.bboxes.uncertain_flags) {
+                        window.inlineEditor.bboxes.uncertain_flags = new Array(labels.length).fill(false);
+                    }
+
+                    for (let i = 0; i < labels.length; i++) {
+                        if (labels[i] === -1) {
+                            window.inlineEditor.bboxes.uncertain_flags[i] = true;
+                        }
+                    }
+                }
+
+                // Update bbox selector
+                if (typeof window.inlineEditor.updateBboxSelector === 'function') {
+                    window.inlineEditor.updateBboxSelector();
+                }
+
+                // Force redraw
+                if (window.inlineEditor.editor) {
+                    window.inlineEditor.editor.redrawCanvas();
+                }
+            }
+
+            // Remove this event listener to avoid duplicates
+            document.removeEventListener('bbox-modal-closed', handleModalClose);
+        }, {once: false});
+
     }
 
     static setupEnhancedClassSelector(boxIndex, bboxes, classLabels) {
@@ -52,8 +100,13 @@ class BBoxEditorUI {
         }
 
         // Ensure crowd flags exists in bboxes
-        else if (!bboxes.crowd_flags) {
+        if (!bboxes.crowd_flags) {
             bboxes.crowd_flags = Array(bboxes.boxes.length).fill(false);
+        }
+
+        // Ensure uncertain_flags array exists in bboxes
+        if (!bboxes.uncertain_flags) {
+            bboxes.uncertain_flags = Array(bboxes.boxes.length).fill(false);
         }
 
         // Find the class selector input group
@@ -97,12 +150,29 @@ class BBoxEditorUI {
         hiddenSelect.id = 'bbox-class-selector';
         hiddenSelect.style.display = 'none';
 
+        // Add special Not Sure option (-1) for uncertain boxes
+        const notSureOption = document.createElement('option');
+        notSureOption.value = "-1";
+        notSureOption.textContent = "Not Sure";
+        hiddenSelect.appendChild(notSureOption);
+
+        // Add the Not Sure option to dropdown content
+        const notSureItem = document.createElement('div');
+        notSureItem.className = 'dropdown-item';
+        notSureItem.dataset.value = "-1";
+        notSureItem.textContent = "Not Sure";
+        notSureItem.dataset.searchtext = "not sure uncertain -1".toLowerCase();
+        dropdownContent.appendChild(notSureItem);
+
         // Build the options and populate both the hidden select and dropdown content
         if (classLabels && Object.keys(classLabels).length > 0) {
             // If we have class labels, use them
             const sortedClassIds = Object.keys(classLabels).sort((a, b) => parseInt(a) - parseInt(b));
 
             sortedClassIds.forEach(classId => {
+                // Skip -1 as we've already added it with special handling
+                if (parseInt(classId) === -1) return;
+
                 // Create option for the hidden select
                 const option = document.createElement('option');
                 option.value = classId;
@@ -120,6 +190,9 @@ class BBoxEditorUI {
         } else {
             // Otherwise create generic options 0-999
             for (let i = 0; i < 1000; i++) {
+                // Skip -1 as we've already added it with special handling
+                if (i === -1) continue;
+
                 // Create option for the hidden select
                 const option = document.createElement('option');
                 option.value = i;
@@ -146,12 +219,25 @@ class BBoxEditorUI {
         // Set the value if we have a valid box index
         if (boxIndex >= 0 && boxIndex < bboxes.labels.length) {
             const labelId = bboxes.labels[boxIndex];
-            hiddenSelect.value = labelId.toString();
 
-            if (classLabels && classLabels[labelId]) {
-                inputField.value = `${labelId} - ${classLabels[labelId]}`;
+            // Check if this is an uncertain box
+            const isUncertain = labelId === -1 ||
+                                (bboxes.uncertain_flags && bboxes.uncertain_flags[boxIndex]);
+
+            if (isUncertain) {
+                // For uncertain boxes, show "Not Sure" and disable class selection
+                hiddenSelect.value = "-1";
+                inputField.value = "Not Sure";
+                inputField.disabled = true;
             } else {
-                inputField.value = `Class ${labelId}`;
+                // For regular boxes
+                hiddenSelect.value = labelId.toString();
+
+                if (classLabels && classLabels[labelId]) {
+                    inputField.value = `${labelId} - ${classLabels[labelId]}`;
+                } else {
+                    inputField.value = `Class ${labelId}`;
+                }
             }
         }
 
@@ -444,7 +530,7 @@ class BBoxEditorUI {
             };
         }
 
-        // Cancel button
+        // Update the Cancel button to handle uncertain boxes properly
         const cancelButton = document.getElementById('bbox-cancel');
         if (cancelButton) {
             cancelButton.onclick = () => {
@@ -456,6 +542,29 @@ class BBoxEditorUI {
                     bboxes.labels = [...editor.originalBboxes.labels];
                 }
 
+                // Restore uncertain_flags array if it exists
+                if (editor.originalBboxes.uncertain_flags) {
+                    bboxes.uncertain_flags = [...editor.originalBboxes.uncertain_flags];
+                } else {
+                    // If uncertain_flags doesn't exist in original, create it based on labels
+                    bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
+                    if (bboxes.labels) {
+                        for (let i = 0; i < bboxes.labels.length; i++) {
+                            if (bboxes.labels[i] === -1) {
+                                bboxes.uncertain_flags[i] = true;
+                            }
+                        }
+                    }
+                }
+
+                // Restore possible_labels array if it exists
+                if (editor.originalBboxes.possible_labels) {
+                    bboxes.possible_labels = JSON.parse(JSON.stringify(editor.originalBboxes.possible_labels));
+                } else if (bboxes.uncertain_flags.some(flag => flag === true)) {
+                    // Create possible_labels array if needed
+                    bboxes.possible_labels = new Array(bboxes.boxes.length).fill([]);
+                }
+
                 // Restore gt array if it exists
                 if (editor.originalBboxes.gt) {
                     bboxes.gt = [...editor.originalBboxes.gt];
@@ -465,9 +574,79 @@ class BBoxEditorUI {
                 // Update the editor's reference
                 editor.bboxes = bboxes;
 
+                // Make sure to mark any boxes with label -1 as uncertain
+                if (bboxes.labels) {
+                    for (let i = 0; i < bboxes.labels.length; i++) {
+                        if (bboxes.labels[i] === -1) {
+                            if (!bboxes.uncertain_flags) {
+                                bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
+                            }
+                            bboxes.uncertain_flags[i] = true;
+
+                            if (!bboxes.possible_labels) {
+                                bboxes.possible_labels = new Array(bboxes.boxes.length).fill([]);
+                            }
+                        }
+                    }
+                }
+
                 // Force a complete redraw
                 editor.forceRedraw();
 
+                // Update label_type field if needed
+                const hasUncertainBoxes = bboxes.uncertain_flags && bboxes.uncertain_flags.some(flag => flag === true);
+                const labelTypeField = document.getElementById('label_type');
+                if (labelTypeField) {
+                    labelTypeField.value = hasUncertainBoxes ? "uncertain" : "basic";
+                }
+
+                // Make sure the main editor is notified that we have uncertain boxes
+                // This ensures they'll be displayed correctly when returning to inline view
+                if (window.inlineEditor) {
+                    window.inlineEditor.initializeNotSureBoxes = function() {
+                        console.log('Initializing Not Sure display from modal editor');
+
+                        if (this.bboxes && this.bboxes.labels) {
+                            // Ensure uncertain_flags array exists
+                            if (!this.bboxes.uncertain_flags) {
+                                this.bboxes.uncertain_flags = new Array(this.bboxes.boxes.length).fill(false);
+                            }
+
+                            // Mark all -1 labels as uncertain
+                            for (let i = 0; i < this.bboxes.labels.length; i++) {
+                                if (this.bboxes.labels[i] === -1) {
+                                    this.bboxes.uncertain_flags[i] = true;
+
+                                    // Ensure possible_labels array exists
+                                    if (!this.bboxes.possible_labels) {
+                                        this.bboxes.possible_labels = new Array(this.bboxes.boxes.length).fill([]);
+                                    }
+
+                                    console.log(`Box ${i} has label -1, marked as uncertain`);
+                                }
+                            }
+
+                            // Force redraw
+                            if (this.editor) {
+                                this.editor.redrawCanvas();
+                            }
+                        }
+                    };
+
+                    // Call the initialize function immediately
+                    window.inlineEditor.initializeNotSureBoxes();
+                }
+
+                // Create a custom event that will trigger any inline editor to update
+                const event = new CustomEvent('bbox-modal-closed', {
+                    detail: {
+                        hasUncertainBoxes: hasUncertainBoxes,
+                        needsRedraw: true
+                    }
+                });
+                document.dispatchEvent(event);
+
+                // Close the modal
                 document.getElementById('bbox-modal-container').classList.remove('show-modal');
             };
         }
@@ -656,30 +835,80 @@ class BBoxEditorUI {
             const option = document.createElement('option');
             option.value = i;
 
-            // Try labels first, then gt
-            let labelId;
-            let labelText = `Box ${i + 1}`;
+            // Check if this is an uncertain box - by flag or by label value of -1
+            const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                               (bboxes.labels && bboxes.labels[i] === -1);
 
-            if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                labelId = bboxes.labels[i];
-            } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
-                labelId = bboxes.gt[i];
-                console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for selector option`);
-            } else {
-                labelId = 0; // Default
+            // Make sure uncertain_flags is set if label is -1
+            if (bboxes.labels && bboxes.labels[i] === -1) {
+                if (!bboxes.uncertain_flags) {
+                    bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
+                }
+                bboxes.uncertain_flags[i] = true;
             }
 
-            if (labelId !== undefined) {
-                const labelName = classLabels[labelId] || `Class ${labelId}`;
-                labelText += ` (${labelId} - ${labelName})`;
+            let labelText = `Box ${i + 1}`;
+
+            if (isUncertain) {
+                // For uncertain boxes, just show "Not Sure"
+                labelText += ` (Not Sure)`;
             } else {
-                labelText += ` (Score: ${bboxes.scores[i].toFixed(2)})`;
+                // For regular boxes, show the class name if available
+                let labelId;
+                if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                    labelId = bboxes.labels[i];
+                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                    labelId = bboxes.gt[i];
+                    console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for selector option`);
+                } else {
+                    labelId = 0; // Default
+                }
+
+                if (labelId !== undefined) {
+                    const labelName = classLabels && classLabels[labelId] ? classLabels[labelId] : `Class ${labelId}`;
+                    labelText += ` (${labelId} - ${labelName})`;
+                } else {
+                    labelText += ` (Score: ${bboxes.scores[i].toFixed(2)})`;
+                }
             }
 
             option.text = labelText;
             option.selected = i === selectedIndex;
             bboxSelector.appendChild(option);
         });
+    }
+
+    static initializeNotSureBoxes() {
+        // Make sure the bboxes object is valid
+        if (!this.bboxes || !this.bboxes.boxes) return;
+
+        // Check for -1 labels and ensure they're properly marked as uncertain
+        if (this.bboxes.labels) {
+            // Ensure uncertain_flags array exists
+            if (!this.bboxes.uncertain_flags) {
+                this.bboxes.uncertain_flags = new Array(this.bboxes.boxes.length).fill(false);
+            }
+
+            // Check all labels for -1 values
+            for (let i = 0; i < this.bboxes.labels.length; i++) {
+                if (this.bboxes.labels[i] === -1) {
+                    this.bboxes.uncertain_flags[i] = true;
+                    console.log(`BBoxEditorUI: Box ${i} has label -1, marked as uncertain`);
+
+                    // Ensure possible_labels array exists
+                    if (!this.bboxes.possible_labels) {
+                        this.bboxes.possible_labels = new Array(this.bboxes.boxes.length).fill([]);
+                    }
+
+                    // Make sure the possible_labels entry exists
+                    if (i >= this.bboxes.possible_labels.length) {
+                        while (this.bboxes.possible_labels.length <= i) {
+                            this.bboxes.possible_labels.push([]);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     static initPreviewCanvas(previewCanvas, img, bboxes, selectedIndex) {
@@ -748,50 +977,52 @@ class BBoxEditorUI {
 
         // Draw existing boxes
         this.bboxes.boxes.forEach((box, i) => {
-            // Determine if this box is selected
-            const isSelected = i === this.selectedIndex;
+            // Skip the selected box - we'll draw it last for better z-ordering
+            if (i === this.selectedIndex) return;
 
-            // Set box styles
-            ctx.strokeStyle = isSelected ? '#2196F3' : '#e74c3c';
-            ctx.lineWidth = isSelected ? 3 : 2;
+            // Check if this is an uncertain box - by flag or by label value of -1
+            const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[i]) ||
+                               (this.bboxes.labels && this.bboxes.labels[i] === -1);
 
-            const x = box[0] * this.scale + this.offsetX;
-            const y = box[1] * this.scale + this.offsetY;
-            const width = (box[2] - box[0]) * this.scale;
-            const height = (box[3] - box[1]) * this.scale;
+            // Set color based on box type
+            ctx.strokeStyle = isUncertain ? '#FFCC00' : '#e74c3c'; // Yellow for uncertain, red for normal
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box[0] * this.scale + this.offsetX,
+                           box[1] * this.scale + this.offsetY,
+                           (box[2] - box[0]) * this.scale,
+                           (box[3] - box[1]) * this.scale);
 
-            // Draw the box
-            ctx.strokeRect(x, y, width, height);
-
-            // Draw handles for selected box
-            if (isSelected) {
-                this.drawHandles(ctx, x, y, width, height);
-            }
-
-            // Check if box is at top edge or is a whole-image box
+            // Check if box is at top edge
             const isAtTopEdge = box[1] <= 5; // within 5px of top edge
-            const isWholeImage = box[0] <= 5 && box[1] <= 5 &&
-                               Math.abs(box[2] - this.img.naturalWidth) <= 5 &&
-                               Math.abs(box[3] - this.img.naturalHeight) <= 5;
 
             // Position label inside the box if it's at top edge
-            const labelX = x + 5; // Add small padding from left edge
-            const labelY = isAtTopEdge ? y + 20 : y - 8; // Move label inside box if at top edge
+            const labelX = box[0] * this.scale + this.offsetX + 5;
+            const labelY = isAtTopEdge ?
+                          (box[1] * this.scale + this.offsetY + 20) :
+                          (box[1] * this.scale + this.offsetY - 8);
 
-            // Get label ID with fallback to gt field if needed
-            let labelId;
-            if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
-                labelId = this.bboxes.labels[i];
-            } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
-                labelId = this.bboxes.gt[i];
-                console.log(`BBoxEditorUI: Using gt[${i}] (${labelId}) for label display`);
+            // Prepare label text based on whether it's uncertain or regular
+            let labelText;
+
+            if (isUncertain) {
+                labelText = "Not Sure";
             } else {
-                labelId = 0; // Default fallback
-            }
+                // Get label ID with fallback to gt field if needed
+                let labelId;
+                if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
+                    labelId = this.bboxes.labels[i];
+                } else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
+                    labelId = this.bboxes.gt[i];
+                } else {
+                    labelId = 0; // Default fallback
+                }
 
-            // Prepare label text
-            const labelName = this.editor.classLabels[labelId] || labelId;
-            const labelText = `${labelId} - ${labelName}`; // Simplified format
+                // Prepare label text
+                const labelName = this.editor && this.editor.classLabels && this.editor.classLabels[labelId]
+                                ? this.editor.classLabels[labelId]
+                                : `Class ${labelId}`;
+                labelText = `${labelId} - ${labelName}`;
+            }
 
             // Save current context state
             ctx.save();
@@ -800,15 +1031,16 @@ class BBoxEditorUI {
             const fontSize = 16;
             const padding = 6;
             ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textWidth = ctx.measureText(labelText).width;
 
-            // Calculate text metrics for background
-            const textMetrics = ctx.measureText(labelText);
-            const textWidth = textMetrics.width;
+            // Background for better visibility - different colors for different types
+            if (isUncertain) {
+                ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
+            } else {
+                ctx.fillStyle = 'rgba(231, 76, 60, 0.85)'; // Red for normal
+            }
 
-            // Background for better visibility
-            ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
-
-            // Create rounded rectangle path
+            // Draw rounded rectangle background
             const cornerRadius = 4;
             ctx.beginPath();
             ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
@@ -823,13 +1055,19 @@ class BBoxEditorUI {
             ctx.closePath();
             ctx.fill();
 
-            // Add a subtle border
-            ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
+            // Add a subtle border with different color based on box type
+            if (isUncertain) {
+                ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
+                ctx.fillStyle = 'black'; // Black text on yellow background
+            } else {
+                ctx.strokeStyle = '#c0392b'; // Dark red for normal
+                ctx.fillStyle = 'white'; // White text on red background
+            }
+
             ctx.lineWidth = 1;
             ctx.stroke();
 
             // Draw text with shadow for depth
-            ctx.fillStyle = 'white';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 2;
             ctx.shadowOffsetX = 1;
@@ -839,6 +1077,118 @@ class BBoxEditorUI {
             // Restore context
             ctx.restore();
         });
+
+        // Draw the selected box last (if any) so it appears on top
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.bboxes.boxes.length) {
+            const box = this.bboxes.boxes[this.selectedIndex];
+
+            // Check if this is an uncertain box - by flag or by label value of -1
+            const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[this.selectedIndex]) ||
+                               (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] === -1);
+
+            // Set color based on box type (with highlight for selection)
+            ctx.strokeStyle = isUncertain ? '#FFCC00' : '#2196F3'; // Yellow for uncertain, blue for selected normal
+            ctx.lineWidth = 3;
+            ctx.strokeRect(
+                box[0] * this.scale + this.offsetX,
+                box[1] * this.scale + this.offsetY,
+                (box[2] - box[0]) * this.scale,
+                (box[3] - box[1]) * this.scale
+            );
+
+            // Check if box is at top edge
+            const isAtTopEdge = box[1] <= 5;
+
+            // Position label
+            const labelX = box[0] * this.scale + this.offsetX + 5;
+            const labelY = isAtTopEdge ?
+                          (box[1] * this.scale + this.offsetY + 20) :
+                          (box[1] * this.scale + this.offsetY - 8);
+
+            // Prepare label text based on whether it's uncertain or regular
+            let labelText;
+
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else {
+                // Get label ID with fallback
+                let labelId;
+                if (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] !== undefined) {
+                    labelId = this.bboxes.labels[this.selectedIndex];
+                } else if (this.bboxes.gt && this.bboxes.gt[this.selectedIndex] !== undefined) {
+                    labelId = this.bboxes.gt[this.selectedIndex];
+                } else {
+                    labelId = 0;
+                }
+
+                const labelName = this.editor && this.editor.classLabels && this.editor.classLabels[labelId]
+                                ? this.editor.classLabels[labelId]
+                                : `Class ${labelId}`;
+                labelText = `${labelId} - ${labelName}`;
+            }
+
+            // Save context
+            ctx.save();
+
+            // Text properties
+            const fontSize = 16;
+            const padding = 6;
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textWidth = ctx.measureText(labelText).width;
+
+            // Background with different colors for different types
+            if (isUncertain) {
+                ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
+            } else {
+                ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for selected
+            }
+
+            // Draw rounded rectangle background
+            const cornerRadius = 4;
+            ctx.beginPath();
+            ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+            ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+            ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+            ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+            ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+            ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+            ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+            ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+            ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add subtle border
+            if (isUncertain) {
+                ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
+                ctx.fillStyle = 'black'; // Black text on yellow background
+            } else {
+                ctx.strokeStyle = '#1565C0'; // Dark blue for selected
+                ctx.fillStyle = 'white'; // White text on blue background
+            }
+
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw text
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillText(labelText, labelX, labelY);
+
+            // Restore context
+            ctx.restore();
+
+            // Draw handles for selected box
+            this.drawHandles(
+                ctx,
+                box[0] * this.scale + this.offsetX,
+                box[1] * this.scale + this.offsetY,
+                (box[2] - box[0]) * this.scale,
+                (box[3] - box[1]) * this.scale
+            );
+        }
 
         // Draw temporary box if needed
         if (showTempBox && this.tempBox) {
@@ -851,110 +1201,6 @@ class BBoxEditorUI {
             const height = (this.tempBox[3] - this.tempBox[1]) * this.scale;
 
             ctx.strokeRect(x, y, width, height);
-        }
-
-        if (
-        this.bboxes &&
-        Array.isArray(this.bboxes.boxes) &&
-        typeof this.selectedIndex === 'number' &&
-        this.selectedIndex >= 0 &&
-        this.selectedIndex < this.bboxes.boxes.length
-        ) {
-            // Save context for drawing the selected bounding box and its label using the advanced style
-            this.previewCtx.save();
-
-            // Calculate scaled coordinates using the advanced editor's scale and offsets
-            const box = this.bboxes.boxes[this.selectedIndex];
-            const scaledX = box[0] * this.scale + this.offsetX;
-            const scaledY = box[1] * this.scale + this.offsetY;
-            const scaledWidth = (box[2] - box[0]) * this.scale;
-            const scaledHeight = (box[3] - box[1]) * this.scale;
-
-            // Draw the selected box on top with advanced style (blue border, thicker line)
-            this.previewCtx.strokeStyle = '#2196F3';
-            this.previewCtx.lineWidth = 3;
-            this.previewCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
-            // Determine label info using the advanced menu’s method of generating class names
-            // (Note: here we use this.editor.classLabels if available)
-            let labelId = 0;
-            if (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] !== undefined) {
-            labelId = this.bboxes.labels[this.selectedIndex];
-            }
-            const labelName =
-            this.editor && this.editor.classLabels && this.editor.classLabels[labelId]
-            ? this.editor.classLabels[labelId]
-            : labelId;
-            const labelText = `${labelId} - ${labelName}`;
-
-            // Calculate label position. If the box touches the top edge, position the label inside.
-            const isAtTopEdge = box[1] <= 5;
-            const labelX = scaledX + 5;
-            const labelY = isAtTopEdge ? scaledY + 20 : scaledY - 8;
-
-            // Draw label background with rounded corners using the advanced editor's style.
-            this.previewCtx.save();
-            const fontSize = 16;
-            const padding = 6;
-            this.previewCtx.font = `bold ${fontSize}px Arial, sans-serif`;
-            const textWidth = this.previewCtx.measureText(labelText).width;
-            const cornerRadius = 4;
-
-            // Advanced style for label background
-            this.previewCtx.fillStyle = 'rgba(33, 150, 243, 0.85)';
-            this.previewCtx.beginPath();
-            this.previewCtx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-            this.previewCtx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-            this.previewCtx.arcTo(
-            labelX + textWidth + padding,
-            labelY - fontSize - padding,
-            labelX + textWidth + padding,
-            labelY - fontSize - padding + cornerRadius,
-            cornerRadius
-            );
-            this.previewCtx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-            this.previewCtx.arcTo(
-            labelX + textWidth + padding,
-            labelY + padding,
-            labelX + textWidth + padding - cornerRadius,
-            labelY + padding,
-            cornerRadius
-            );
-            this.previewCtx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-            this.previewCtx.arcTo(
-            labelX - padding,
-            labelY + padding,
-            labelX - padding,
-            labelY + padding - cornerRadius,
-            cornerRadius
-            );
-            this.previewCtx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-            this.previewCtx.arcTo(
-            labelX - padding,
-            labelY - fontSize - padding,
-            labelX - padding + cornerRadius,
-            labelY - fontSize - padding,
-            cornerRadius
-            );
-            this.previewCtx.closePath();
-            this.previewCtx.fill();
-
-            // Draw a subtle border using the advanced menu’s style
-            this.previewCtx.strokeStyle = '#1565C0';
-            this.previewCtx.lineWidth = 1;
-            this.previewCtx.stroke();
-
-            // Draw the class label text with shadow effect (as in the advanced menu)
-            this.previewCtx.fillStyle = 'white';
-            this.previewCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.previewCtx.shadowBlur = 2;
-            this.previewCtx.shadowOffsetX = 1;
-            this.previewCtx.shadowOffsetY = 1;
-            this.previewCtx.fillText(labelText, labelX, labelY);
-            this.previewCtx.restore();
-
-            // Restore the context after drawing the selected box and label
-            this.previewCtx.restore();
         }
     }
 
@@ -1451,30 +1697,87 @@ class BBoxEditorUI {
         const pathParts = window.location.pathname.split('/');
         const username = pathParts[1]; // Assuming URL structure is /<username>/label
 
-        // Format the data as required: only including bboxes above threshold
+        // Format the data as required using the same format as inline-bbox-editor.js
         let bboxDataArray = [];
+
+        // Determine if we have any uncertain boxes
+        let hasUncertainBoxes = false;
+        if (bboxes.uncertain_flags) {
+            hasUncertainBoxes = bboxes.uncertain_flags.some(flag => flag === true);
+        }
+        if (!hasUncertainBoxes && bboxes.labels) {
+            hasUncertainBoxes = bboxes.labels.some(label => label === -1);
+        }
+
+        // Set label_type based on whether we have uncertain boxes
+        const labelType = hasUncertainBoxes ? "uncertain" : "basic";
+
+        // Update hidden label_type field if it exists
+        const labelTypeField = document.getElementById('label_type');
+        if (labelTypeField) {
+            labelTypeField.value = labelType;
+        }
+
         bboxes.boxes.forEach((box, i) => {
-            // Check labels first, then gt, then default to 0
-            let label = 0;
-            if (bboxes.labels && bboxes.labels[i] !== undefined) {
-                label = bboxes.labels[i];
-            } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
-                label = bboxes.gt[i];
-                console.log(`BBoxEditorUI: Using gt[${i}] (${label}) for saved data`);
+            // Check if this box is uncertain - by flag or by label value of -1
+            const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                               (bboxes.labels && bboxes.labels[i] === -1);
+
+            let bboxData = {
+                coordinates: box,
+                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i]
+            };
+
+            if (isUncertain) {
+                // For uncertain boxes, include possible_labels and uncertain_flag
+                bboxData.uncertain_flag = true;
+
+                // Get possible_labels array (ensure it's a simple array of integers)
+                if (bboxes.possible_labels && bboxes.possible_labels[i]) {
+                    const possibleLabels = bboxes.possible_labels[i];
+                    // Ensure it's a simple array of integers
+                    if (Array.isArray(possibleLabels)) {
+                        bboxData.possible_labels = possibleLabels;
+                    } else {
+                        // Try to convert from object if necessary
+                        const labelArray = [];
+                        for (const key in possibleLabels) {
+                            if (possibleLabels.hasOwnProperty(key)) {
+                                labelArray.push(parseInt(key));
+                            }
+                        }
+                        bboxData.possible_labels = labelArray;
+                    }
+                } else {
+                    bboxData.possible_labels = []; // Empty array as fallback
+                }
+
+                // Also set label to -1 for uncertain boxes
+                bboxData.label = -1;
+            } else {
+                // For regular boxes, include label
+                let label = 0;
+                if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                    label = bboxes.labels[i];
+                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                    label = bboxes.gt[i];
+                    console.log(`BBoxEditorUI: Using gt[${i}] (${label}) for saved data`);
+                }
+
+                bboxData.label = label;
             }
 
-            bboxDataArray.push({
-                coordinates: box,
-                label: label,
-                crowd_flag: this.bboxes.crowd_flags && this.bboxes.crowd_flags[i]
-            });
+            bboxDataArray.push(bboxData);
         });
 
-        // Create the object for the request
+        // Create the object for the request with label_type
         const saveData = {
             image_name: imageName,
-            bboxes: bboxDataArray
+            bboxes: bboxDataArray,
+            label_type: labelType
         };
+
+        console.log(`BBoxEditorUI: Saving ${bboxDataArray.length} boxes with label_type: ${labelType}`);
 
         // Make AJAX call to save the bboxes
         fetch(`/${username}/save_bboxes`, {
@@ -1492,11 +1795,78 @@ class BBoxEditorUI {
         })
         .then(data => {
             console.log('Bboxes saved successfully:', data);
+
+            // Also update the hidden field for form submission
+            this.updateHiddenBboxesField(bboxes, labelType);
         })
         .catch(error => {
             console.error('Error saving bboxes:', error);
         });
     }
+
+    static updateHiddenBboxesField(bboxes, labelType) {
+        const bboxesField = document.getElementById('bboxes-data-field');
+        if (!bboxesField) return;
+
+        // Format data for form field using the same format as inline-bbox-editor.js
+        let bboxDataArray = [];
+
+        bboxes.boxes.forEach((box, i) => {
+            // Check if this box is uncertain - by flag or by label value of -1
+            const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                               (bboxes.labels && bboxes.labels[i] === -1);
+
+            let bboxData = {
+                coordinates: box,
+                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i]
+            };
+
+            if (isUncertain) {
+                // For uncertain boxes
+                bboxData.uncertain_flag = true;
+                bboxData.possible_labels = bboxes.possible_labels && bboxes.possible_labels[i] ?
+                    bboxes.possible_labels[i] : [];
+                // Also include label: -1 for uncertain boxes
+                bboxData.label = -1;
+            } else {
+                // For regular boxes
+                let label = 0;
+                if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                    label = bboxes.labels[i];
+                } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                    label = bboxes.gt[i];
+                }
+
+                bboxData.label = label;
+            }
+
+            bboxDataArray.push(bboxData);
+        });
+
+        // Create object with label_type (use parameter or determine from bboxes)
+        if (!labelType) {
+            // Determine if we have any uncertain boxes
+            let hasUncertainBoxes = false;
+            if (bboxes.uncertain_flags) {
+                hasUncertainBoxes = bboxes.uncertain_flags.some(flag => flag === true);
+            }
+            if (!hasUncertainBoxes && bboxes.labels) {
+                hasUncertainBoxes = bboxes.labels.some(label => label === -1);
+            }
+
+            labelType = hasUncertainBoxes ? "uncertain" : "basic";
+        }
+
+        const formData = {
+            bboxes: bboxDataArray,
+            label_type: labelType
+        };
+
+        // Update the hidden field with JSON string
+        bboxesField.value = JSON.stringify(formData);
+        console.log(`BBoxEditorUI: Updated hidden field with label_type: ${labelType}, bboxes: ${bboxDataArray.length}`);
+    }
+
 }
 
 // Export the module for use in other scripts

@@ -22,7 +22,9 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 'scores': [],
                 'labels': [],
                 'gt': [],
-                'crowd_flags': []
+                'crowd_flags': [],
+                'uncertain_flags': [],
+                'possible_labels': []
             }
 
             for i in range(len(bboxes_unprocessed['boxes'])):
@@ -36,6 +38,10 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                     result['gt'].append(bboxes_unprocessed['gt'][i])
                 if 'crowd_flags' in bboxes_unprocessed:
                     result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i])
+                if 'uncertain_flags' in bboxes_unprocessed:
+                    result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i])
+                if 'possible_labels' in bboxes_unprocessed:
+                    result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i])
 
             return result
 
@@ -296,20 +302,27 @@ def register_routes(app):
                 elif len(data.get('bboxes', [])) > 1:
                     labels = set()
                     for bbox in data['bboxes']:
-                        if bbox['label'] not in labels:
+                        if 'label' in bbox and bbox['label'] not in labels:
                             if len(labels) == 0:
                                 labels.add(bbox['label'])
                             else:
                                 borders[selected_index] = 'border-m'
                                 break
+                        else:
+                            borders[selected_index] = 'border-uncertain'
+                            labels.add('-1') # uncertain label
+                            break
 
                 # Extract bounding boxes from annotations
                 data = man_annotated_bboxes_dict[image_basename]
                 if isinstance(data, dict) and 'bboxes' in data and isinstance(data['bboxes'], list):
                     for bbox in data['bboxes']:
-                        if 'coordinates' in bbox and 'label' in bbox:
+                        if 'coordinates' in bbox:
                             bboxes['boxes'].append(bbox['coordinates'])
-                            bboxes['labels'].append(bbox['label'])
+                            if 'label' in bbox:
+                                bboxes['labels'].append(bbox['label'])
+                            else:
+                                bboxes['labels'].append(-1)  # Default label if unspecified
                             bboxes['scores'].append(100)  # Default high confidence score
             else:
                 # print ("we go for open clip data")
@@ -471,7 +484,6 @@ def register_routes(app):
         bboxes = None
         bboxes_source = None  # Track where we got the bboxes from
         label_type = "basic"  # Default label type
-        selected_classes = {}  # For uncertain type
         threshold = app.config['THRESHOLD']
 
         # First try checkbox_selections (user annotated images)
@@ -483,12 +495,6 @@ def register_routes(app):
             if isinstance(data, dict) and 'label_type' in data:
                 label_type = data.get('label_type', 'basic')
 
-                # Get selected classes for uncertain type
-                if label_type == 'uncertain' and 'selected_classes' in data:
-                    selected_classes = data.get('selected_classes', {})
-                    # Use selected_classes for checked categories in uncertain mode
-                    checked_categories = list(selected_classes.keys())
-
                 # If bboxes exist in the new structure
                 if 'bboxes' in data and isinstance(data['bboxes'], list) and len(data['bboxes']) > 0:
                     # Convert bboxes to the format expected by the template
@@ -496,15 +502,20 @@ def register_routes(app):
                     scores = []
                     labels = []
                     crowd_flags = []
+                    uncertain_flags = []
+                    possible_labels = []
+
                     # Track unique labels for checked categories
                     checked_labels = set()
 
                     for bbox in data['bboxes']:
                         boxes.append(bbox['coordinates'])
-                        label = bbox.get('label', 0)
+                        label = bbox.get('label', -1)
                         labels.append(label)
                         scores.append(100)
                         crowd_flags.append(bbox.get('crowd_flag', False))
+                        uncertain_flags.append(bbox.get('uncertain_flag', False))
+                        possible_labels.append(bbox.get('possible_label', []))
 
                         # Track unique labels
                         checked_labels.add(str(label))
@@ -514,7 +525,7 @@ def register_routes(app):
                         checked_categories = [label_id for label_id in checked_labels if
                                               label_id in label_indices_to_label_names]
 
-                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags}
+                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags, 'uncertain_flags': uncertain_flags, 'possible_labels': possible_labels}
                     bboxes_source = 'checkbox_selections_new_format'
                     print(f"Found {len(boxes)} bboxes in checkbox_selections")
 
@@ -527,14 +538,18 @@ def register_routes(app):
                 scores = []
                 labels = []
                 crowd_flags = []
+                uncertain_flags = []
+                possible_labels = []
                 checked_labels = set()
 
                 for bbox in data:
                     boxes.append(bbox['coordinates'])
-                    label = bbox.get('label', 0)
+                    label = bbox.get('label', -1)
                     labels.append(label)
                     scores.append(100)  # Default high confidence score
                     crowd_flags.append(bbox.get('crowd_flag', False))
+                    uncertain_flags.append(bbox.get('uncertain_flag', False))
+                    possible_labels.append(bbox.get('possible_label', []))
 
                     # Track unique labels for checked categories
                     checked_labels.add(str(label))
@@ -543,7 +558,7 @@ def register_routes(app):
                 checked_categories = [label_id for label_id in checked_labels if
                                       label_id in label_indices_to_label_names]
 
-                bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags}
+                bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags, 'uncertain_flags': uncertain_flags, 'possible_labels': possible_labels}
                 bboxes_source = 'checkbox_selections_legacy'
                 print(f"Found {len(boxes)} bboxes in annotator format")
 
@@ -566,7 +581,7 @@ def register_routes(app):
 
         # If still no bboxes, create empty structure
         if bboxes is None:
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'uncertain_flags': [], 'possible_labels': []}
             bboxes_source = 'empty'
             print(f"No bboxes found for {current_image}")
 
@@ -613,7 +628,6 @@ def register_routes(app):
                                image_name=current_imagepath,
                                bboxes_source=bboxes_source,
                                label_type=label_type,
-                               selected_classes=selected_classes,
                                cluster_name=cluster_name_final,  # Add cluster name to template
                                clusters=clusters)  # Add clusters data for dropdown
 
@@ -862,16 +876,6 @@ def register_routes(app):
         # Get new label_type field (default to "basic")
         label_type = request.form.get('label_type', 'basic')
 
-        # Get selected_classes if label_type is "uncertain"
-        selected_classes = {}
-        if label_type == "uncertain":
-            selected_classes_json = request.form.get('selected_classes', '{}')
-            try:
-                selected_classes = json.loads(selected_classes_json)
-            except json.JSONDecodeError:
-                app.logger.error(f"Invalid JSON for selected_classes: {selected_classes_json}")
-                selected_classes = {}
-
         # Check for bboxes_data field
         bboxes_data = request.form.get('bboxes_data')
         bboxes = []
@@ -879,6 +883,9 @@ def register_routes(app):
             try:
                 bboxes = json.loads(bboxes_data)
                 app.logger.info(f"Loaded {len(bboxes)} bboxes from form data")
+                for box in bboxes['bboxes']:
+                    if 'label' in box and box['label'] == -1:
+                        box['label'] = '-1'  # Set label to -1 for uncertain bboxes
             except json.JSONDecodeError:
                 app.logger.error(f"Invalid JSON for bboxes_data: {bboxes_data}")
                 bboxes = []
@@ -887,65 +894,16 @@ def register_routes(app):
         comments_json, checkbox_selections = load_user_data(app, username)
         comments_json[base_image_name] = comments
 
-        # Process checkbox values to apply them to bboxes
-        # Add a new bbox for each checked category if it doesn't exist yet
-        if checkbox_values and label_type == "basic" and not selected_classes:
-            # Get existing bboxes or create new array
-            existing_bboxes = []
-
-            if bboxes:
-                existing_bboxes = bboxes
-            elif (base_image_name in checkbox_selections and isinstance(checkbox_selections[base_image_name], dict)
-                  and 'bboxes' in checkbox_selections[base_image_name]):
-                existing_bboxes = checkbox_selections[base_image_name]['bboxes']
-
-            # Extract existing labels
-            existing_labels = set()
-            for bbox in existing_bboxes:
-                if 'label' in bbox:
-                    existing_labels.add(str(bbox['label']))
-
-            # For each checkbox that doesn't have a bbox already, create one
-            for checkbox_value in checkbox_values:
-                if checkbox_value not in existing_labels:
-                    # Create a new bbox for this class
-                    # Using a placeholder position (could be refined in future)
-                    new_bbox = {
-                        'coordinates': [10, 10, 50, 50],
-                        'label': int(checkbox_value),
-                        'crowd_flag': False
-                    }
-                    existing_bboxes.append(new_bbox)
-
-            # Use the updated bboxes
-            bboxes = existing_bboxes
-
         # Create or update the image data structure
         # If there are bboxes, use those
         if bboxes:
             # Create new image data with bboxes and label type info
             image_data = {
-                "bboxes": bboxes,
+                "bboxes": bboxes['bboxes'],
                 "label_type": label_type
             }
 
-            # Add selected_classes if uncertain
-            if label_type == "uncertain":
-                image_data["selected_classes"] = selected_classes
-
             # Update the checkbox_selections using base_image_name as key
-            checkbox_selections[base_image_name] = image_data
-
-        # If no bboxes but we have selected classes for uncertain mode
-        elif label_type == "uncertain" and selected_classes:
-            # Create new image data with just label type info and selected classes
-            image_data = {
-                "bboxes": [],
-                "label_type": label_type,
-                "selected_classes": selected_classes
-            }
-
-            # Update the checkbox_selections
             checkbox_selections[base_image_name] = image_data
 
         # If no bboxes or selected classes, but we have checkbox values
@@ -1025,8 +983,13 @@ def register_routes(app):
             data = request.get_json()
             image_name = data.get('image_name')
             bboxes = data.get('bboxes', [])
+            is_uncertain = False
+
             # Convert bbox coordinates to integers
             for bbox in bboxes:
+                if 'uncertain_flag' in bbox and bbox['uncertain_flag']:
+                    is_uncertain = True
+                    bbox['label'] = '-1'  # Set label to -1 for uncertain bboxes
                 if 'coordinates' in bbox:
                     bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
 
@@ -1042,27 +1005,12 @@ def register_routes(app):
             _, checkbox_selections = load_user_data(app, username)
 
             # Check if we already have label_type info for this image
-            label_type = "basic"
-            selected_classes = {}
+            label_type = "basic" if not is_uncertain else "uncertain"
 
-            # Check for existing data using both full path and base name
-            if base_image_name in checkbox_selections:
-                existing_data = checkbox_selections[base_image_name]
-
-                # Handle existing data structure with label_type
-                if isinstance(existing_data, dict) and "label_type" in existing_data:
-                    selected_classes = existing_data.get("selected_classes", {})
-
-                # Update with new bboxes while preserving label type info
-                # Always use base_image_name as the key
             checkbox_selections[base_image_name] = {
                 "bboxes": bboxes,
                 "label_type": label_type
             }
-
-            # Add selected_classes if uncertain
-            if label_type == "uncertain":
-                checkbox_selections[base_image_name]["selected_classes"] = selected_classes
 
             # Save the updated checkbox selections
             checkbox_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
