@@ -97,6 +97,25 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Hide the modal
 					uncertaintyModal.classList.remove('show-modal');
 
+					// Create or update the hidden div for possible labels
+					function updatePossibleLabelsDiv() {
+					  // Find or create the invisible div for possible labels
+					  let possibleLabelsDiv = document.getElementById('stored-possible-labels');
+					  if (!possibleLabelsDiv) {
+						possibleLabelsDiv = document.createElement('div');
+						possibleLabelsDiv.id = 'stored-possible-labels';
+						possibleLabelsDiv.style.display = 'none';
+						document.body.appendChild(possibleLabelsDiv);
+					  }
+
+					  // Store the selected possible labels in the div as a JSON string
+					  possibleLabelsDiv.dataset.labels = JSON.stringify(selectedClassIds || []);
+					  debug(`Stored possible labels in hidden div: ${selectedClassIds.join(', ')}`);
+					}
+
+					// Store the selected classes in the invisible div
+					updatePossibleLabelsDiv();
+
 					// Show notification to the user
 					showCenterNotification('Uncertainty Mode', 'Now draw a bounding box for uncertain items');
 
@@ -183,6 +202,12 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Reset the stored selected classes
 		inlineEditor.selectedUncertainClasses = [];
 		window.selectedUncertainClasses = [];
+
+		const possibleLabelsDiv = document.getElementById('stored-possible-labels');
+		if (possibleLabelsDiv) {
+		  possibleLabelsDiv.dataset.labels = '[]';
+		  debug('Reset stored possible labels in hidden div');
+		}
 
 		debug('Reset all uncertainty checkboxes');
 	}
@@ -2163,7 +2188,13 @@ document.addEventListener('DOMContentLoaded', function() {
 					}
 
 					if (!inlineEditor.bboxes.possible_labels) {
-						inlineEditor.bboxes.possible_labels = new Array(inlineEditor.bboxes.boxes.length).fill([]);
+						// Create array with independent empty arrays for each position
+						inlineEditor.bboxes.possible_labels = Array.from({ length: inlineEditor.bboxes.boxes.length }, () => []);
+					} else if (inlineEditor.bboxes.possible_labels.length < inlineEditor.bboxes.boxes.length) {
+						// Make sure array is expanded if needed before we add a new box
+						while (inlineEditor.bboxes.possible_labels.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.possible_labels.push([]);
+						}
 					}
 
 					if (!inlineEditor.bboxes.labels) {
@@ -2180,10 +2211,10 @@ document.addEventListener('DOMContentLoaded', function() {
 						// Get selected classes for uncertainty
 						let selectedClasses = [];
 						if (inlineEditor.selectedUncertainClasses && inlineEditor.selectedUncertainClasses.length) {
-							// Use a copy to avoid reference issues
-							selectedClasses = [...inlineEditor.selectedUncertainClasses];
+							// Use a deep copy to avoid reference issues
+							selectedClasses = JSON.parse(JSON.stringify(inlineEditor.selectedUncertainClasses));
 						} else if (window.selectedUncertainClasses && window.selectedUncertainClasses.length) {
-							selectedClasses = [...window.selectedUncertainClasses];
+							selectedClasses = JSON.parse(JSON.stringify(window.selectedUncertainClasses));
 						}
 
 						// Push new array of possible labels (not modifying existing ones)

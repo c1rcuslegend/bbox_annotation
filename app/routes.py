@@ -36,12 +36,9 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                     result['labels'].append(bboxes_unprocessed['labels'][i])
                 if 'gt' in bboxes_unprocessed:
                     result['gt'].append(bboxes_unprocessed['gt'][i])
-                if 'crowd_flags' in bboxes_unprocessed:
-                    result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i])
-                if 'uncertain_flags' in bboxes_unprocessed:
-                    result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i])
-                if 'possible_labels' in bboxes_unprocessed:
-                    result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i])
+                result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i] if 'crowd_flags' in bboxes_unprocessed else False)
+                result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i] if 'uncertain_flags' in bboxes_unprocessed else False)
+                result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i] if 'possible_labels' in bboxes_unprocessed else [])
 
             return result
 
