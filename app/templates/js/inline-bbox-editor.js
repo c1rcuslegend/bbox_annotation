@@ -799,82 +799,127 @@ document.addEventListener('DOMContentLoaded', function() {
 					const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[i]) ||
 										(this.bboxes.labels && this.bboxes.labels[i] === -1);
 
-					if (isUncertain) {
-						// Draw uncertain box with yellow color
-						this.ctx.save();
-						this.ctx.strokeStyle = '#FFCC00'; // Yellow
-						this.ctx.lineWidth = 3;
+					// Check if this is a crowd box
+					const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
 
-						const box = this.bboxes.boxes[i];
-						this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+					// Draw box with appropriate color
+					this.ctx.save();
 
-						// Draw "Not Sure" label
-						const labelX = box[0] + 5;
-						const labelY = box[1] <= 5 ? box[1] + 20 : box[1] - 5;
+				  	// Set color based on box type
+				  	if (isCrowd) {
+						this.ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
+				  	} else if (isUncertain) {
+						this.ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
+				  	} else {
+						this.ctx.strokeStyle = '#e74c3c'; // Red for normal
+				  	}
 
-						this.ctx.save();
-						const fontSize = 14;
-						const padding = 4;
-						this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-						const labelText = "Not Sure";
-						const textWidth = this.ctx.measureText(labelText).width;
-						const cornerRadius = 3;
+					this.ctx.lineWidth = 3;
 
-						// Yellow background for uncertain labels
-						this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)';
-						this.ctx.beginPath();
-						this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-						this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-						this.ctx.arcTo(
-							labelX + textWidth + padding,
-							labelY - fontSize - padding,
-							labelX + textWidth + padding,
-							labelY - fontSize - padding + cornerRadius,
-							cornerRadius
-						);
-						this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-						this.ctx.arcTo(
-							labelX + textWidth + padding,
-							labelY + padding,
-							labelX + textWidth + padding - cornerRadius,
-							labelY + padding,
-							cornerRadius
-						);
-						this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-						this.ctx.arcTo(
-							labelX - padding,
-							labelY + padding,
-							labelX - padding,
-							labelY + padding - cornerRadius,
-							cornerRadius
-						);
-						this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-						this.ctx.arcTo(
-							labelX - padding,
-							labelY - fontSize - padding,
-							labelX - padding + cornerRadius,
-							labelY - fontSize - padding,
-							cornerRadius
-						);
-						this.ctx.closePath();
-						this.ctx.fill();
+					const box = this.bboxes.boxes[i];
+					this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
 
-						// Dark gold border
-						this.ctx.strokeStyle = '#D4A700';
-						this.ctx.lineWidth = 1;
-						this.ctx.stroke();
+					// Draw label
+					const labelX = box[0] + 5;
+					const labelY = box[1] <= 5 ? box[1] + 20 : box[1] - 5;
 
-						// Text in black for better contrast with yellow
-						this.ctx.fillStyle = 'black';
-						this.ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-						this.ctx.shadowBlur = 2;
-						this.ctx.shadowOffsetX = 1;
-						this.ctx.shadowOffsetY = 1;
-						this.ctx.fillText(labelText, labelX, labelY);
-						this.ctx.restore();
+					this.ctx.save();
+					const fontSize = 14;
+					const padding = 4;
+					this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
 
-						this.ctx.restore();
-					}
+				  	// Get label text
+				  	let labelText;
+				  	if (isUncertain) {
+						labelText = "Not Sure";
+				  	} else {
+						let labelId;
+						if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
+					  		labelId = this.bboxes.labels[i];
+						} else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
+					  		labelId = this.bboxes.gt[i];
+						} else {
+					  		labelId = 0; // Default
+						}
+
+						const labelName = this.classLabels && this.classLabels[labelId] ?
+									  this.classLabels[labelId] : `Class ${labelId}`;
+						labelText = `${labelId} - ${labelName}`;
+				  	}
+
+				  	const textWidth = this.ctx.measureText(labelText).width;
+				  	const cornerRadius = 3;
+
+				  	// Background color based on box type
+				  	if (isCrowd) {
+						this.ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd
+				  	} else if (isUncertain) {
+						this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
+				  	} else {
+						this.ctx.fillStyle = 'rgba(231, 76, 60, 0.85)'; // Red for normal
+				  	}
+
+				  	// Draw rounded rectangle backgroundthis.ctx.beginPath();
+					this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+					this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+				  	this.ctx.arcTo(
+						labelX + textWidth + padding,
+						labelY - fontSize - padding,
+						labelX + textWidth + padding,
+						labelY - fontSize - padding + cornerRadius,
+						cornerRadius
+				  	);
+				  	this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+				  	this.ctx.arcTo(
+						labelX + textWidth + padding,
+						labelY + padding,
+						labelX + textWidth + padding - cornerRadius,
+						labelY + padding,
+						cornerRadius
+				  	);
+				  	this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+				  	this.ctx.arcTo(
+						labelX - padding,
+						labelY + padding,
+						labelX - padding,
+						labelY + padding - cornerRadius,
+						cornerRadius
+				  	);
+				  	this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+				  	this.ctx.arcTo(
+						labelX - padding,
+						labelY - fontSize - padding,
+						labelX - padding + cornerRadius,
+						labelY - fontSize - padding,
+						cornerRadius
+				  	);
+				  	this.ctx.closePath();
+				  	this.ctx.fill();
+
+				  	// Add a subtle border with different color based on box type
+				  	if (isCrowd) {
+						this.ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
+						this.ctx.fillStyle = 'white'; // White text on purple background
+				  	} else if (isUncertain) {
+						this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
+						this.ctx.fillStyle = 'black'; // Black text for better contrast with yellow
+				  	} else {
+						this.ctx.strokeStyle = '#c0392b'; // Dark red for normal
+						this.ctx.fillStyle = 'white'; // White text for normal
+				  	}
+
+				  	this.ctx.lineWidth = 1;
+				  	this.ctx.stroke();
+
+				  	// Draw text with shadow for depth
+				  	this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+				  	this.ctx.shadowBlur = 2;
+				  	this.ctx.shadowOffsetX = 1;
+				  	this.ctx.shadowOffsetY = 1;
+				  	this.ctx.fillText(labelText, labelX, labelY);
+
+				  	this.ctx.restore();
+				  	this.ctx.restore();
 				}
 			}
 
@@ -897,12 +942,17 @@ document.addEventListener('DOMContentLoaded', function() {
 								 (this.bboxes.labels &&
                                  this.bboxes.labels[this.selectedBboxIndex] === -1);
 
-			  if (isUncertain) {
-				  // Yellow for uncertain boxes
-				  this.ctx.strokeStyle = '#caa109';
+			  // Check if this is a crowd box
+			  const isCrowd = this.bboxes.crowd_flags &&
+							  this.bboxes.crowd_flags[this.selectedBboxIndex];
+
+			  // Set stroke style based on box type
+			  if (isCrowd) {
+				  this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
+			  } else if (isUncertain) {
+				  this.ctx.strokeStyle = '#caa109'; // Yellow for uncertain boxes
 			  } else {
-				  // Regular color for normal boxes (usually blue)
-				  this.ctx.strokeStyle = '#2196F3';
+				  this.ctx.strokeStyle = '#2196F3'; // Blue for normal selected boxes
 			  }
 
 			  this.ctx.lineWidth = 3;
@@ -938,7 +988,9 @@ document.addEventListener('DOMContentLoaded', function() {
 			  const cornerRadius = 3;
 
 			  // Draw label background with different color based on box type
-			  if (isUncertain) {
+			  if (isCrowd) {
+				this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
+			  } else if (isUncertain) {
 				this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
 			  } else {
 				this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for normal
@@ -982,7 +1034,10 @@ document.addEventListener('DOMContentLoaded', function() {
 			  this.ctx.fill();
 
 			  // Draw subtle border around label background
-			  if (isUncertain) {
+			  if (isCrowd) {
+			  this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
+			  this.ctx.fillStyle = 'white'; // White text
+			  } else if (isUncertain) {
 				this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
 				this.ctx.fillStyle = 'black'; // Black text for uncertain (better contrast with yellow)
 			  } else {
@@ -1532,6 +1587,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			debug(`Synced advanced crowd checkbox to: ${inlineCrowdCheckbox.checked}`);
 		}
 
+		// Immediately redraw the canvas to show the updated box color
+		if (inlineEditor.editor) {
+			inlineEditor.editor.redrawCanvas();
+			debug(`Redrawing canvas after crowd checkbox change to ${inlineCrowdCheckbox.checked}`);
+		}
+
 		// Update hidden form field
 		updateHiddenBboxesField();
 
@@ -1615,7 +1676,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 
 		// Clear all bounding boxes, scores, labels, and flags
-				inlineEditor.bboxes.boxes = [];
+		inlineEditor.bboxes.boxes = [];
 		inlineEditor.bboxes.scores = [];
 		if (inlineEditor.bboxes.labels) {
 			inlineEditor.bboxes.labels = [];

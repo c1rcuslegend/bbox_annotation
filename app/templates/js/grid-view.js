@@ -113,6 +113,18 @@ function addUncertainBoxStyles() {
             color: black !important; /* Black text for better contrast on yellow */
             font-weight: bold;
         }
+        
+        /* Crowd box styles */
+        .bbox.crowd-box {
+            border: 2px solid #9C27B0 !important; /* Purple border for crowd boxes */
+        }
+        
+        .bbox-label.crowd-label {
+            background-color: rgba(156, 39, 176, 0.85) !important; /* Purple background */
+            color: white !important; /* White text for better contrast on purple */
+            font-weight: bold;
+        }
+        
     `;
     document.head.appendChild(style);
 }
@@ -120,7 +132,6 @@ function addUncertainBoxStyles() {
 // Function to render bounding boxes for all images
 function renderAllBoundingBoxes() {
     const imageContainers = document.querySelectorAll('.image-container');
-
     imageContainers.forEach(container => {
         const imageIndex = container.getAttribute('data-index');
         const bboxDataScript = container.querySelector('.bbox-data');
@@ -228,13 +239,17 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                 labelId = 0; // Default if no label found
             }
 
-            // console.log(`Label ID for box ${index}: ${labelId}`);
-
             // Check if this box is uncertain (label = -1)
-            const isUncertain = labelId === "-1";
+            const isUncertain = labelId === "-1" || labelId === -1;
 
+            // Check if this box is a crowd box
+            const isCrowd = bboxData.crowd_flags && bboxData.crowd_flags[index];
+
+            // Apply appropriate classes
             if (isUncertain) {
                 bboxDiv.classList.add('uncertain-box');
+            } else if (isCrowd) {
+                bboxDiv.classList.add('crowd-box');
             }
 
             bboxDiv.style.left = `${boxLeft}px`;
@@ -272,6 +287,11 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                 const labelDiv = document.createElement('div');
                 labelDiv.className = 'bbox-label';
 
+                // Add crowd-label class if it's a crowd box
+                if (isCrowd) {
+                    labelDiv.classList.add('crowd-label');
+                }
+
                 // Get the class name
                 let labelName = classLabelMap[labelId] || `Class ${labelId}`;
                 if (labelName.length > 30) {
@@ -301,100 +321,6 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
     });
 }
 
-// Render boxes provided as objects with coordinates property
-function renderBoxObjects(overlay, bboxes, imgLeft, imgTop, scaleX, scaleY, imgHeight) {
-    if (!Array.isArray(bboxes) || bboxes.length === 0) {
-        return;
-    }
-
-    // Draw each box
-    bboxes.forEach((bbox, index) => {
-        if (bbox && bbox.coordinates && bbox.coordinates.length === 4) {
-            const coords = bbox.coordinates;
-
-            // Calculate box position and size
-            // (assuming the coordinates are already in [x1, y1, x2, y2] format)
-            const boxLeft = imgLeft + (coords[0] * scaleX);
-            const boxTop = imgTop + (coords[1] * scaleY);
-            const boxWidth = (coords[2] - coords[0]) * scaleX;
-            const boxHeight = (coords[3] - coords[1]) * scaleY;
-
-            // Create bbox div
-            const bboxDiv = document.createElement('div');
-            bboxDiv.className = 'bbox';
-
-            // Check if this box is uncertain (label = -1)
-            const isUncertain = bbox.label === -1;
-
-            if (isUncertain) {
-                bboxDiv.classList.add('uncertain-box');
-            }
-
-            bboxDiv.style.left = `${boxLeft}px`;
-            bboxDiv.style.top = `${boxTop}px`;
-            bboxDiv.style.width = `${boxWidth}px`;
-            bboxDiv.style.height = `${boxHeight}px`;
-
-            // Add the box to the overlay
-            overlay.appendChild(bboxDiv);
-
-            // Add the label - either "Not Sure" or the class name
-            if (isUncertain) {
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'bbox-label uncertain-label';
-                labelDiv.textContent = "Not Sure";
-
-                // Position the label
-                const labelHeight = 22;
-                const buffer = 5;
-                const labelTop = boxTop - labelHeight - buffer;
-                const isOutOfBoundsTop = labelTop < imgTop + buffer;
-
-                if (isOutOfBoundsTop) {
-                    labelDiv.style.left = `${boxLeft}px`;
-                    labelDiv.style.top = `${boxTop + buffer}px`;
-                    labelDiv.classList.add('below-top-left');
-                } else {
-                    labelDiv.style.left = `${boxLeft}px`;
-                    labelDiv.style.top = `${boxTop - labelHeight - buffer}px`;
-                }
-
-                overlay.appendChild(labelDiv);
-            } else if ('label' in bbox) {
-                // For normal boxes, add regular class label
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'bbox-label';
-
-                const labelId = bbox.label;
-
-                // Get the class name
-                let labelName = classLabelMap[labelId] || `Class ${labelId}`;
-                if (labelName.length > 30) {
-                    labelName = labelName.substring(0, 27) + '...';
-                }
-
-                labelDiv.textContent = `${labelId} - ${labelName}`;
-
-                // Position the label
-                const labelHeight = 22;
-                const buffer = 5;
-                const labelTop = boxTop - labelHeight - buffer;
-                const isOutOfBoundsTop = labelTop < imgTop + buffer;
-
-                if (isOutOfBoundsTop) {
-                    labelDiv.style.left = `${boxLeft}px`;
-                    labelDiv.style.top = `${boxTop + buffer}px`;
-                    labelDiv.classList.add('below-top-left');
-                } else {
-                    labelDiv.style.left = `${boxLeft}px`;
-                    labelDiv.style.top = `${boxTop - labelHeight - buffer}px`;
-                }
-
-                overlay.appendChild(labelDiv);
-            }
-        }
-    });
-}
 
 // Add window resize handler to redraw bounding boxes
 window.addEventListener('resize', function() {

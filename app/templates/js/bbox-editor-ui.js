@@ -467,6 +467,9 @@ class BBoxEditorUI {
                     inlineCrowdCheckbox.checked = crowdCheckbox.checked;
                     console.log(`Synced inline crowd checkbox to: ${crowdCheckbox.checked}`);
                 }
+
+                // Redraw the advanced editor canvas
+                this.updatePreviewCanvas();
             };
         }
 
@@ -1164,8 +1167,18 @@ class BBoxEditorUI {
             const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[i]) ||
                                (this.bboxes.labels && this.bboxes.labels[i] === -1);
 
+            // Check if this is a crowd box
+            const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
+
             // Set color based on box type
-            ctx.strokeStyle = isUncertain ? '#FFCC00' : '#e74c3c'; // Yellow for uncertain, red for normal
+            if (isCrowd) {
+                ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
+            } else if (isUncertain) {
+                ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
+            } else {
+                ctx.strokeStyle = '#e74c3c'; // Red for normal
+            }
+
             ctx.lineWidth = 3;
             ctx.strokeRect(box[0] * this.scale + this.offsetX,
                            box[1] * this.scale + this.offsetY,
@@ -1214,7 +1227,9 @@ class BBoxEditorUI {
             const textWidth = ctx.measureText(labelText).width;
 
             // Background for better visibility - different colors for different types
-            if (isUncertain) {
+            if (isCrowd) {
+                ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd boxes
+            } else if (isUncertain) {
                 ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
             } else {
                 ctx.fillStyle = 'rgba(231, 76, 60, 0.85)'; // Red for normal
@@ -1236,7 +1251,10 @@ class BBoxEditorUI {
             ctx.fill();
 
             // Add a subtle border with different color based on box type
-            if (isUncertain) {
+            if (isCrowd) {
+                ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
+                ctx.fillStyle = 'white'; // White text on purple background
+            } else if (isUncertain) {
                 ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
                 ctx.fillStyle = 'black'; // Black text on yellow background
             } else {
@@ -1264,10 +1282,20 @@ class BBoxEditorUI {
 
             // Check if this is an uncertain box - by flag or by label value of -1
             const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[this.selectedIndex]) ||
-                               (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] === -1);
+                              (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] === -1);
+
+            // Check if this is a crowd box
+            const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedIndex];
 
             // Set color based on box type (with highlight for selection)
-            ctx.strokeStyle = isUncertain ? '#cd950d' : '#2196F3'; // Yellow for uncertain, blue for selected normal
+            if (isCrowd) {
+                ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
+            } else if (isUncertain) {
+                ctx.strokeStyle = '#B8860B'; // DarkGoldenRod color for selected Not Sure boxes
+            } else {
+                ctx.strokeStyle = '#2196F3'; // Blue for selected normal
+            }
+
             ctx.lineWidth = 3;
             ctx.strokeRect(
                 box[0] * this.scale + this.offsetX,
@@ -1317,8 +1345,10 @@ class BBoxEditorUI {
             const textWidth = ctx.measureText(labelText).width;
 
             // Background with different colors for different types
-            if (isUncertain) {
-                ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
+            if (isCrowd) {
+                ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Darker purple for selected crowd
+            } else if (isUncertain) {
+                ctx.fillStyle = 'rgba(184, 134, 11, 0.85)'; // DarkGoldenRod with transparency
             } else {
                 ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for selected
             }
@@ -1339,9 +1369,12 @@ class BBoxEditorUI {
             ctx.fill();
 
             // Add subtle border
-            if (isUncertain) {
-                ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
-                ctx.fillStyle = 'black'; // Black text on yellow background
+            if (isCrowd) {
+                ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
+                ctx.fillStyle = 'white'; // White text
+            } else if (isUncertain) {
+                ctx.strokeStyle = '#8B6914'; // Even darker gold for uncertain
+                ctx.fillStyle = 'white'; // White text on dark gold
             } else {
                 ctx.strokeStyle = '#1565C0'; // Dark blue for selected
                 ctx.fillStyle = 'white'; // White text on blue background

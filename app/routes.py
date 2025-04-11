@@ -287,7 +287,7 @@ def register_routes(app):
                 borders[selected_index] = 'border-poss-m'
 
             # Process bounding box data for this image
-            bboxes = {'boxes': [], 'scores': [], 'labels': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': []}
             if image_basename in man_annotated_bboxes_dict:
                 checked_labels.add(image_basename)
 
@@ -299,9 +299,9 @@ def register_routes(app):
                 elif len(data.get('bboxes', [])) > 1:
                     labels = set()
                     for bbox in data['bboxes']:
-                        if 'label' in bbox and bbox['label'] not in labels:
+                        if 'label' in bbox and int(bbox['label']) not in labels:
                             if len(labels) == 0:
-                                labels.add(bbox['label'])
+                                labels.add(int(bbox['label']))
                             else:
                                 borders[selected_index] = 'border-m'
                                 break
@@ -321,17 +321,19 @@ def register_routes(app):
                             else:
                                 bboxes['labels'].append(-1)  # Default label if unspecified
                             bboxes['scores'].append(100)  # Default high confidence score
+                            if 'crowd_flag' in bbox:
+                                bboxes['crowd_flags'].append(bbox['crowd_flag'])
+                            else:
+                                bboxes['crowd_flags'].append(False)
             else:
                 # print ("we go for open clip data")
-                tt=time.time()
                 data = app.load_bbox_openclip_data(username)[image_basename]
                 # print("open clip load", time.time() -tt)
-                tt=time.time()
                 for box, label, score in zip(data['boxes'], data['gt'], data['scores']):
                     bboxes['boxes'].append(box)
                     bboxes['labels'].append(label)
                     bboxes['scores'].append(score)
-                tt=time.time()
+                    bboxes['crowd_flags'].append(False)
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
 
