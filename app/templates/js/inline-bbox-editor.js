@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// Get DOM elements for controls
 	const inlineBboxSelector = document.getElementById('inline-bbox-selector');
-	const inlineCrowdCheckbox = document.getElementById("inline-crowd-checkbox");
+	const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
+	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox')
 	const deleteBoxBtn = document.getElementById('inline-bbox-delete');
 	const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
 	const cancelBtn = document.getElementById('inline-bbox-cancel');
@@ -257,6 +258,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 			} else if (inlineEditor.bboxes.crowd_flags) {
 				debug(`Crowd flags found: ${JSON.stringify(inlineEditor.bboxes.crowd_flags)}`);
+			}
+
+			// Ensure reflected object flags array exists
+			if (!inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.boxes) {
+				debug('Creating missing reflected flags array with default values');
+				inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+			} else if (inlineEditor.bboxes.reflected_flags) {
+				debug(`Reflected flags found: ${JSON.stringify(inlineEditor.bboxes.reflected_flags)}`);
 			}
 
 			// Ensure uncertain flags array exists
@@ -539,7 +548,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			let bboxData = {
 				coordinates: box,
-				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
 			};
 
 			if (isUncertain) {
@@ -659,9 +669,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
-	// Event listener for modal close to sync crowd checkbox state
+	// Event listener for modal close to sync crowd and reflected checkboxes state
 	document.addEventListener('bbox-modal-closed', function(e) {
-		debug('Advanced editor modal closed, syncing crowd checkbox state');
+		debug('Advanced editor modal closed, syncing crowd and reflected checkboxes state');
 
 		// If we have a selected box, update the inline crowd checkbox
 		if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
@@ -675,6 +685,21 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (inlineCrowdCheckbox) {
 				inlineCrowdCheckbox.checked = isCrowd;
 				debug(`Synced inline crowd checkbox to: ${isCrowd} after modal close`);
+			}
+		}
+
+		// If we have a selected box, update the inline reflected checkbox
+		if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
+			inlineEditor.bboxes.reflected_flags &&
+			inlineEditor.currentBoxIndex < inlineEditor.bboxes.reflected_flags.length) {
+
+			// Get the current reflected flag state from the bboxes data
+			const isReflected = inlineEditor.bboxes.reflected_flags[inlineEditor.currentBoxIndex];
+
+			// Update the inline checkbox
+			if (inlineReflectedCheckbox) {
+				inlineReflectedCheckbox.checked = isReflected;
+				debug(`Synced inline reflected checkbox to: ${isReflected} after modal close`);
 			}
 		}
 	});
@@ -802,11 +827,18 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Check if this is a crowd box
 					const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
 
+					// Check if this is a reflected box
+					const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[i];
+
 					// Draw box with appropriate color
 					this.ctx.save();
 
 				  	// Set color based on box type
-				  	if (isCrowd) {
+					if (isCrowd && isReflected) {
+						this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+					} else if (isReflected) {
+						this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+					} else if (isCrowd) {
 						this.ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
 				  	} else if (isUncertain) {
 						this.ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
@@ -851,7 +883,11 @@ document.addEventListener('DOMContentLoaded', function() {
 				  	const cornerRadius = 3;
 
 				  	// Background color based on box type
-				  	if (isCrowd) {
+					if (isCrowd && isReflected) {
+						this.ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+					} else if (isReflected) {
+						this.ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+					} else if (isCrowd) {
 						this.ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd
 				  	} else if (isUncertain) {
 						this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
@@ -897,7 +933,13 @@ document.addEventListener('DOMContentLoaded', function() {
 				  	this.ctx.fill();
 
 				  	// Add a subtle border with different color based on box type
-				  	if (isCrowd) {
+					if (isCrowd && isReflected) {
+						this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+						this.ctx.fillStyle = 'white'; // White text
+					} else if (isReflected) {
+						this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+						this.ctx.fillStyle = 'white'; // White text on teal background
+					} else if (isCrowd) {
 						this.ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
 						this.ctx.fillStyle = 'white'; // White text on purple background
 				  	} else if (isUncertain) {
@@ -931,29 +973,37 @@ document.addEventListener('DOMContentLoaded', function() {
 			  this.selectedBboxIndex >= 0 &&
 			  this.selectedBboxIndex < this.bboxes.boxes.length
 			) {
-			  // Save context to re-draw the selected box
-			  this.ctx.save();
+				// Save context to re-draw the selected box
+				this.ctx.save();
 
-			  const box = this.bboxes.boxes[this.selectedBboxIndex];
+			  	const box = this.bboxes.boxes[this.selectedBboxIndex];
 
-			  // Check if this is an uncertain box by flag or label
-			  const isUncertain = (this.bboxes.uncertain_flags &&
-                                 this.bboxes.uncertain_flags[this.selectedBboxIndex]) ||
-								 (this.bboxes.labels &&
-                                 this.bboxes.labels[this.selectedBboxIndex] === -1);
+			  	// Check if this is an uncertain box by flag or label
+			  	const isUncertain = (this.bboxes.uncertain_flags &&
+                                 	this.bboxes.uncertain_flags[this.selectedBboxIndex]) ||
+								 	(this.bboxes.labels &&
+                                 	this.bboxes.labels[this.selectedBboxIndex] === -1);
 
-			  // Check if this is a crowd box
-			  const isCrowd = this.bboxes.crowd_flags &&
-							  this.bboxes.crowd_flags[this.selectedBboxIndex];
+			  	// Check if this is a crowd box
+			  	const isCrowd = this.bboxes.crowd_flags &&
+							  	this.bboxes.crowd_flags[this.selectedBboxIndex];
 
-			  // Set stroke style based on box type
-			  if (isCrowd) {
-				  this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
-			  } else if (isUncertain) {
-				  this.ctx.strokeStyle = '#caa109'; // Yellow for uncertain boxes
-			  } else {
-				  this.ctx.strokeStyle = '#2196F3'; // Blue for normal selected boxes
-			  }
+				// Check if this is a reflected box
+			  	const isReflected = this.bboxes.reflected_flags &&
+									this.bboxes.reflected_flags[this.selectedBboxIndex];
+
+			  	// Set stroke style based on box type
+				if (isCrowd && isReflected) {
+					this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+				} else if (isReflected) {
+					this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+				} else if (isCrowd) {
+				  	this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
+			  	} else if (isUncertain) {
+				  	this.ctx.strokeStyle = '#caa109'; // Yellow for uncertain boxes
+			  	} else {
+				  	this.ctx.strokeStyle = '#2196F3'; // Blue for normal selected boxes
+			  	}
 
 			  this.ctx.lineWidth = 3;
 			  this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
@@ -987,14 +1037,18 @@ document.addEventListener('DOMContentLoaded', function() {
 			  const textWidth = this.ctx.measureText(labelText).width;
 			  const cornerRadius = 3;
 
-			  // Draw label background with different color based on box type
-			  if (isCrowd) {
-				this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
-			  } else if (isUncertain) {
-				this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
-			  } else {
-				this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for normal
-			  }
+			  	// Draw label background with different color based on box type
+				if (isCrowd && isReflected) {
+					this.ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+				} else if (isReflected) {
+					this.ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+				} else if (isCrowd) {
+					this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
+			  	} else if (isUncertain) {
+					this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
+			  	} else {
+					this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for normal
+			  	}
 
 			  this.ctx.beginPath();
 			  this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
@@ -1033,17 +1087,23 @@ document.addEventListener('DOMContentLoaded', function() {
 			  this.ctx.closePath();
 			  this.ctx.fill();
 
-			  // Draw subtle border around label background
-			  if (isCrowd) {
-			  this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
-			  this.ctx.fillStyle = 'white'; // White text
-			  } else if (isUncertain) {
-				this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
-				this.ctx.fillStyle = 'black'; // Black text for uncertain (better contrast with yellow)
-			  } else {
-				this.ctx.strokeStyle = '#1565C0'; // Dark blue for normal
-				this.ctx.fillStyle = 'white'; // White text for normal
-			  }
+			  	// Draw subtle border around label background
+				if (isCrowd && isReflected) {
+					this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+					this.ctx.fillStyle = 'white'; // White text
+				} else if (isReflected) {
+					this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+					this.ctx.fillStyle = 'white'; // White text on teal background
+				} else if (isCrowd) {
+			  		this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
+			  		this.ctx.fillStyle = 'white'; // White text
+			  	} else if (isUncertain) {
+					this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
+					this.ctx.fillStyle = 'black'; // Black text for uncertain (better contrast with yellow)
+			  	} else {
+					this.ctx.strokeStyle = '#1565C0'; // Dark blue for normal
+					this.ctx.fillStyle = 'white'; // White text for normal
+			  	}
 
 			  this.ctx.lineWidth = 1;
 			  this.ctx.stroke();
@@ -1492,6 +1552,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Update the checkbox based on crowd flag
 		updateCrowdCheckbox(boxIndex);
 
+		// Update the checkbox based on reflected object flag
+		updateReflectedCheckbox(boxIndex);
+
 		// Check if this is an uncertain box - either by flag or by label value
 		const isUncertain = (inlineEditor.bboxes.uncertain_flags &&
 							 inlineEditor.bboxes.uncertain_flags[boxIndex]) ||
@@ -1574,6 +1637,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		inlineCrowdCheckbox.addEventListener('change', handleCrowdCheckboxChange);
 	}
 
+	if (inlineReflectedCheckbox) {
+		inlineReflectedCheckbox.addEventListener('change', handleReflectedCheckboxChange);
+	}
+
 	function handleCrowdCheckboxChange() {
 		if (inlineEditor.currentBoxIndex < 0) return;
 
@@ -1613,6 +1680,45 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 
+	function handleReflectedCheckboxChange() {
+		if (inlineEditor.currentBoxIndex < 0) return;
+
+		// Update the reflected_flags array based on the checkbox state
+		inlineEditor.bboxes.reflected_flags[inlineEditor.currentBoxIndex] = inlineReflectedCheckbox.checked;
+
+		// Also update the checkbox in the advanced editor if it's open
+		const advancedReflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+		if (advancedReflectedCheckbox) {
+			advancedReflectedCheckbox.checked = inlineReflectedCheckbox.checked;
+			debug(`Synced advanced reflected checkbox to: ${inlineReflectedCheckbox.checked}`);
+		}
+
+		// Immediately redraw the canvas to show the updated box color
+		if (inlineEditor.editor) {
+			inlineEditor.editor.redrawCanvas();
+			debug(`Redrawing canvas after reflected checkbox change to ${inlineReflectedCheckbox.checked}`);
+		}
+
+		// Update hidden form field
+		updateHiddenBboxesField();
+
+		debug(`Updated reflected flag for box ${inlineEditor.currentBoxIndex} to: ${inlineReflectedCheckbox.checked}`);
+	}
+
+	function updateReflectedCheckbox(boxIndex) {
+		if (inlineReflectedCheckbox && inlineEditor.bboxes.reflected_flags) {
+			inlineReflectedCheckbox.checked = inlineEditor.bboxes.reflected_flags[boxIndex];
+			debug(`Set reflected checkbox to: ${inlineReflectedCheckbox.checked}`);
+
+			// Also update the advanced editor's checkbox if it exists
+			const advancedReflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+			if (advancedReflectedCheckbox) {
+				advancedReflectedCheckbox.checked = inlineEditor.bboxes.reflected_flags[boxIndex];
+				debug(`Synced advanced reflected checkbox to: ${inlineEditor.bboxes.reflected_flags[boxIndex]}`);
+			}
+		}
+	}
+
 	// Delete the current box
 	function deleteCurrentBox() {
 		if (inlineEditor.currentBoxIndex < 0 || !inlineEditor.bboxes ||
@@ -1634,6 +1740,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Remove crowd flag if it exists
 		if (inlineEditor.bboxes.crowd_flags) {
 			inlineEditor.bboxes.crowd_flags.splice(deletedIndex, 1);
+		}
+
+		// Remove reflected object flag if it exists
+		if (inlineEditor.bboxes.reflected_flags) {
+			inlineEditor.bboxes.reflected_flags.splice(deletedIndex, 1);
 		}
 
 		// Remove uncertain flag and possible_labels if they exist
@@ -1683,6 +1794,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		if (inlineEditor.bboxes.crowd_flags) {
 			inlineEditor.bboxes.crowd_flags = [];
+		}
+		if (inlineEditor.bboxes.reflected_flags) {
+			inlineEditor.bboxes.reflected_flags = [];
 		}
 		if (inlineEditor.bboxes.uncertain_flags) {
 			inlineEditor.bboxes.uncertain_flags = [];
@@ -1841,7 +1955,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			let bboxData = {
 				coordinates: box,
-				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
 			};
 
 			if (isUncertain) {
@@ -2244,6 +2359,10 @@ document.addEventListener('DOMContentLoaded', function() {
 						inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 					}
 
+					if (!inlineEditor.bboxes.reflected_flags) {
+						inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					}
+
 					if (!inlineEditor.bboxes.uncertain_flags) {
 						inlineEditor.bboxes.uncertain_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 					}
@@ -2267,6 +2386,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// For uncertain boxes
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
+						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags[newBoxIndex] = true;
 
 						// Get selected classes for uncertainty
@@ -2309,6 +2429,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// For regular boxes
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
+						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags.push(false);
 						inlineEditor.bboxes.possible_labels.push([]);
 
@@ -2351,6 +2472,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Update UI
 					updateBboxSelector();
 					updateCrowdCheckbox(newBoxIndex);
+					updateReflectedCheckbox(newBoxIndex);
 
 					// Select the box to update UI elements properly
 					selectBox(newBoxIndex);

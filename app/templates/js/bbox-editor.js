@@ -54,6 +54,12 @@ class BBoxEditor {
             this.bboxes.crowd_flags = new Array(this.bboxes.boxes.length).fill(false);
         }
 
+        // Make sure reflected flags exist before drawing
+        if (this.bboxes && this.bboxes.boxes && !this.bboxes.reflected_flags) {
+            console.log("BBoxEditor: Initializing missing reflected_flags array");
+            this.bboxes.reflected_flags = new Array(this.bboxes.boxes.length).fill(false);
+        }
+
         // First draw non-selected boxes
         this.bboxes.boxes.forEach((box, index) => {
             // Skip the selected box - we'll draw it last for better z-ordering
@@ -66,8 +72,15 @@ class BBoxEditor {
             // Check if this is a crowd box
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[index];
 
+            // Check if this is a reflected object box
+            const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[index];
+
             // Set color based on box type
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 this.ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
             } else if (isUncertain) {
                 this.ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
@@ -117,7 +130,11 @@ class BBoxEditor {
             const textWidth = textMetrics.width;
 
             // Background for better visibility - different colors for different types
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                this.ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 this.ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd
             } else if (isUncertain) {
                 this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
@@ -141,7 +158,13 @@ class BBoxEditor {
             this.ctx.fill();
 
             // Add a subtle border with different color based on box type
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+                this.ctx.fillStyle = 'white'; // White text
+            } else if (isReflected) {
+                this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+                this.ctx.fillStyle = 'white'; // White text on teal background
+            } else if (isCrowd) {
                 this.ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
                 this.ctx.fillStyle = 'white'; // White text on purple background
             } else if (isUncertain) {
@@ -177,8 +200,15 @@ class BBoxEditor {
             // Check if this is a crowd box
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedBboxIndex];
 
+            // Check if this is a reflected object box
+            const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[this.selectedBboxIndex];
+
             // Set color based on box type (with highlight for selection)
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for selected crowd and reflected
+            } else if (isReflected) {
+                this.ctx.strokeStyle = '#20B2AA'; // Teal for selected reflected boxes
+            } else if (isCrowd) {
                 this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
             } else if (isUncertain) {
                 this.ctx.strokeStyle = '#B8860B'; // DarkGoldenRod for selected uncertain
@@ -226,7 +256,11 @@ class BBoxEditor {
             const textWidth = this.ctx.measureText(labelText).width;
 
             // Background with different colors for different types
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                this.ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
             } else if (isUncertain) {
                 this.ctx.fillStyle = 'rgba(184, 134, 11, 0.85)'; // DarkGoldenRod for selected uncertain
@@ -250,7 +284,13 @@ class BBoxEditor {
             this.ctx.fill();
 
             // Add subtle border
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                this.ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+                this.ctx.fillStyle = 'white'; // White text
+            } else if (isReflected) {
+                this.ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+                this.ctx.fillStyle = 'white'; // White text on teal background
+            } else if (isCrowd) {
                 this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
                 this.ctx.fillStyle = 'white'; // White text
             } else if (isUncertain) {

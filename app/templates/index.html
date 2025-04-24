@@ -78,7 +78,9 @@
 <body>
     <div class="container">
         <div class="login-container">
-            <div class="login-image"></div>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="{{ url_for('static', filename='vrg_favicon.ico') }}" alt="Central Image" style="width: 100px; height: 100px;">
+            </div>
             <div class="login-title">Welcome</div>
             <form action="{{ url_for('index') }}" method="post">
                 <input id="username" name="username" type="text" placeholder="Username">

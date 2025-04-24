@@ -67,7 +67,7 @@ def copy_js_files_to_static(app):
             print(f"Warning: Source file {source_path} not found")
 
 
-def copy_sample_files_to_static(source, destination, images_per_dir=10):
+def copy_sample_files_to_static(source, destination, images_per_dir=50):
     """
     This function copies sample files from source to destination, preserving subdirectory structure,
     while avoiding copying files that already exist.

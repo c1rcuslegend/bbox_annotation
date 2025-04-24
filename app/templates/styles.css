@@ -1243,7 +1243,7 @@ body {
     margin-bottom: 10px;
 }
 
-.crowd-container {
+.crowd-container, .reflected-container {
     display: flex;
     width: 100%;
     margin-top: 15px;
@@ -1252,22 +1252,26 @@ body {
     align-items: center;
 }
 
-.crowd-container label {
+.crowd-container label, .reflected-container label {
     font-weight: 600;
     color: #555;
     font-size: medium;
 }
 
-.bbox-crowd-container {
+.bbox-crowd-container, .bbox-reflected-container {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.bbox-crowd-container label {
+.bbox-crowd-container label, .bbox-reflected-container label {
     margin-bottom: 8px;
     color: #2c3e50;
     font-weight: 600;
+}
+
+.container input:checked ~ .checkmark-reflected {
+    background-image: linear-gradient(45deg, #20B2AA, #008080);
 }
 
 .legend-toggle {
@@ -1363,6 +1367,18 @@ body {
 
 .legend-box.border-not-sure {
     border: 3px solid #ea9e29;
+}
+
+.legend-box.border-crowd-reflected {
+    border: 3px solid #5E6DAD;
+}
+
+.legend-box.border-reflected {
+    border: 3px solid #20B2AA;
+}
+
+.legend-box.border-crowd {
+    border: 3px solid #7B1FA2;
 }
 
 /* Custom scrollbar styling */

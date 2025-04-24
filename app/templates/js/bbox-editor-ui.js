@@ -263,6 +263,9 @@ class BBoxEditorUI {
                     // Also remove crowd flag if it exists
                     if (bboxes.crowd_flags) bboxes.crowd_flags.splice(deletedIndex, 1);
 
+                    // Also remove reflected flag if it exists
+                    if (bboxes.reflected_flags) bboxes.reflected_flags.splice(deletedIndex, 1);
+
                     // Also remove uncertain flags if they exist
                     if (bboxes.uncertain_flags) bboxes.uncertain_flags.splice(deletedIndex, 1);
 
@@ -296,11 +299,12 @@ class BBoxEditorUI {
         const deleteAllButton = document.getElementById('bbox-delete-all');
         if (deleteAllButton) {
             deleteAllButton.onclick = () => {
-                // Remove all boxes, scores, labels and crowd flags from the arrays
+                // Remove all boxes, scores, labels, crowd flags and reflected flags from the arrays
                 bboxes.boxes = [];
                 bboxes.scores = [];
                 if (bboxes.labels) bboxes.labels = [];
                 if (bboxes.crowd_flags) bboxes.crowd_flags = [];
+                if (bboxes.reflected_flags) bboxes.reflected_flags = [];
                 if (bboxes.uncertain_flags) bboxes.uncertain_flags = [];
 
                 // Also clear gt field if it exists
@@ -473,6 +477,27 @@ class BBoxEditorUI {
             };
         }
 
+        // Reflected checkbox
+        const reflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+        if (reflectedCheckbox) {
+            reflectedCheckbox.onchange = () => {
+                if (this.currentBoxIndex < 0) return;
+                // Update the reflected_flags array based on the checkbox state
+                editor.bboxes.reflected_flags[this.currentBoxIndex] = reflectedCheckbox.checked;
+                console.log(`Updated reflected flag for box ${this.currentBoxIndex} to: ${reflectedCheckbox.checked}`);
+
+                // Also sync with inline editor's checkbox if it exists
+                const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox');
+                if (inlineReflectedCheckbox) {
+                    inlineReflectedCheckbox.checked = reflectedCheckbox.checked;
+                    console.log(`Synced inline reflected checkbox to: ${reflectedCheckbox.checked}`);
+                }
+
+                // Redraw the advanced editor canvas
+                this.updatePreviewCanvas();
+            };
+        }
+
         // Setup input field change events
         this.setupInputEvents(bboxes, editor);
     }
@@ -491,6 +516,11 @@ class BBoxEditorUI {
         // Ensure crowd flags exists in bboxes
         if (!bboxes.crowd_flags) {
             bboxes.crowd_flags = Array(bboxes.boxes.length).fill(false);
+        }
+
+        // Ensure reflected flags exists in bboxes
+        if (!bboxes.reflected_flags) {
+            bboxes.reflected_flags = Array(bboxes.boxes.length).fill(false);
         }
 
         // Ensure uncertain_flags array exists in bboxes
@@ -847,6 +877,15 @@ class BBoxEditorUI {
         }
     }
 
+    // Update the checkbox based on reflected flag
+    static updateReflectedCheckbox(boxIndex) {
+        const reflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+        if (reflectedCheckbox && this.bboxes.reflected_flags) {
+            reflectedCheckbox.checked = this.bboxes.reflected_flags[boxIndex];
+            console.log(`Set reflected checkbox to: ${reflectedCheckbox.checked}`);
+        }
+    }
+
     // Helper method to reset form fields when a box is deleted
     static resetFormFields() {
         document.getElementById('bbox-x1').value = '';
@@ -924,6 +963,9 @@ class BBoxEditorUI {
                     this.currentBoxIndex = selectedIndex;
                     // Update the crowd checkbox
                     this.updateCrowdCheckbox(this.currentBoxIndex);
+
+                    // Update the reflected checkbox
+                    this.updateReflectedCheckbox(this.currentBoxIndex)
 
                     // Update editor selection
                     editor.selectedBboxIndex = selectedIndex;
@@ -1170,8 +1212,15 @@ class BBoxEditorUI {
             // Check if this is a crowd box
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
 
+            // Check if this is a reflected box
+            const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[i];
+
             // Set color based on box type
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
             } else if (isUncertain) {
                 ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
@@ -1227,7 +1276,11 @@ class BBoxEditorUI {
             const textWidth = ctx.measureText(labelText).width;
 
             // Background for better visibility - different colors for different types
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd boxes
             } else if (isUncertain) {
                 ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
@@ -1251,7 +1304,13 @@ class BBoxEditorUI {
             ctx.fill();
 
             // Add a subtle border with different color based on box type
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+                ctx.fillStyle = 'white'; // White text
+            } else if (isReflected) {
+                ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+                ctx.fillStyle = 'white'; // White text on teal background
+            } else if (isCrowd) {
                 ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
                 ctx.fillStyle = 'white'; // White text on purple background
             } else if (isUncertain) {
@@ -1287,8 +1346,15 @@ class BBoxEditorUI {
             // Check if this is a crowd box
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedIndex];
 
+            // Check if this is a reflected box
+            const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[this.selectedIndex];
+
             // Set color based on box type (with highlight for selection)
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
             } else if (isUncertain) {
                 ctx.strokeStyle = '#B8860B'; // DarkGoldenRod color for selected Not Sure boxes
@@ -1345,7 +1411,11 @@ class BBoxEditorUI {
             const textWidth = ctx.measureText(labelText).width;
 
             // Background with different colors for different types
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.fillStyle = 'rgba(94, 109, 173, 0.85)'; // (Teal+Purple)/2 for crowd and reflected
+            } else if (isReflected) {
+                ctx.fillStyle = 'rgba(32, 178, 170, 0.85)'; // Teal for reflected boxes
+            } else if (isCrowd) {
                 ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Darker purple for selected crowd
             } else if (isUncertain) {
                 ctx.fillStyle = 'rgba(184, 134, 11, 0.85)'; // DarkGoldenRod with transparency
@@ -1369,7 +1439,13 @@ class BBoxEditorUI {
             ctx.fill();
 
             // Add subtle border
-            if (isCrowd) {
+            if (isCrowd && isReflected) {
+                ctx.strokeStyle = '#5E6DAD'; // (Teal+Purple)/2 for crowd and reflected
+                ctx.fillStyle = 'white'; // White text
+            } else if (isReflected) {
+                ctx.strokeStyle = '#20B2AA'; // Teal for reflected boxes
+                ctx.fillStyle = 'white'; // White text on teal background
+            } else if (isCrowd) {
                 ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
                 ctx.fillStyle = 'white'; // White text
             } else if (isUncertain) {
@@ -1567,6 +1643,9 @@ class BBoxEditorUI {
                 // Update the crowd checkbox
                 this.updateCrowdCheckbox(this.selectedIndex);
 
+                // Update the reflected checkbox
+                this.updateReflectedCheckbox(this.selectedIndex);
+
                 // Update UI
                 this.updateBoxValues(this.bboxes.boxes[clickedBoxIndex]);
 
@@ -1711,6 +1790,9 @@ class BBoxEditorUI {
                 // Update the crowd checkbox
                 this.updateCrowdCheckbox(this.selectedIndex);
 
+                // Update the reflected checkbox
+                this.updateReflectedCheckbox(this.selectedIndex);
+
                 // Update input fields
                 this.updateBoxValues(box);
                 this.updatePreviewCanvas();
@@ -1742,6 +1824,9 @@ class BBoxEditorUI {
 
                 // Update the crowd checkbox
                 this.updateCrowdCheckbox(this.selectedIndex);
+
+                // Update the reflected checkbox
+                this.updateReflectedCheckbox(this.selectedIndex);
 
                 // Update input fields
                 this.updateBoxValues(box);
@@ -1841,6 +1926,11 @@ class BBoxEditorUI {
                     }
                     this.bboxes.crowd_flags.push(false);
 
+                    if (!this.bboxes.reflected_flags) {
+                        this.bboxes.reflected_flags = new Array(newIndex).fill(false);
+                    }
+                    this.bboxes.reflected_flags.push(false);
+
                     if (!this.bboxes.uncertain_flags) {
                         this.bboxes.uncertain_flags = new Array(newIndex).fill(false);
                     }
@@ -1931,6 +2021,7 @@ class BBoxEditorUI {
                     // Update UI
                     this.updateBoxValues(this.tempBox);
                     this.updateCrowdCheckbox(newIndex);
+                    this.updateReflectedCheckbox(newIndex);
 
                     // Update bbox selector dropdown
                     this.updateBboxSelector(this.bboxes, newIndex, this.editor ? this.editor.classLabels : {});
@@ -2038,7 +2129,8 @@ class BBoxEditorUI {
 
             let bboxData = {
                 coordinates: box,
-                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i]
+                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i],
+                reflected_flag: bboxes.reflected_flags && bboxes.reflected_flags[i]
             };
 
             if (isUncertain) {
@@ -2137,7 +2229,8 @@ class BBoxEditorUI {
 
             let bboxData = {
                 coordinates: box,
-                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i]
+                crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i],
+                reflected_flag: bboxes.reflected_flags && bboxes.reflected_flags[i]
             };
 
             if (isUncertain) {
