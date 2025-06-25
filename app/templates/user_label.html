@@ -115,6 +115,28 @@
                 });
             }
         });
+
+        function saveAndGoBack(username) {
+            const form = document.getElementById('save');
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = `/back2grid/${username}`;
+                } else {
+                    console.error('Save failed, but navigating anyway');
+                    window.location.href = `/back2grid/${username}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error saving:', error);
+                window.location.href = `/back2grid/${username}`;
+            });
+        }
     </script>
     <script src="{{ url_for('static', filename='js/bbox-editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bbox-editor-ui.js') }}"></script>
@@ -128,9 +150,9 @@
 
 <body>
     <div class="top-nav">
-        <a href="{{ url_for('back2grid', username=username) }}" class="nav-btn back-btn">
+        <button onclick="saveAndGoBack('{{ username }}')" class="nav-btn back-btn">
             <i class="nav-icon">◀</i> All images
-        </a>
+        </button>
         <div class="title-placeholder"></div>
     </div>
 

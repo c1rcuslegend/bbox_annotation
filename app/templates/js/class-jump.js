@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the cluster dropdown functionality
     initClusterDropdown();
+
+    // Set up class dropdown navigation
+    initClassDropdownNavigation();
 });
 
 // Initialize searchable dropdown component
@@ -293,7 +296,7 @@ function jumpToImageIndex(targetIndex) {
         return;
     }
 
-    // Re-use the jump form from jumpToClass function
+    // Use the jump form
     const form = document.getElementById('jumpForm');
 
     // Clear existing hidden inputs
@@ -322,15 +325,8 @@ function jumpToImageIndex(targetIndex) {
     directionInput.value = 'jump';
     form.appendChild(directionInput);
 
-    // Gather all checked checkboxes and copy their values to the jump form
-    const checkboxes = document.querySelectorAll('input[form="save"][name="checkboxes"]:checked');
-    checkboxes.forEach((checkbox) => {
-        const hiddenCheckbox = document.createElement('input');
-        hiddenCheckbox.type = 'hidden';
-        hiddenCheckbox.name = 'checkboxes';
-        hiddenCheckbox.value = checkbox.value;
-        form.appendChild(hiddenCheckbox);
-    });
+    // Copy checked checkboxes to the form
+    copyCheckedCheckboxesToForm(form);
 
     // Submit the form to update the server-side index
     form.submit();
@@ -383,15 +379,8 @@ function jumpToClass(selectedClass) {
         directionInput.value = 'jump';
         form.appendChild(directionInput);
 
-        // Gather all checked checkboxes and copy their values to the jump form
-        const checkboxes = document.querySelectorAll('input[form="save"][name="checkboxes"]:checked');
-        checkboxes.forEach((checkbox) => {
-            const hiddenCheckbox = document.createElement('input');
-            hiddenCheckbox.type = 'hidden';
-            hiddenCheckbox.name = 'checkboxes';
-            hiddenCheckbox.value = checkbox.value;
-            form.appendChild(hiddenCheckbox);
-        });
+        // Copy checked checkboxes to the form
+        copyCheckedCheckboxesToForm(form);
 
         // Submit the form to update the server-side index
         form.submit();
@@ -431,7 +420,16 @@ function jumpToCluster(clusterName) {
     directionInput.value = 'jump';
     form.appendChild(directionInput);
 
-    // Gather all checked checkboxes and copy their values to the jump form
+    // Copy checked checkboxes to the form
+    copyCheckedCheckboxesToForm(form);
+
+    // Submit the form
+    form.submit();
+}
+
+// Helper function to copy checked checkboxes to a form
+function copyCheckedCheckboxesToForm(form) {
+    // Gather all checked checkboxes and copy their values to the form
     const checkboxes = document.querySelectorAll('input[form="save"][name="checkboxes"]:checked');
     checkboxes.forEach((checkbox) => {
         const hiddenCheckbox = document.createElement('input');
@@ -440,12 +438,10 @@ function jumpToCluster(clusterName) {
         hiddenCheckbox.value = checkbox.value;
         form.appendChild(hiddenCheckbox);
     });
-
-    // Submit the form
-    form.submit();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+// Function to initialize the class dropdown navigation
+function initClassDropdownNavigation() {
     // Set up class dropdown navigation
     const dropdownItems = document.querySelectorAll('.superclass-dropdown .dropdown-item');
     const dropdownTrigger = document.querySelector('.class-counter');
@@ -502,6 +498,9 @@ document.addEventListener('DOMContentLoaded', function() {
             directionInput.value = 'next';
             jumpForm.appendChild(directionInput);
 
+            // Copy checked checkboxes to the form
+            copyCheckedCheckboxesToForm(jumpForm);
+
             // Submit the form
             jumpForm.submit();
         });
@@ -513,4 +512,4 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.style.display = 'none';
         }
     });
-});
+}
