@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// Get DOM elements for controls
 	const inlineBboxSelector = document.getElementById('inline-bbox-selector');
-	const inlineCrowdCheckbox = document.getElementById("inline-crowd-checkbox");
+	const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
+	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox')
 	const deleteBoxBtn = document.getElementById('inline-bbox-delete');
 	const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
 	const cancelBtn = document.getElementById('inline-bbox-cancel');
@@ -257,6 +258,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 			} else if (inlineEditor.bboxes.crowd_flags) {
 				debug(`Crowd flags found: ${JSON.stringify(inlineEditor.bboxes.crowd_flags)}`);
+			}
+
+			// Ensure reflected object flags array exists
+			if (!inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.boxes) {
+				debug('Creating missing reflected flags array with default values');
+				inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+			} else if (inlineEditor.bboxes.reflected_flags) {
+				debug(`Reflected flags found: ${JSON.stringify(inlineEditor.bboxes.reflected_flags)}`);
 			}
 
 			// Ensure uncertain flags array exists
@@ -539,7 +548,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			let bboxData = {
 				coordinates: box,
-				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
 			};
 
 			if (isUncertain) {
@@ -659,9 +669,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
-	// Event listener for modal close to sync crowd checkbox state
+	// Event listener for modal close to sync crowd and reflected checkboxes state
 	document.addEventListener('bbox-modal-closed', function(e) {
-		debug('Advanced editor modal closed, syncing crowd checkbox state');
+		debug('Advanced editor modal closed, syncing crowd and reflected checkboxes state');
 
 		// If we have a selected box, update the inline crowd checkbox
 		if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
@@ -675,6 +685,21 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (inlineCrowdCheckbox) {
 				inlineCrowdCheckbox.checked = isCrowd;
 				debug(`Synced inline crowd checkbox to: ${isCrowd} after modal close`);
+			}
+		}
+
+		// If we have a selected box, update the inline reflected checkbox
+		if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
+			inlineEditor.bboxes.reflected_flags &&
+			inlineEditor.currentBoxIndex < inlineEditor.bboxes.reflected_flags.length) {
+
+			// Get the current reflected flag state from the bboxes data
+			const isReflected = inlineEditor.bboxes.reflected_flags[inlineEditor.currentBoxIndex];
+
+			// Update the inline checkbox
+			if (inlineReflectedCheckbox) {
+				inlineReflectedCheckbox.checked = isReflected;
+				debug(`Synced inline reflected checkbox to: ${isReflected} after modal close`);
 			}
 		}
 	});
@@ -693,16 +718,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		debug('Main editor found, connecting...');
 
-		// Ensure we don't lose label information
-		// Make sure we have bboxes
+		// Helper function to determine box styles
+		const getBoxStyle = (isCrowd, isReflected, isUncertain, isSelected) => {
+			const styles = {
+				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
+				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
+				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
+				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
+			};
+
+			if (isCrowd && isReflected) return styles.crowdReflected;
+			if (isReflected) return styles.reflected;
+			if (isCrowd) return styles.crowd;
+			if (isUncertain) return styles.uncertain;
+			if (isSelected) return styles.selected;
+			return styles.normal;
+		};
+
+		// Ensure we don't lose label information and sync bboxes
 		if (!inlineEditor.bboxes && inlineEditor.editor.bboxes) {
 			debug('Using bboxes from main editor');
 			inlineEditor.bboxes = inlineEditor.editor.bboxes;
 
 			// Check if we need to create labels
 			if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.boxes) {
-				// Check for 'gt' field first
 				if (inlineEditor.bboxes.gt) {
+					// Check for 'gt' field first
 					debug('Using "gt" field as labels');
 					inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
 				} else {
@@ -718,13 +761,13 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!inlineEditor.bboxes.labels && inlineEditor.bboxes.gt) {
 				debug('Using our "gt" field as labels');
 				inlineEditor.bboxes.labels = inlineEditor.bboxes.gt;
-			}
+
 			// Preserve labels if they exist in our bboxes
-			else if (inlineEditor.bboxes.labels && !inlineEditor.editor.bboxes.labels) {
+			} else if (inlineEditor.bboxes.labels && !inlineEditor.editor.bboxes.labels) {
 				debug('Preserving our labels when updating editor');
-			}
-			// If editor has labels but we don't, take them
-			else if (!inlineEditor.bboxes.labels && inlineEditor.editor.bboxes.labels) {
+
+			// If editor has labels, but we don't, take them
+			} else if (!inlineEditor.bboxes.labels && inlineEditor.editor.bboxes.labels) {
 				debug('Taking labels from editor');
 				inlineEditor.bboxes.labels = [...inlineEditor.editor.bboxes.labels];
 			}
@@ -785,306 +828,95 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		// Override the editor's redraw to handle uncertain boxes and our temp box
 		const originalRedraw = inlineEditor.editor.redrawCanvas;
-		inlineEditor.editor.redrawCanvas = function() {
+		inlineEditor.editor.redrawCanvas = function () {
 			// Call original redraw to preserve current drawing logic
 			originalRedraw.call(this);
 
-			// Loop through all boxes to draw uncertain ones with yellow color
 			if (this.bboxes && Array.isArray(this.bboxes.boxes)) {
-				for (let i = 0; i < this.bboxes.boxes.length; i++) {
-					// Skip the selected box as we'll draw it on top later
-					if (i === this.selectedBboxIndex) continue;
+				this.bboxes.boxes.forEach((box, i) => {
+					const isUncertain = this.bboxes.uncertain_flags?.[i] || this.bboxes.labels?.[i] === -1;
+					const isCrowd = this.bboxes.crowd_flags?.[i];
+					const isReflected = this.bboxes.reflected_flags?.[i];
+					const isSelected = i === this.selectedBboxIndex;
 
-					// Check if this is an uncertain box - by flag or by label value of -1
-					const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[i]) ||
-										(this.bboxes.labels && this.bboxes.labels[i] === -1);
+					const style = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
 
-					// Check if this is a crowd box
-					const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
-
-					// Draw box with appropriate color
+					// Draw the box
 					this.ctx.save();
-
-				  	// Set color based on box type
-				  	if (isCrowd) {
-						this.ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
-				  	} else if (isUncertain) {
-						this.ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
-				  	} else {
-						this.ctx.strokeStyle = '#e74c3c'; // Red for normal
-				  	}
-
-					this.ctx.lineWidth = 3;
-
-					const box = this.bboxes.boxes[i];
+					this.ctx.strokeStyle = style.stroke;
+					this.ctx.lineWidth = isSelected ? 3 : 1;
 					this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+					this.ctx.restore();
 
-					// Draw label
+					// Prepare label text
+					const labelId = this.bboxes.labels?.[i] ?? (this.bboxes.gt?.[i] ?? 0);
+					const labelName = this.classLabels?.[labelId] ?? `Class ${labelId}`;
+					const labelText = isUncertain ? 'Not Sure' : `${labelId} - ${labelName}`;
+
+					// Draw the label
+					const fontSize = 14;
+					const padding = 4;
+					const textWidth = this.ctx.measureText(labelText).width;
+					const cornerRadius = 3;
+
 					const labelX = box[0] + 5;
 					const labelY = box[1] <= 5 ? box[1] + 20 : box[1] - 5;
 
 					this.ctx.save();
-					const fontSize = 14;
-					const padding = 4;
 					this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
 
-				  	// Get label text
-				  	let labelText;
-				  	if (isUncertain) {
-						labelText = "Not Sure";
-				  	} else {
-						let labelId;
-						if (this.bboxes.labels && this.bboxes.labels[i] !== undefined) {
-					  		labelId = this.bboxes.labels[i];
-						} else if (this.bboxes.gt && this.bboxes.gt[i] !== undefined) {
-					  		labelId = this.bboxes.gt[i];
-						} else {
-					  		labelId = 0; // Default
-						}
-
-						const labelName = this.classLabels && this.classLabels[labelId] ?
-									  this.classLabels[labelId] : `Class ${labelId}`;
-						labelText = `${labelId} - ${labelName}`;
-				  	}
-
-				  	const textWidth = this.ctx.measureText(labelText).width;
-				  	const cornerRadius = 3;
-
-				  	// Background color based on box type
-				  	if (isCrowd) {
-						this.ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd
-				  	} else if (isUncertain) {
-						this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
-				  	} else {
-						this.ctx.fillStyle = 'rgba(231, 76, 60, 0.85)'; // Red for normal
-				  	}
-
-				  	// Draw rounded rectangle backgroundthis.ctx.beginPath();
+					// Draw label background
+					this.ctx.fillStyle = style.fill;
+					this.ctx.beginPath();
 					this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
 					this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-				  	this.ctx.arcTo(
-						labelX + textWidth + padding,
-						labelY - fontSize - padding,
-						labelX + textWidth + padding,
-						labelY - fontSize - padding + cornerRadius,
-						cornerRadius
-				  	);
-				  	this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-				  	this.ctx.arcTo(
-						labelX + textWidth + padding,
-						labelY + padding,
-						labelX + textWidth + padding - cornerRadius,
-						labelY + padding,
-						cornerRadius
-				  	);
-				  	this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-				  	this.ctx.arcTo(
-						labelX - padding,
-						labelY + padding,
-						labelX - padding,
-						labelY + padding - cornerRadius,
-						cornerRadius
-				  	);
-				  	this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-				  	this.ctx.arcTo(
-						labelX - padding,
-						labelY - fontSize - padding,
-						labelX - padding + cornerRadius,
-						labelY - fontSize - padding,
-						cornerRadius
-				  	);
-				  	this.ctx.closePath();
-				  	this.ctx.fill();
+					this.ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+					this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+					this.ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+					this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+					this.ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+					this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+					this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+					this.ctx.closePath();
+					this.ctx.fill();
 
-				  	// Add a subtle border with different color based on box type
-				  	if (isCrowd) {
-						this.ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
-						this.ctx.fillStyle = 'white'; // White text on purple background
-				  	} else if (isUncertain) {
-						this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
-						this.ctx.fillStyle = 'black'; // Black text for better contrast with yellow
-				  	} else {
-						this.ctx.strokeStyle = '#c0392b'; // Dark red for normal
-						this.ctx.fillStyle = 'white'; // White text for normal
-				  	}
+					// Draw label border
+					this.ctx.strokeStyle = style.stroke;
+					this.ctx.lineWidth = 1;
+					this.ctx.stroke();
 
-				  	this.ctx.lineWidth = 1;
-				  	this.ctx.stroke();
+					// Draw label text
+					this.ctx.fillStyle = style.text;
+					this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+					this.ctx.shadowBlur = 2;
+					this.ctx.shadowOffsetX = 1;
+					this.ctx.shadowOffsetY = 1;
+					this.ctx.fillText(labelText, labelX, labelY);
 
-				  	// Draw text with shadow for depth
-				  	this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-				  	this.ctx.shadowBlur = 2;
-				  	this.ctx.shadowOffsetX = 1;
-				  	this.ctx.shadowOffsetY = 1;
-				  	this.ctx.fillText(labelText, labelX, labelY);
-
-				  	this.ctx.restore();
-				  	this.ctx.restore();
-				}
+					this.ctx.restore();
+				});
 			}
 
-			// Draw selected box (if any) on top of everything
-			if (
-			  this.bboxes &&
-			  Array.isArray(this.bboxes.boxes) &&
-			  typeof this.selectedBboxIndex === 'number' &&
-			  this.selectedBboxIndex >= 0 &&
-			  this.selectedBboxIndex < this.bboxes.boxes.length
-			) {
-			  // Save context to re-draw the selected box
-			  this.ctx.save();
-
-			  const box = this.bboxes.boxes[this.selectedBboxIndex];
-
-			  // Check if this is an uncertain box by flag or label
-			  const isUncertain = (this.bboxes.uncertain_flags &&
-                                 this.bboxes.uncertain_flags[this.selectedBboxIndex]) ||
-								 (this.bboxes.labels &&
-                                 this.bboxes.labels[this.selectedBboxIndex] === -1);
-
-			  // Check if this is a crowd box
-			  const isCrowd = this.bboxes.crowd_flags &&
-							  this.bboxes.crowd_flags[this.selectedBboxIndex];
-
-			  // Set stroke style based on box type
-			  if (isCrowd) {
-				  this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
-			  } else if (isUncertain) {
-				  this.ctx.strokeStyle = '#caa109'; // Yellow for uncertain boxes
-			  } else {
-				  this.ctx.strokeStyle = '#2196F3'; // Blue for normal selected boxes
-			  }
-
-			  this.ctx.lineWidth = 3;
-			  this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
-
-			  // Prepare label text based on whether it's uncertain or normal
-			  let labelText;
-
-			  if (isUncertain) {
-				  labelText = "Not Sure";
-			  } else {
-				  // Get regular label info
-				  let labelId = 0;
-				  if (this.bboxes.labels && this.bboxes.labels[this.selectedBboxIndex] !== undefined) {
-					labelId = this.bboxes.labels[this.selectedBboxIndex];
-				  }
-				  const labelName =
-					this.classLabels && this.classLabels[labelId] ? this.classLabels[labelId] : labelId;
-				  labelText = `${labelId} - ${labelName}`;
-			  }
-
-			  // Calculate label position similarly to the original drawing code
-			  const isAtTopEdge = box[1] <= 5;
-			  const labelX = box[0] + 5;
-			  const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5;
-
-			  // Save context for label drawing
-			  this.ctx.save();
-			  const fontSize = 14;
-			  const padding = 4;
-			  this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-			  const textWidth = this.ctx.measureText(labelText).width;
-			  const cornerRadius = 3;
-
-			  // Draw label background with different color based on box type
-			  if (isCrowd) {
-				this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
-			  } else if (isUncertain) {
-				this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
-			  } else {
-				this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for normal
-			  }
-
-			  this.ctx.beginPath();
-			  this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-			  this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-			  this.ctx.arcTo(
-				labelX + textWidth + padding,
-				labelY - fontSize - padding,
-				labelX + textWidth + padding,
-				labelY - fontSize - padding + cornerRadius,
-				cornerRadius
-			  );
-			  this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-			  this.ctx.arcTo(
-				labelX + textWidth + padding,
-				labelY + padding,
-				labelX + textWidth + padding - cornerRadius,
-				labelY + padding,
-				cornerRadius
-			  );
-			  this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-			  this.ctx.arcTo(
-				labelX - padding,
-				labelY + padding,
-				labelX - padding,
-				labelY + padding - cornerRadius,
-				cornerRadius
-			  );
-			  this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-			  this.ctx.arcTo(
-				labelX - padding,
-				labelY - fontSize - padding,
-				labelX - padding + cornerRadius,
-				labelY - fontSize - padding,
-				cornerRadius
-			  );
-			  this.ctx.closePath();
-			  this.ctx.fill();
-
-			  // Draw subtle border around label background
-			  if (isCrowd) {
-			  this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
-			  this.ctx.fillStyle = 'white'; // White text
-			  } else if (isUncertain) {
-				this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
-				this.ctx.fillStyle = 'black'; // Black text for uncertain (better contrast with yellow)
-			  } else {
-				this.ctx.strokeStyle = '#1565C0'; // Dark blue for normal
-				this.ctx.fillStyle = 'white'; // White text for normal
-			  }
-
-			  this.ctx.lineWidth = 1;
-			  this.ctx.stroke();
-
-			  // Draw the class label text with shadow for readability
-			  this.ctx.shadowColor = isUncertain ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
-			  this.ctx.shadowBlur = 2;
-			  this.ctx.shadowOffsetX = 1;
-			  this.ctx.shadowOffsetY = 1;
-			  this.ctx.fillText(labelText, labelX, labelY);
-			  this.ctx.restore();
-
-			  // Restore the canvas context
-			  this.ctx.restore();
-			}
-
-			// Draw temporary box if in drawing mode
 			if (inlineEditor.isDrawing && inlineEditor.tempBox) {
-			  // Use green for temporary box in normal mode, yellow in uncertainty mode
-			  this.ctx.strokeStyle = (inlineEditor.uncertaintyMode || window.uncertaintyMode) ? '#FFCC00' : '#00FF00';
-			  this.ctx.lineWidth = 2;
-			  this.ctx.strokeRect(
-				inlineEditor.tempBox[0],
-				inlineEditor.tempBox[1],
-				inlineEditor.tempBox[2] - inlineEditor.tempBox[0],
-				inlineEditor.tempBox[3] - inlineEditor.tempBox[1]
-			  );
+				this.ctx.strokeStyle = (inlineEditor.uncertaintyMode || window.uncertaintyMode) ? '#FFCC00' : '#00FF00';
+				this.ctx.lineWidth = 2;
+				this.ctx.strokeRect(
+					inlineEditor.tempBox[0],
+					inlineEditor.tempBox[1],
+					inlineEditor.tempBox[2] - inlineEditor.tempBox[0],
+					inlineEditor.tempBox[3] - inlineEditor.tempBox[1]
+				);
 			}
 		};
 
-		// Initialize UI
-		setupEnhancedClassSelector(); // Use the new enhanced class selector instead
+		setupEnhancedClassSelector();
 		updateBboxSelector();
 		setupEventHandlers();
 
-		// Setup image interactions - only if we found the canvas
 		if (inlineEditor.canvasElement) {
 			setupCanvasInteraction(inlineEditor.canvasElement);
 		}
 
-		// Update the hidden field with initial bbox data
 		updateHiddenBboxesField();
 
 		inlineEditor.initialized = true;
@@ -1492,6 +1324,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Update the checkbox based on crowd flag
 		updateCrowdCheckbox(boxIndex);
 
+		// Update the checkbox based on reflected object flag
+		updateReflectedCheckbox(boxIndex);
+
 		// Check if this is an uncertain box - either by flag or by label value
 		const isUncertain = (inlineEditor.bboxes.uncertain_flags &&
 							 inlineEditor.bboxes.uncertain_flags[boxIndex]) ||
@@ -1574,6 +1409,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		inlineCrowdCheckbox.addEventListener('change', handleCrowdCheckboxChange);
 	}
 
+	if (inlineReflectedCheckbox) {
+		inlineReflectedCheckbox.addEventListener('change', handleReflectedCheckboxChange);
+	}
+
 	function handleCrowdCheckboxChange() {
 		if (inlineEditor.currentBoxIndex < 0) return;
 
@@ -1613,6 +1452,45 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 
+	function handleReflectedCheckboxChange() {
+		if (inlineEditor.currentBoxIndex < 0) return;
+
+		// Update the reflected_flags array based on the checkbox state
+		inlineEditor.bboxes.reflected_flags[inlineEditor.currentBoxIndex] = inlineReflectedCheckbox.checked;
+
+		// Also update the checkbox in the advanced editor if it's open
+		const advancedReflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+		if (advancedReflectedCheckbox) {
+			advancedReflectedCheckbox.checked = inlineReflectedCheckbox.checked;
+			debug(`Synced advanced reflected checkbox to: ${inlineReflectedCheckbox.checked}`);
+		}
+
+		// Immediately redraw the canvas to show the updated box color
+		if (inlineEditor.editor) {
+			inlineEditor.editor.redrawCanvas();
+			debug(`Redrawing canvas after reflected checkbox change to ${inlineReflectedCheckbox.checked}`);
+		}
+
+		// Update hidden form field
+		updateHiddenBboxesField();
+
+		debug(`Updated reflected flag for box ${inlineEditor.currentBoxIndex} to: ${inlineReflectedCheckbox.checked}`);
+	}
+
+	function updateReflectedCheckbox(boxIndex) {
+		if (inlineReflectedCheckbox && inlineEditor.bboxes.reflected_flags) {
+			inlineReflectedCheckbox.checked = inlineEditor.bboxes.reflected_flags[boxIndex];
+			debug(`Set reflected checkbox to: ${inlineReflectedCheckbox.checked}`);
+
+			// Also update the advanced editor's checkbox if it exists
+			const advancedReflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+			if (advancedReflectedCheckbox) {
+				advancedReflectedCheckbox.checked = inlineEditor.bboxes.reflected_flags[boxIndex];
+				debug(`Synced advanced reflected checkbox to: ${inlineEditor.bboxes.reflected_flags[boxIndex]}`);
+			}
+		}
+	}
+
 	// Delete the current box
 	function deleteCurrentBox() {
 		if (inlineEditor.currentBoxIndex < 0 || !inlineEditor.bboxes ||
@@ -1634,6 +1512,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Remove crowd flag if it exists
 		if (inlineEditor.bboxes.crowd_flags) {
 			inlineEditor.bboxes.crowd_flags.splice(deletedIndex, 1);
+		}
+
+		// Remove reflected object flag if it exists
+		if (inlineEditor.bboxes.reflected_flags) {
+			inlineEditor.bboxes.reflected_flags.splice(deletedIndex, 1);
 		}
 
 		// Remove uncertain flag and possible_labels if they exist
@@ -1683,6 +1566,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		if (inlineEditor.bboxes.crowd_flags) {
 			inlineEditor.bboxes.crowd_flags = [];
+		}
+		if (inlineEditor.bboxes.reflected_flags) {
+			inlineEditor.bboxes.reflected_flags = [];
 		}
 		if (inlineEditor.bboxes.uncertain_flags) {
 			inlineEditor.bboxes.uncertain_flags = [];
@@ -1841,7 +1727,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			let bboxData = {
 				coordinates: box,
-				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i]
+				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
 			};
 
 			if (isUncertain) {
@@ -2244,6 +2131,10 @@ document.addEventListener('DOMContentLoaded', function() {
 						inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 					}
 
+					if (!inlineEditor.bboxes.reflected_flags) {
+						inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					}
+
 					if (!inlineEditor.bboxes.uncertain_flags) {
 						inlineEditor.bboxes.uncertain_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 					}
@@ -2267,6 +2158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// For uncertain boxes
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
+						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags[newBoxIndex] = true;
 
 						// Get selected classes for uncertainty
@@ -2309,6 +2201,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// For regular boxes
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
+						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags.push(false);
 						inlineEditor.bboxes.possible_labels.push([]);
 
@@ -2351,6 +2244,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Update UI
 					updateBboxSelector();
 					updateCrowdCheckbox(newBoxIndex);
+					updateReflectedCheckbox(newBoxIndex);
 
 					// Select the box to update UI elements properly
 					selectBox(newBoxIndex);

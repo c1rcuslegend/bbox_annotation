@@ -48,193 +48,52 @@ class BBoxEditor {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.drawImage(this.img, 0, 0);
 
-        // Make sure crowd_flags exists before drawing
-        if (this.bboxes && this.bboxes.boxes && !this.bboxes.crowd_flags) {
+        // Ensure crowd_flags and reflected_flags arrays exist
+        if (this.bboxes?.boxes && !this.bboxes.crowd_flags) {
             console.log("BBoxEditor: Initializing missing crowd_flags array");
             this.bboxes.crowd_flags = new Array(this.bboxes.boxes.length).fill(false);
         }
+        if (this.bboxes?.boxes && !this.bboxes.reflected_flags) {
+            console.log("BBoxEditor: Initializing missing reflected_flags array");
+            this.bboxes.reflected_flags = new Array(this.bboxes.boxes.length).fill(false);
+        }
 
-        // First draw non-selected boxes
-        this.bboxes.boxes.forEach((box, index) => {
-            // Skip the selected box - we'll draw it last for better z-ordering
-            if (index === this.selectedBboxIndex) return;
+        const getBoxStyle = (isCrowd, isReflected, isUncertain, isSelected) => {
+            const styles = {
+                normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
+                uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
+                crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
+                reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+                crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+                selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
+            };
 
-            // Check if this is an uncertain box - by flag or by label value of -1
-            const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[index]) ||
-                               (this.bboxes.labels && this.bboxes.labels[index] === -1);
+            if (isCrowd && isReflected) return styles.crowdReflected;
+            if (isReflected) return styles.reflected;
+            if (isCrowd) return styles.crowd;
+            if (isUncertain) return styles.uncertain;
+            if (isSelected) return styles.selected;
+            return styles.normal;
+        };
 
-            // Check if this is a crowd box
-            const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[index];
-
-            // Set color based on box type
-            if (isCrowd) {
-                this.ctx.strokeStyle = '#9C27B0'; // Purple for crowd boxes
-            } else if (isUncertain) {
-                this.ctx.strokeStyle = '#FFCC00'; // Yellow for uncertain
-            } else {
-                this.ctx.strokeStyle = '#e74c3c'; // Red for normal
-            }
-
+        const drawBox = (box, style, labelText, isAtTopEdge) => {
+            // Draw box
+            this.ctx.strokeStyle = style.stroke;
             this.ctx.lineWidth = 3;
             this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
-
-            // Check if box is at top edge
-            const isAtTopEdge = box[1] <= 5; // within 5px of top edge
-
-            // Position label inside the box if it's at top edge
-            const labelX = box[0] + 5; // Add small padding from left edge
-            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
-
-            // Prepare label text based on whether it's uncertain or regular
-            let labelText;
-
-            if (isUncertain) {
-                labelText = "Not Sure";
-            } else {
-                // Get label ID with fallback to gt field if needed
-                let labelId;
-                if (this.bboxes.labels && this.bboxes.labels[index] !== undefined) {
-                    labelId = this.bboxes.labels[index];
-                } else if (this.bboxes.gt && this.bboxes.gt[index] !== undefined) {
-                    labelId = this.bboxes.gt[index];
-                } else {
-                    labelId = 0; // Default fallback
-                }
-
-                // Prepare label text
-                const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-                labelText = `${labelId} - ${labelName}`;
-            }
-
-            // Save current context state
-            this.ctx.save();
-
-            // Text properties
-            const fontSize = 14;
-            const padding = 4;
-            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-            const textMetrics = this.ctx.measureText(labelText);
-            const textWidth = textMetrics.width;
-
-            // Background for better visibility - different colors for different types
-            if (isCrowd) {
-                this.ctx.fillStyle = 'rgba(156, 39, 176, 0.85)'; // Purple for crowd
-            } else if (isUncertain) {
-                this.ctx.fillStyle = 'rgba(255, 204, 0, 0.85)'; // Yellow for uncertain
-            } else {
-                this.ctx.fillStyle = 'rgba(231, 76, 60, 0.85)'; // Red for normal
-            }
-
-            // Draw rounded rectangle background
-            const cornerRadius = 3;
-            this.ctx.beginPath();
-            this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
-            this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
-            this.ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
-            this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
-            this.ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
-            this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
-            this.ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
-            this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
-            this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
-            this.ctx.closePath();
-            this.ctx.fill();
-
-            // Add a subtle border with different color based on box type
-            if (isCrowd) {
-                this.ctx.strokeStyle = '#7B1FA2'; // Dark purple for crowd
-                this.ctx.fillStyle = 'white'; // White text on purple background
-            } else if (isUncertain) {
-                this.ctx.strokeStyle = '#D4A700'; // Dark gold for uncertain
-                this.ctx.fillStyle = 'black'; // Black text on yellow background
-            } else {
-                this.ctx.strokeStyle = '#c0392b'; // Dark red for normal
-                this.ctx.fillStyle = 'white'; // White text on red background
-            }
-
-            this.ctx.lineWidth = 1;
-            this.ctx.stroke();
-
-            // Draw text with shadow for depth
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.shadowBlur = 2;
-            this.ctx.shadowOffsetX = 1;
-            this.ctx.shadowOffsetY = 1;
-            this.ctx.fillText(labelText, labelX, labelY);
-
-            // Restore context
-            this.ctx.restore();
-        });
-
-        // Draw the selected box last (if any) so it appears on top
-        if (this.selectedBboxIndex >= 0 && this.selectedBboxIndex < this.bboxes.boxes.length) {
-            const box = this.bboxes.boxes[this.selectedBboxIndex];
-
-            // Check if this is an uncertain box - by flag or by label value of -1
-            const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[this.selectedBboxIndex]) ||
-                               (this.bboxes.labels && this.bboxes.labels[this.selectedBboxIndex] === -1);
-
-            // Check if this is a crowd box
-            const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedBboxIndex];
-
-            // Set color based on box type (with highlight for selection)
-            if (isCrowd) {
-                this.ctx.strokeStyle = '#6A1B9A'; // Darker purple for selected crowd box
-            } else if (isUncertain) {
-                this.ctx.strokeStyle = '#B8860B'; // DarkGoldenRod for selected uncertain
-            } else {
-                this.ctx.strokeStyle = '#2196F3'; // Blue for normal selected
-            }
-
-            this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
-
-            // Check if box is at top edge
-            const isAtTopEdge = box[1] <= 5;
 
             // Position label
-            const labelX = box[0] + 5;
-            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5;
-
-            // Prepare label text based on whether it's uncertain or regular
-            let labelText;
-
-            if (isUncertain) {
-                labelText = "Not Sure";
-            } else {
-                // Get label ID with fallback
-                let labelId;
-                if (this.bboxes.labels && this.bboxes.labels[this.selectedBboxIndex] !== undefined) {
-                    labelId = this.bboxes.labels[this.selectedBboxIndex];
-                } else if (this.bboxes.gt && this.bboxes.gt[this.selectedBboxIndex] !== undefined) {
-                    labelId = this.bboxes.gt[this.selectedBboxIndex];
-                } else {
-                    labelId = 0;
-                }
-
-                const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-                labelText = `${labelId} - ${labelName}`;
-            }
-
-            // Save context
-            this.ctx.save();
-
-            // Text properties
-            const fontSize = 14;
             const padding = 4;
-            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const fontSize = 14;
+            const labelX = box[0] + 5; // Add small padding from left edge
+            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
             const textWidth = this.ctx.measureText(labelText).width;
 
-            // Background with different colors for different types
-            if (isCrowd) {
-                this.ctx.fillStyle = 'rgba(106, 27, 154, 0.85)'; // Dark purple for selected crowd
-            } else if (isUncertain) {
-                this.ctx.fillStyle = 'rgba(184, 134, 11, 0.85)'; // DarkGoldenRod for selected uncertain
-            } else {
-                this.ctx.fillStyle = 'rgba(33, 150, 243, 0.85)'; // Blue for normal selected
-            }
+            // Draw label background
+            this.ctx.save();
+            this.ctx.fillStyle = style.fill;
+            this.ctx.strokeStyle = style.stroke;
 
-            // Draw rounded rectangle background
             const cornerRadius = 3;
             this.ctx.beginPath();
             this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
@@ -248,31 +107,52 @@ class BBoxEditor {
             this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
             this.ctx.closePath();
             this.ctx.fill();
-
-            // Add subtle border
-            if (isCrowd) {
-                this.ctx.strokeStyle = '#4A148C'; // Very dark purple for selected crowd
-                this.ctx.fillStyle = 'white'; // White text
-            } else if (isUncertain) {
-                this.ctx.strokeStyle = '#8B6914'; // Even darker gold for uncertain
-                this.ctx.fillStyle = 'white'; // White text on dark gold
-            } else {
-                this.ctx.strokeStyle = '#1565C0'; // Dark blue for selected normal
-                this.ctx.fillStyle = 'white'; // White text on blue background
-            }
-
-            this.ctx.lineWidth = 1;
             this.ctx.stroke();
 
-            // Draw text
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            // Draw label text
+            this.ctx.fillStyle = style.text;
+            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            this.ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
             this.ctx.shadowBlur = 2;
             this.ctx.shadowOffsetX = 1;
             this.ctx.shadowOffsetY = 1;
             this.ctx.fillText(labelText, labelX, labelY);
-
-            // Restore context
             this.ctx.restore();
+        };
+
+        // Draw all boxes
+        this.bboxes.boxes.forEach((box, index) => {
+            const isUncertain = this.bboxes.uncertain_flags?.[index] || this.bboxes.labels?.[index] === -1;
+            const isCrowd = this.bboxes.crowd_flags?.[index];
+            const isReflected = this.bboxes.reflected_flags?.[index];
+            const isSelected = index === this.selectedBboxIndex;
+
+            // Skip selected box for now
+            if (isSelected) return;
+
+            const style = getBoxStyle(isCrowd, isReflected, isUncertain, false);
+            const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
+            const labelName = this.classLabels[labelId] || `Class ${labelId}`;
+            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            const isAtTopEdge = box[1] <= 5;  // within 5px of top edge
+
+            drawBox(box, style, labelText, isAtTopEdge);
+        });
+
+        // Draw the selected box (if any) last
+        if (this.selectedBboxIndex >= 0 && this.selectedBboxIndex < this.bboxes.boxes.length) {
+            const box = this.bboxes.boxes[this.selectedBboxIndex];
+            const isUncertain = this.bboxes.uncertain_flags?.[this.selectedBboxIndex] || this.bboxes.labels?.[this.selectedBboxIndex] === -1;
+            const isCrowd = this.bboxes.crowd_flags?.[this.selectedBboxIndex];
+            const isReflected = this.bboxes.reflected_flags?.[this.selectedBboxIndex];
+
+            const style = getBoxStyle(isCrowd, isReflected, isUncertain, true);
+            const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
+            const labelName = this.classLabels[labelId] || `Class ${labelId}`;
+            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            const isAtTopEdge = box[1] <= 5;
+
+            drawBox(box, style, labelText, isAtTopEdge);
         }
     }
 

@@ -114,6 +114,28 @@ function addUncertainBoxStyles() {
             font-weight: bold;
         }
         
+        /* Crowd Reflected box styles */
+        .bbox.crowd-reflected-box {
+            border: 2px solid #5E6DAD !important; /* Blue border for crowd reflected boxes */
+        }
+        
+        .bbox-label.crowd-reflected-label {
+            background-color: rgba(94, 109, 173, 0.85) !important; /* Blue background */
+            color: white !important; /* White text for better contrast on blue */
+            font-weight: bold;
+        }
+        
+        /* Reflected box styles */
+        .bbox.reflected-box {
+            border: 2px solid #20B2AA !important; /* Teal border for reflected boxes */
+        }
+        
+        .bbox-label.reflected-label {
+            background-color: rgba(32, 178, 170, 0.85) !important; /* Teal background */
+            color: white !important; /* White text for better contrast on teal */
+            font-weight: bold;
+        }
+        
         /* Crowd box styles */
         .bbox.crowd-box {
             border: 2px solid #9C27B0 !important; /* Purple border for crowd boxes */
@@ -245,11 +267,18 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
             // Check if this box is a crowd box
             const isCrowd = bboxData.crowd_flags && bboxData.crowd_flags[index];
 
+            // Check if this box is a reflected box
+            const isReflected = bboxData.reflected_flags && bboxData.reflected_flags[index];
+
             // Apply appropriate classes
-            if (isUncertain) {
-                bboxDiv.classList.add('uncertain-box');
+            if (isReflected && isCrowd) {
+                bboxDiv.classList.add('crowd-reflected-box');
+            } else if (isReflected) {
+                bboxDiv.classList.add('reflected-box');
             } else if (isCrowd) {
                 bboxDiv.classList.add('crowd-box');
+            } else if (isUncertain) {
+                bboxDiv.classList.add('uncertain-box');
             }
 
             bboxDiv.style.left = `${boxLeft}px`;
@@ -288,7 +317,12 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                 labelDiv.className = 'bbox-label';
 
                 // Add crowd-label class if it's a crowd box
-                if (isCrowd) {
+                // Add reflected-label class if it's a reflected box
+                if (isReflected && isCrowd) {
+                    labelDiv.classList.add('crowd-reflected-label');
+                } else if (isReflected) {
+                    labelDiv.classList.add('reflected-label');
+                } else if (isCrowd) {
                     labelDiv.classList.add('crowd-label');
                 }
 

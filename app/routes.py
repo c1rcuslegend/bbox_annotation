@@ -23,6 +23,7 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 'labels': [],
                 'gt': [],
                 'crowd_flags': [],
+                'reflected_flags': [],
                 'uncertain_flags': [],
                 'possible_labels': []
             }
@@ -37,6 +38,7 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 if 'gt' in bboxes_unprocessed:
                     result['gt'].append(bboxes_unprocessed['gt'][i])
                 result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i] if 'crowd_flags' in bboxes_unprocessed else False)
+                result['reflected_flags'].append(bboxes_unprocessed['reflected_flags'][i] if 'reflected_flags' in bboxes_unprocessed else False)
                 result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i] if 'uncertain_flags' in bboxes_unprocessed else False)
                 result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i] if 'possible_labels' in bboxes_unprocessed else [])
 
@@ -287,7 +289,7 @@ def register_routes(app):
                 borders[selected_index] = 'border-poss-m'
 
             # Process bounding box data for this image
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': []}
             if image_basename in man_annotated_bboxes_dict:
                 checked_labels.add(image_basename)
 
@@ -325,6 +327,10 @@ def register_routes(app):
                                 bboxes['crowd_flags'].append(bbox['crowd_flag'])
                             else:
                                 bboxes['crowd_flags'].append(False)
+                            if 'reflected_flag' in bbox:
+                                bboxes['reflected_flags'].append(bbox['reflected_flag'])
+                            else:
+                                bboxes['reflected_flags'].append(False)
             else:
                 # print ("we go for open clip data")
                 data = app.load_bbox_openclip_data(username)[image_basename]
@@ -334,6 +340,7 @@ def register_routes(app):
                     bboxes['labels'].append(label)
                     bboxes['scores'].append(score)
                     bboxes['crowd_flags'].append(False)
+                    bboxes['reflected_flags'].append(False)
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
 
@@ -501,6 +508,7 @@ def register_routes(app):
                     scores = []
                     labels = []
                     crowd_flags = []
+                    reflected_flags = []
                     uncertain_flags = []
                     possible_labels = []
 
@@ -513,6 +521,7 @@ def register_routes(app):
                         labels.append(label)
                         scores.append(100)
                         crowd_flags.append(bbox.get('crowd_flag', False))
+                        reflected_flags.append(bbox.get('reflected_flag', False))
                         uncertain_flags.append(bbox.get('uncertain_flag', False))
                         possible_labels.append(bbox.get('possible_label', []))
 
@@ -524,7 +533,14 @@ def register_routes(app):
                         checked_categories = [label_id for label_id in checked_labels if
                                               label_id in label_indices_to_label_names]
 
-                    bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags, 'uncertain_flags': uncertain_flags, 'possible_labels': possible_labels}
+                    bboxes = {'boxes': boxes,
+                              'scores': scores,
+                              'labels': labels,
+                              'crowd_flags': crowd_flags,
+                              'reflected_flags': reflected_flags,
+                              'uncertain_flags': uncertain_flags,
+                              'possible_labels': possible_labels
+                              }
                     bboxes_source = 'checkbox_selections_new_format'
                     print(f"Found {len(boxes)} bboxes in checkbox_selections")
 
@@ -537,6 +553,7 @@ def register_routes(app):
                 scores = []
                 labels = []
                 crowd_flags = []
+                reflected_flags = []
                 uncertain_flags = []
                 possible_labels = []
                 checked_labels = set()
@@ -547,6 +564,7 @@ def register_routes(app):
                     labels.append(label)
                     scores.append(100)  # Default high confidence score
                     crowd_flags.append(bbox.get('crowd_flag', False))
+                    reflected_flags.append(bbox.get('reflected_flag', False))
                     uncertain_flags.append(bbox.get('uncertain_flag', False))
                     possible_labels.append(bbox.get('possible_label', []))
 
@@ -557,7 +575,14 @@ def register_routes(app):
                 checked_categories = [label_id for label_id in checked_labels if
                                       label_id in label_indices_to_label_names]
 
-                bboxes = {'boxes': boxes, 'scores': scores, 'labels': labels, 'crowd_flags': crowd_flags, 'uncertain_flags': uncertain_flags, 'possible_labels': possible_labels}
+                bboxes = {'boxes': boxes,
+                          'scores': scores,
+                          'labels': labels,
+                          'crowd_flags': crowd_flags,
+                          'reflected_flags': reflected_flags,
+                          'uncertain_flags': uncertain_flags,
+                          'possible_labels': possible_labels
+                          }
                 bboxes_source = 'checkbox_selections_legacy'
                 print(f"Found {len(boxes)} bboxes in annotator format")
 
@@ -575,12 +600,13 @@ def register_routes(app):
 
                 bboxes = bbox_data
                 bboxes['crowd_flags'] = [False for i in range(len(bboxes['boxes']))]
+                bboxes['reflected_flags'] = [False for i in range(len(bboxes['boxes']))]
                 bboxes['labels'] = [str(gt) for gt in bboxes['gt']]
                 bboxes_source = 'general_bboxes'
 
         # If still no bboxes, create empty structure
         if bboxes is None:
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'uncertain_flags': [], 'possible_labels': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'uncertain_flags': [], 'possible_labels': []}
             bboxes_source = 'empty'
             print(f"No bboxes found for {current_image}")
 
@@ -913,7 +939,8 @@ def register_routes(app):
                 new_bbox = {
                     'coordinates': [10, 10, 50, 50],
                     'label': int(checkbox_value),
-                    'crowd_flag': False
+                    'crowd_flag': False,
+                    'reflected_flag': False,
                 }
                 new_bboxes.append(new_bbox)
 
