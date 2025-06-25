@@ -709,8 +709,9 @@ def register_routes(app):
                 print(f"No boxes above threshold for {base_name}. Including highest score box {highest_score_idx}")
 
             checkbox_selections[base_name]['bboxes'] = [
-                {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
-                for box, include in zip(bboxes, above_threshold) if include
+                {"coordinates": box, "label": bboxes_dict[base_name]['gt'][i] if 'gt' in bboxes_dict[base_name] else
+                checked_image_base_labels[checked_images_count]}
+                for i, (box, include) in enumerate(zip(bboxes, above_threshold)) if include
             ]
             checkbox_selections[base_name]['label_type'] = 'basic'
             checked_images_count += 1
@@ -865,8 +866,10 @@ def register_routes(app):
 
                 if checked_images_count < len(checked_image_base_labels):
                     checkbox_selections[base_name]['bboxes'] = [
-                        {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
-                        for box, include in zip(bboxes, above_threshold) if include
+                        {"coordinates": box,
+                         "label": bboxes_dict[base_name]['gt'][i] if 'gt' in bboxes_dict[base_name] else
+                         checked_image_base_labels[checked_images_count]}
+                        for i, (box, include) in enumerate(zip(bboxes, above_threshold)) if include
                     ]
                     checkbox_selections[base_name]['label_type'] = 'basic'
                     checked_images_count += 1
@@ -1123,8 +1126,10 @@ def register_routes(app):
 
                     if checked_images_count < len(checked_image_base_labels):
                         checkbox_selections[base_name]['bboxes'] = [
-                            {"coordinates": box, "label": checked_image_base_labels[checked_images_count]}
-                            for box, include in zip(bboxes, above_threshold) if include
+                            {"coordinates": box,
+                             "label": bboxes_dict[base_name]['gt'][i] if 'gt' in bboxes_dict[base_name] else
+                             checked_image_base_labels[checked_images_count]}
+                            for i, (box, include) in enumerate(zip(bboxes, above_threshold)) if include
                         ]
                         checkbox_selections[base_name]['label_type'] = 'basic'
                         checked_images_count += 1
