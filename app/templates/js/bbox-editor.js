@@ -83,18 +83,19 @@ class BBoxEditor {
             this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
 
             // Position label
-            const padding = 4;
-            const fontSize = 14;
-            const labelX = box[0] + 5; // Add small padding from left edge
-            const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
-            const textWidth = this.ctx.measureText(labelText).width;
+            const padding = 3;
+            const fontSize = 12; 
+            const labelX = box[0] + 3; // Slightly reduced offset
+            const labelY = isAtTopEdge ? box[1] + 16 : box[1] - 3; // Adjusted for smaller font
 
             // Draw label background
             this.ctx.save();
+            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`; // Set font BEFORE measuring
+            const textWidth = this.ctx.measureText(labelText).width; // Measure AFTER setting font
             this.ctx.fillStyle = style.fill;
             this.ctx.strokeStyle = style.stroke;
 
-            const cornerRadius = 3;
+            const cornerRadius = 2; // Smaller radius for smaller font
             this.ctx.beginPath();
             this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
             this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
@@ -111,11 +112,10 @@ class BBoxEditor {
 
             // Draw label text
             this.ctx.fillStyle = style.text;
-            this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-            this.ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-            this.ctx.shadowBlur = 2;
-            this.ctx.shadowOffsetX = 1;
-            this.ctx.shadowOffsetY = 1;
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; // Slightly reduced shadow opacity
+            this.ctx.shadowBlur = 1; // Reduced shadow blur for smaller text
+            this.ctx.shadowOffsetX = 0.5; // Smaller shadow offset
+            this.ctx.shadowOffsetY = 0.5;
             this.ctx.fillText(labelText, labelX, labelY);
             this.ctx.restore();
         };
@@ -133,7 +133,13 @@ class BBoxEditor {
             const style = getBoxStyle(isCrowd, isReflected, isUncertain, false);
             const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            let labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            // Limit label text to 30 characters
+            if (labelText.length > 30) {
+                labelText = labelText.substring(0, 27) + '...';
+            }
+            
             const isAtTopEdge = box[1] <= 5;  // within 5px of top edge
 
             drawBox(box, style, labelText, isAtTopEdge);
@@ -149,7 +155,13 @@ class BBoxEditor {
             const style = getBoxStyle(isCrowd, isReflected, isUncertain, true);
             const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            let labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            // Limit label text to 30 characters
+            if (labelText.length > 30) {
+                labelText = labelText.substring(0, 27) + '...';
+            }
+            
             const isAtTopEdge = box[1] <= 5;
 
             drawBox(box, style, labelText, isAtTopEdge);
@@ -225,8 +237,8 @@ initializeNotSureBoxes() {
                                      Math.abs(box[3] - this.canvas.height) <= 5;
 
                 // Position label inside the box if it's at top edge
-                const labelX = box[0] + 5; // Add small padding from left edge
-                const labelY = isAtTopEdge ? box[1] + 20 : box[1] - 5; // Move label inside box if at top edge
+                const labelX = box[0] + 3; // Slightly reduced offset
+                const labelY = isAtTopEdge ? box[1] + 16 : box[1] - 3; // Adjusted for smaller font
 
 
                 // Get label ID with fallback to gt field if needed
@@ -241,15 +253,20 @@ initializeNotSureBoxes() {
                 }
 
                 // Prepare label text
-                const labelName = this.classLabels[labelId] || labelId;
-                const labelText = `${labelId} - ${labelName}`; // Simplified format
+                const labelName = this.classLabels[labelId] || `Class ${labelId}`;
+                let labelText = `${labelId} - ${labelName}`; // Simplified format
+                
+                // Limit label text to 30 characters
+                if (labelText.length > 30) {
+                    labelText = labelText.substring(0, 27) + '...';
+                }
 
                 // Save current context state
                 this.ctx.save();
 
                 // Text properties
-                const fontSize = 14;
-                const padding = 4;
+                const fontSize = 12; 
+                const padding = 3;
                 this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
                 const textMetrics = this.ctx.measureText(labelText);
                 const textWidth = textMetrics.width;
@@ -258,7 +275,7 @@ initializeNotSureBoxes() {
                 this.ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
 
                 // Draw rounded rectangle background
-                const cornerRadius = 3;
+                const cornerRadius = 2; // Smaller radius for smaller font
                 this.ctx.beginPath();
                 this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
                 this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
@@ -279,10 +296,10 @@ initializeNotSureBoxes() {
 
                 // Draw text with shadow for depth
                 this.ctx.fillStyle = 'white';
-                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                this.ctx.shadowBlur = 2;
-                this.ctx.shadowOffsetX = 1;
-                this.ctx.shadowOffsetY = 1;
+                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; // Slightly reduced shadow opacity
+                this.ctx.shadowBlur = 1; // Reduced shadow blur for smaller text
+                this.ctx.shadowOffsetX = 0.5; // Smaller shadow offset
+                this.ctx.shadowOffsetY = 0.5;
                 this.ctx.fillText(labelText, labelX, labelY);
 
                 // Restore context

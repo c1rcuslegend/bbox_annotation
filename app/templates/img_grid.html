@@ -65,7 +65,7 @@
         <div class="image-display">
             <div class="class-info-container">
                 <div class="superclass-info">
-                    <div class="cluster-name-title">Superclass: {{ cluster_name }}</div>
+                    <div class="cluster-name-title">Class Group: {{ cluster_name }}</div>
 
                     <!-- Class counter with dropdown -->
                     <div class="class-counter dropdown-trigger">
@@ -182,7 +182,7 @@
                 <!-- Cluster dropdown -->
                 <div class="cluster-dropdown">
                     <select id="clusterJump" onchange="jumpToCluster(this.value)">
-                        <option value="">Jump to Cluster...</option>
+                        <option value="">Jump to Group...</option>
                         {% for cluster_name, classes in clusters.items()|sort %}
                             <option value="{{ cluster_name }}">{{ cluster_name }} ({{ classes|length }} classes)</option>
                         {% endfor %}

@@ -851,19 +851,26 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Prepare label text
 					const labelId = this.bboxes.labels?.[i] ?? (this.bboxes.gt?.[i] ?? 0);
 					const labelName = this.classLabels?.[labelId] ?? `Class ${labelId}`;
-					const labelText = isUncertain ? 'Not Sure' : `${labelId} - ${labelName}`;
+					let labelText = isUncertain ? 'Not Sure' : `${labelId} - ${labelName}`;
+					
+					// Limit label text to 30 characters
+					if (labelText.length > 30) {
+						labelText = labelText.substring(0, 27) + '...';
+					}
 
-					// Draw the label
-					const fontSize = 14;
-					const padding = 4;
-					const textWidth = this.ctx.measureText(labelText).width;
-					const cornerRadius = 3;
-
-					const labelX = box[0] + 5;
-					const labelY = box[1] <= 5 ? box[1] + 20 : box[1] - 5;
-
+					// Draw the label with smaller font
+					const fontSize = 12; // Reduced from 14 to 10
+					const padding = 3; // Slightly reduced padding
+					
 					this.ctx.save();
 					this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+					
+					// Measure text width after setting font
+					const textWidth = this.ctx.measureText(labelText).width;
+					const cornerRadius = 2; // Smaller radius for smaller font
+
+					const labelX = box[0] + 3; // Slightly reduced offset
+					const labelY = box[1] <= 5 ? box[1] + 16 : box[1] - 3; // Adjusted for smaller font
 
 					// Draw label background
 					this.ctx.fillStyle = style.fill;
@@ -887,10 +894,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 					// Draw label text
 					this.ctx.fillStyle = style.text;
-					this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-					this.ctx.shadowBlur = 2;
-					this.ctx.shadowOffsetX = 1;
-					this.ctx.shadowOffsetY = 1;
+					this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; // Slightly reduced shadow opacity
+					this.ctx.shadowBlur = 1; // Reduced shadow blur for smaller text
+					this.ctx.shadowOffsetX = 0.5; // Smaller shadow offset
+					this.ctx.shadowOffsetY = 0.5;
 					this.ctx.fillText(labelText, labelX, labelY);
 
 					this.ctx.restore();

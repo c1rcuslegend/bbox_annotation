@@ -160,7 +160,7 @@ function initClusterDropdown() {
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.className = 'select-search';
-    searchInput.placeholder = 'Search or select a cluster...';
+    searchInput.placeholder = 'Search or select a group...';
     searchInput.autocomplete = 'off';
 
     // Create dropdown icon

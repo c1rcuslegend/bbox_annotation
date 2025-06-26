@@ -158,13 +158,13 @@ def load_user_specific_data(username, app):
     ------------
     This function loads two JSON files from the user's directory within `ANNOTATORS_ROOT_DIRECTORY`:
 
-    1. `predictions_{username}.json`: Contains information for each label proposal for the image to be annotated.
+    1. `predictions.json`: Contains information for each label proposal for the image to be annotated.
     2. `sample_images_info.json`: Contains information about the sample images to be displayed alongside the
     image to be annotated.
     """
     # Load JSON files
-    proposals_infofile = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f"predictions_{username}.json")
-    all_sample_images_file = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, "sample_images_info.json")
+    proposals_infofile = os.path.join(app.config['GT_DATA_ROOT_DIRECTORY'], f"predictions.json")
+    all_sample_images_file = os.path.join(app.config['GT_DATA_ROOT_DIRECTORY'], "sample_images_info.json")
 
     proposals_info = read_json_file(proposals_infofile, app)
     all_sample_images = read_json_file(all_sample_images_file, app)
@@ -181,16 +181,14 @@ def get_form_data():
     image_name = request.form.get('image_name')
     checkbox_values = request.form.getlist('checkboxes')
     direction = request.form.get('direction')
-    comments = request.form.get('comments')
-    return image_name, checkbox_values, direction, comments
+    return image_name, checkbox_values, direction
 
 
 def load_user_data(app, username):
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
-    comments_json = load_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)))
     checkbox_selections = load_json_data(os.path.join(results_dir, username,
                                                       'checkbox_selections_{}.json'.format(username)))
-    return comments_json, checkbox_selections
+    return checkbox_selections
 
 
 def load_json_data(file_path):
@@ -231,10 +229,8 @@ def update_current_image_index_simple(app, username, current_image_index_dct, cu
         f.write(str(current_image_index_dct[username]))
 
 
-def save_user_data(app, username, comments_json=None, checkbox_selections=None):
+def save_user_data(app, username, checkbox_selections=None):
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
-    if comments_json is not None:
-        save_json_data(os.path.join(results_dir, username, 'comments_{}.json'.format(username)), comments_json)
     if checkbox_selections is not None:
         save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
                        checkbox_selections)
@@ -247,8 +243,8 @@ def save_json_data(file_path, data):
 
 def check_user_files_exist(app, username):
     # Define the paths to the required files
-    proposals_infofile = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f"predictions_{username}.json")
-    all_sample_images_file = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, "sample_images_info.json")
+    proposals_infofile = os.path.join(app.config['GT_DATA_ROOT_DIRECTORY'], f"predictions.json")
+    all_sample_images_file = os.path.join(app.config['GT_DATA_ROOT_DIRECTORY'], "sample_images_info.json")
 
     # Check if both files exist
     files_exist = True

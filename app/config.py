@@ -1,7 +1,7 @@
 # config.py
 import os
 
-USERNAME = "gonikisgo"
+USERNAME = "c1rcuslegend"
 
 # App Port to run on
 PORT_NUMBER = 9000
@@ -13,10 +13,11 @@ STATIC_FOLDER = 'static'
 # Allowed extensions
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'JPEG', 'png', 'webp', 'avif'}
 
-# Root directory containing the annotator directories
+# Root directories containing the annotator directories and ground truth data respectively.
 # Each annotator directory must be named after the annotator's username and should contain:
-# A file named predictions_<username>.json and sample_images_info.json
+# Gt data shoul contain: A file named predictions_<username>.json and sample_images_info.json
 ANNOTATORS_ROOT_DIRECTORY = os.path.join(APP_ROOT_FOLDER, "demo_data", "annotator_dirs")
+GT_DATA_ROOT_DIRECTORY = os.path.join(APP_ROOT_FOLDER, "gt_data")
 
 # THRESHOLD for the bounding boxes
 THRESHOLD = 50

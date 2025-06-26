@@ -466,17 +466,6 @@ body {
     margin-bottom: 10px;
 }
 
-.comments-container textarea {
-    width: 90%;
-    resize: vertical;
-    border: 2px solid #dfe6e9;
-    border-radius: 4px; /* Changed from 6px for consistency */
-    padding: 10px;
-    font-size: 14px;
-    font-family: Arial, sans-serif;
-    margin: 0 0 10px 0;
-}
-
 /* Feedback buttons styles */
 .feedback-buttons {
     display: flex;

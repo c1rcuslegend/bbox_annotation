@@ -173,8 +173,7 @@ def register_routes(app):
         """Helper function to load bbox data for a specific image"""
         if username not in app.bbox_openclip_data:
             # Load entire file for this user
-            bbox_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'],
-                                          username, f'bboxes_{username}.json')
+            bbox_file_path = os.path.join(app.config['GT_DATA_ROOT_DIRECTORY'], 'bboxes.json')
             app.bbox_openclip_data[username] = get_bboxes_from_file(bbox_file_path)
 
         # Return data for specific image if exists
@@ -476,14 +475,10 @@ def register_routes(app):
 
         # Load user data directly from file every time (no caching)
         try:
-            comments_json, checkbox_selections = load_user_data(app, username)
+            checkbox_selections = load_user_data(app, username)
         except Exception as e:
             app.logger.error(f"Error loading user data for {username}: {str(e)}")
-            comments_json = {}
             checkbox_selections = {}
-
-        # Get comments
-        comments = comments_json.get(current_image, '')
 
         # Get checked categories and bboxes
         checked_categories = []
@@ -645,7 +640,7 @@ def register_routes(app):
                                    class_dict.get_val_img_class(current_image)),
                                ground_truth_class_index=class_dict.get_val_img_class(current_image),
                                checked_categories=checked_categories,
-                               comments=comments,
+                               comments={},
                                human_readable_classes_map=label_indices_to_human_readable,
                                current_image_index=current_image_index,
                                num_similar_images=app.config['NUM_EXAMPLES_PER_CLASS'],
@@ -665,7 +660,7 @@ def register_routes(app):
         import timeit
         start = timeit.default_timer()
 
-        image_paths, checkbox_values, direction, _ = get_form_data()
+        image_paths, checkbox_values, direction = get_form_data()
 
         print(f"Saving grid data for user {username} with direction {direction}")
 
@@ -676,7 +671,7 @@ def register_routes(app):
         checked_image_base_names = [os.path.basename(path) for path in [temp.split('|')[0] for temp in checkbox_values]]
 
         # Load user data
-        _, checkbox_selections = load_user_data(app, username)
+        checkbox_selections = load_user_data(app, username)
         bboxes_dict = app.load_bbox_openclip_data(username)
         man_annotated_bboxes_dict = read_json_file(
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
@@ -780,7 +775,7 @@ def register_routes(app):
         start = timeit.default_timer()
 
         # Get form data - same as in save_grid
-        image_paths, checkbox_values, direction, _ = get_form_data()
+        image_paths, checkbox_values, direction = get_form_data()
 
         # Get the target image_index or class/cluster
         image_index = request.form.get('image_index')
@@ -830,7 +825,7 @@ def register_routes(app):
                                         [temp.split('|')[0] for temp in checkbox_values]]
 
         # Load user data
-        _, checkbox_selections = load_user_data(app, username)
+        checkbox_selections = load_user_data(app, username)
         bboxes_dict = app.load_bbox_openclip_data(username)
         man_annotated_bboxes_dict = read_json_file(
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
@@ -896,7 +891,7 @@ def register_routes(app):
         start = timeit.default_timer()
 
         # Get form data
-        image_name, checkbox_values, direction, comments = get_form_data()
+        image_name, checkbox_values, direction = get_form_data()
 
         # Extract the base image name - we only save with base image name as key
         base_image_name = os.path.basename(image_name)
@@ -919,8 +914,7 @@ def register_routes(app):
                 bboxes = []
 
         # Load and update user data
-        comments_json, checkbox_selections = load_user_data(app, username)
-        comments_json[base_image_name] = comments
+        checkbox_selections = load_user_data(app, username)
 
         # Create or update the image data structure
         # If there are bboxes, use those
@@ -1031,7 +1025,7 @@ def register_routes(app):
             base_image_name = os.path.basename(image_name)
 
             # Load existing checkbox selections
-            _, checkbox_selections = load_user_data(app, username)
+            checkbox_selections = load_user_data(app, username)
 
             # Check if we already have label_type info for this image
             label_type = "basic" if not is_uncertain else "uncertain"
@@ -1063,7 +1057,7 @@ def register_routes(app):
         start = timeit.default_timer()
 
         # Get form data - same as in save_grid
-        image_paths, checkbox_values, direction, _ = get_form_data()
+        image_paths, checkbox_values, direction = get_form_data()
 
         # Get the cluster name
         cluster_name = request.form.get('cluster_name')
@@ -1090,7 +1084,7 @@ def register_routes(app):
                                             [temp.split('|')[0] for temp in checkbox_values]]
 
             # Load user data
-            _, checkbox_selections = load_user_data(app, username)
+            checkbox_selections = load_user_data(app, username)
             bboxes_dict = app.load_bbox_openclip_data(username)
             man_annotated_bboxes_dict = read_json_file(
                 os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
