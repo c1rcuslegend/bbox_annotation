@@ -220,7 +220,7 @@
                 <div class="comments-container">
                     <div class="feedback-buttons">
                         <button id="not-sure-btn" class="feedback-btn not-sure-btn">Not sure</button>
-                        <button id="none-proposed-btn" class="feedback-btn none-proposed-btn">None of the proposed</button>
+                        <button id="none-proposed-btn" class="feedback-btn none-proposed-btn">None of ImageNet classes</button>
                     </div>
                 </div>
             </div>
@@ -397,5 +397,50 @@
     <div id="ground-truth-data" style="display:none;">{{ ground_truth_class_index|default(0) }}</div>
     <script id="bbox-data" type="application/json">{{ bboxes|tojson }}</script>
     <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
+
+    <!-- Keyboard Navigation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add keyboard event listener for navigation
+            document.addEventListener('keydown', function(event) {
+                // Only trigger navigation if not typing in an input field (but allow for checkboxes and radio buttons)
+                if ((event.target.tagName === 'INPUT' && event.target.type !== 'checkbox' && event.target.type !== 'radio') || 
+                    event.target.tagName === 'TEXTAREA' || 
+                    event.target.tagName === 'SELECT') {
+                    return;
+                }
+
+                // Left Arrow or 'A' key - Previous
+                if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
+                    event.preventDefault();
+                    change('prev');
+                    document.getElementById('save').submit();
+                }
+                
+                // Right Arrow or 'D' key - Next
+                else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+                    event.preventDefault();
+                    change('next');
+                    document.getElementById('save').submit();
+                }
+
+                // ESC key - Toggle "All images" button (same as clicking it)
+                else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    saveAndGoBack('{{ username }}');
+                }
+            });
+
+            // Remove focus from checkboxes and radio buttons after clicking to restore keyboard navigation
+            document.addEventListener('click', function(event) {
+                if (event.target.tagName === 'INPUT' && 
+                    (event.target.type === 'checkbox' || event.target.type === 'radio')) {
+                    setTimeout(function() {
+                        event.target.blur();
+                    }, 50);
+                }
+            });
+        });
+    </script>
 </body>
 </html>

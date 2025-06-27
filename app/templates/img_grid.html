@@ -206,5 +206,47 @@
         <span id="num-corrected-images">{{ num_corrected_images }}</span>
         <span id="current-cluster-name">{{ cluster_name }}</span>
     </div>
+
+    <!-- Keyboard Navigation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add keyboard event listener for arrow navigation
+            document.addEventListener('keydown', function(event) {
+                // Only trigger navigation if not typing in an input field (but allow for checkboxes)
+                if ((event.target.tagName === 'INPUT' && event.target.type !== 'checkbox') || 
+                    event.target.tagName === 'TEXTAREA' || 
+                    event.target.tagName === 'SELECT') {
+                    return;
+                }
+
+                // Left Arrow or 'A' key - Previous
+                if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
+                    event.preventDefault();
+                    change('prev');
+                    document.getElementById('save').submit();
+                }
+                
+                // Right Arrow or 'D' key - Next
+                else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+                    event.preventDefault();
+                    change('next');
+                    document.getElementById('save').submit();
+                }
+            });
+
+            // Remove focus from checkboxes after clicking to restore keyboard navigation
+            document.addEventListener('click', function(event) {
+                if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                    // Small delay to ensure the checkbox state change is processed
+                    setTimeout(function() {
+                        event.target.blur();
+                    }, 50);
+                }
+            });
+
+            // Show keyboard shortcuts hint
+            console.log('Keyboard Navigation: Use ← → arrow keys or A/D keys to navigate between image sets');
+        });
+    </script>
 </body>
 </html>

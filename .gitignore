@@ -7,3 +7,4 @@ app/demo_data/annotator_dirs/demo/current_image_index_demo.txt
 static
 app.log
 .vscode/launch.json
+app/gt_data/predictions.json
