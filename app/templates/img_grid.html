@@ -155,6 +155,16 @@
                 </div>
                 <div id="progress-text" class="progress-text"></div>
             </div>
+
+            <!-- Google Drive buttons -->
+            <div class="drive-buttons-wrapper">
+                <button type="button" class="drive-btn upload-btn" onclick="uploadToDrive()">
+                    <span class="btn-icon">☁↑</span> Upload Data
+                </button>
+                <button type="button" class="drive-btn download-btn" onclick="downloadFromDrive()">
+                    <span class="btn-icon">☁↓</span> Download Data
+                </button>
+            </div>
         </div>
 
         <!-- Class Jump Dropdown -->
@@ -247,6 +257,157 @@
             // Show keyboard shortcuts hint
             console.log('Keyboard Navigation: Use ← → arrow keys or A/D keys to navigate between image sets');
         });
+
+        // Google Drive functionality
+        function uploadToDrive() {
+            if (confirm('Upload your annotation data to Google Drive? This may take a moment.')) {
+                showDriveStatus('Saving current grid data...', 'info');
+                
+                // First, save the current grid data using the existing form
+                const saveForm = document.getElementById('save');
+                const formData = new FormData(saveForm);
+                formData.set('direction', 'stay'); // Don't navigate, just save
+                
+                // Save grid data first
+                fetch(saveForm.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Grid data saved successfully, now upload to Google Drive
+                        showDriveStatus('Grid data saved. Uploading to Google Drive...', 'info');
+                        
+                        return fetch(`/upload_to_drive`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                    } else {
+                        throw new Error('Failed to save grid data');
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showDriveStatus(data.message, 'success');
+                    } else {
+                        showDriveStatus('Upload failed: ' + (data.message || 'Unknown error'), 'error');
+                        console.error('Upload errors:', data.errors);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    if (error.message === 'Failed to save grid data') {
+                        showDriveStatus('Failed to save grid data before upload', 'error');
+                    } else {
+                        showDriveStatus('Upload failed: Network error', 'error');
+                    }
+                });
+            }
+        }
+
+        function downloadFromDrive() {
+            if (confirm('Download your annotation data from Google Drive? This will overwrite local data.')) {
+                showDriveStatus('Downloading from Google Drive...', 'info');
+                
+                fetch(`/download_from_drive`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showDriveStatus(data.message, 'success');
+                        if (data.reload_page) {
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    } else {
+                        showDriveStatus('Download failed: ' + (data.message || 'Unknown error'), 'error');
+                        console.error('Download errors:', data.errors);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showDriveStatus('Download failed: Network error', 'error');
+                });
+            }
+        }
+
+        function showDriveStatus(message, type) {
+            // Remove any existing status message
+            const existingStatus = document.querySelector('.drive-status');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+
+            // Create status message element
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `drive-status drive-status-${type}`;
+            statusDiv.textContent = message;
+            
+            // Style the status message
+            statusDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                padding: 12px 20px;
+                border-radius: 6px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                max-width: 300px;
+                animation: slideIn 0.3s ease-out;
+            `;
+
+            // Set background color based on type
+            switch(type) {
+                case 'success':
+                    statusDiv.style.backgroundColor = '#4CAF50';
+                    break;
+                case 'error':
+                    statusDiv.style.backgroundColor = '#f44336';
+                    break;
+                case 'info':
+                    statusDiv.style.backgroundColor = '#2196F3';
+                    break;
+            }
+
+            document.body.appendChild(statusDiv);
+
+            // Auto-remove after 5 seconds (except for info messages)
+            if (type !== 'info') {
+                setTimeout(() => {
+                    if (statusDiv.parentNode) {
+                        statusDiv.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Check Google Drive status on page load
+        fetch(`/check_drive_status`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.available) {
+                    // Disable Google Drive buttons if not available
+                    const driveButtons = document.querySelectorAll('.drive-btn');
+                    driveButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.title = data.reason || 'Google Drive not available';
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    });
+                }
+            })
+            .catch(error => {
+                console.warn('Could not check Google Drive status:', error);
+            });
     </script>
 </body>
 </html>

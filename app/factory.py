@@ -8,6 +8,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
 
+    # Add USERNAME to app config for easy access
+    app.config['USERNAME'] = config.USERNAME
+    app.config['GOOGLE_DRIVE_FOLDER_ID'] = getattr(config, 'GOOGLE_DRIVE_FOLDER_ID', None)
+
     # reconfigure static folder
     app.static_folder = app.config['STATIC_FOLDER']
 
