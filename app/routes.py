@@ -1306,6 +1306,8 @@ def register_routes(app):
             # Get folder ID from config if specified
             folder_id = app.config.get('GOOGLE_DRIVE_FOLDER_ID')
 
+            app.logger.info(f"Google Drive upload for user {username} started. Data directory: {user_data_dir}, Folder ID: {folder_id}")
+            
             # Upload data to Google Drive
             upload_results = drive_service.upload_user_data(username, user_data_dir, folder_id)
 
@@ -1382,7 +1384,7 @@ def register_routes(app):
                 
                 return jsonify({
                     'success': True,
-                    'message': f"Successfully downloaded {len(download_results['downloaded_files'])} files from Google Drive",
+                    'message': f"Successfully downloaded file from Google Drive",
                     'downloaded_files': download_results['downloaded_files'],
                     'reload_page': True  # Signal frontend to reload
                 })

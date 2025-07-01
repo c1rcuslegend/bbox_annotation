@@ -66,7 +66,7 @@ GOOGLE_DRIVE_TOKEN_FILE = os.path.join(APP_ROOT_FOLDER, 'token.json')
 # If None, files will be saved to root or auto-created Multilabelfy_Data folder
 # To get the folder ID, open the folder in Google Drive and copy the ID from the URL
 # Example: https://drive.google.com/drive/folders/YOUR_FOLDER_ID_HERE
-GOOGLE_DRIVE_FOLDER_ID = "1qC6JwxGajTUb1_Mp3r-9FjTq8DebSrXW"  # Set this to your specific folder ID if you want to save to a specific folder
+GOOGLE_DRIVE_FOLDER_ID = "134YdKmKQdWyNPYdz-Q-cu5dHFrTpj_rc"  # Set this to your specific folder ID if you want to save to a specific folder
 # TODO: CHANGE THIS TO YOUR FOLDER ID
 
 # Number of examples per class
