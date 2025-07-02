@@ -153,7 +153,7 @@ function addUncertainBoxStyles() {
 
 // Function to render bounding boxes for all images
 function renderAllBoundingBoxes() {
-    const imageContainers = document.querySelectorAll('.image-container');
+    const imageContainers = document.querySelectorAll('.image-container, .image-container-row');
     imageContainers.forEach(container => {
         const imageIndex = container.getAttribute('data-index');
         const bboxDataScript = container.querySelector('.bbox-data');

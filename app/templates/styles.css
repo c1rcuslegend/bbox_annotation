@@ -1696,3 +1696,421 @@ body {
     background-color: #e0f0ff;
     font-weight: bold;
 }
+
+/* Class and Cluster Information - inline with navigation */
+.class-info-inline {
+    text-align: center;
+}
+
+.class-info-inline h2 {
+    margin: 0 0 2px 0;
+    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.class-info-inline h3 {
+    margin: 0;
+    color: #666;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.layout-container-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    background-color: white;
+}
+
+.image-display-row {
+    flex: 1;
+    text-align: center;
+    box-sizing: border-box;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 0;
+    overflow-y: auto;
+    /* Add padding-bottom to account for floating headers */
+    padding-bottom: 70px;
+}
+
+/* Column Headers - now floating at bottom with minimal styling */
+.column-headers {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: 5px;
+    background-color: rgba(248, 249, 250, 0.95);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid #e0e0e0;
+    padding: 15px 0;
+    z-index: 1000;
+}
+
+.column-header {
+    flex: 0 0 calc(23% - 8px);
+    max-width: calc(23% - 8px);
+    padding: 8px 5px;
+    font-weight: 500;
+    text-align: center;
+    color: #000;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    /* Removed button-like styling */
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    /* Black bottom border for visual separation */
+    border-bottom: 2px solid #000;
+}
+
+.image-wrapper-row {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 20px 0; /* Add some top padding since headers are removed */
+    box-sizing: border-box;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: #eee;
+    flex: 1;
+}
+
+.image-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+}
+
+.image-container-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 15px 5px 7px 5px;
+    border-radius: 10px;
+    flex: 0 0 calc(23% - 8px);
+    max-width: calc(23% - 8px);
+}
+
+/* Media query for smaller screens */
+@media (max-width: 900px) {
+    .class-info-inline h2 {
+        font-size: 18px;
+    }
+
+    .class-info-inline h3 {
+        font-size: 14px;
+    }
+
+    .top-nav-container {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 20px;
+    }
+
+    .top-nav-center {
+        order: -1; /* Move class info to top on mobile */
+    }
+
+    .image-display-row {
+        /* Increase bottom padding for mobile */
+        padding-bottom: 120px;
+    }
+
+    .column-headers {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        gap: 5px;
+    }
+
+    .column-header {
+        flex: 0 0 auto;
+        width: 90%;
+        max-width: 300px;
+        margin: 0;
+        /* Keep the same styling on mobile with black text and border */
+        color: #000;
+        font-size: 16px;
+        border-bottom: 2px solid #000;
+        background: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .image-wrapper-row {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .image-row {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .image-container-row {
+        flex: 0 0 auto;
+        width: 90%;
+        max-width: 450px;
+    }
+}
+
+.image-thumbnail-row {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    position: relative;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Border classes remain the same as they're reusable */
+.image-container-row.border-ood {
+    border: 3px solid black;
+}
+
+.image-container-row.border-m {
+    border: 3px solid #00dd00;
+}
+
+.image-container-row.border-poss-m {
+    border: 3px dashed #00dd00;
+}
+
+.image-container-row.border-not-sure {
+    border: 3px solid #ea9e29;
+}
+
+.image-container-row.border-crowd {
+    border: 3px solid #ff6b6b;
+}
+
+.image-container-row.border-reflected {
+    border: 3px solid #4ecdc4;
+}
+
+.image-container-row.border-crowd-reflected {
+    border: 3px solid #45b7aa;
+}
+
+.image-container-row.no-border {
+    border: none;
+}
+
+/* New top navigation container - integrates with page flow */
+.top-nav-container {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(240,240,240,0.9));
+    border-bottom: 2px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 100;
+}
+
+/* Center section for class information - absolutely positioned to center */
+.top-nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Reuse the existing nav-btn base styles */
+.top-nav-btn {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border: none;
+    outline: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+/* New back button style for top navigation */
+.top-back-btn {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+}
+
+.top-back-btn:hover {
+    background: linear-gradient(45deg, #2980b9, #3498db);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* Reuse the nav-icon class as-is since it's already well-defined */
+.top-nav-icon {
+    margin-right: 8px;
+    font-style: normal;
+}
+
+/* Optional: Left side container for back button */
+.top-nav-left {
+    display: flex;
+    align-items: center;
+}
+
+/* Right side container for class jump dropdown */
+.top-nav-right {
+    display: flex;
+    align-items: center;
+    margin-left: auto; /* Push to the right side */
+}
+
+/* Container for the class jump dropdown */
+.top-class-jump-container {
+    display: flex;
+    align-items: center;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 900px) {
+    .top-nav-right {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+}
+
+
+
+/* New compare dropdown styles */
+.compare-jump-container {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    width: 20%;
+    z-index: 100;
+}
+
+.compare-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.compare-dropdown label {
+    font-weight: 600;
+    color: #444;
+    font-size: 16px;
+}
+
+.compare-dropdown select {
+    width: 100%;
+    padding: 8px;
+    border: 2px solid #dfe6e9;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+.compare-dropdown select:focus {
+    border-color: #9b59b6;
+    outline: none;
+}
+
+.compare-dropdown select:hover {
+    background-color: #f1f1f1;
+}
+
+.current-compare-position {
+    color: #666;
+    font-size: 14px;
+}
+
+.compare-dropdown select option {
+    padding: 8px;
+}
+
+/* Custom compare select styling */
+.custom-compare-select {
+    position: relative;
+    width: fit-content;
+}
+
+.compare-select-search {
+    padding: 8px 30px 8px 10px;
+    border: 2px solid #dfe6e9;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    appearance: none;
+}
+
+.compare-dropdown-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+    font-size: 12px;
+}
+
+.compare-select-options {
+    display: none;
+    position: absolute;
+    top: 100%; /* Changed from bottom: 100% to top: 100% */
+    width: 300%; /* Makes it three times as wide as the input */
+    max-height: 300px; /* Increased height */
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #dfe6e9;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000; /* Very high z-index to ensure it's on top */
+    margin-top: 5px; /* Changed from margin-bottom: 5px to margin-top: 5px */
+}
+
+.compare-select-options.show {
+    display: block;
+}
+
+.compare-select-option {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.compare-select-option:hover {
+    background-color: #f1f1f1;
+}
+
+.compare-no-results {
+    padding: 10px;
+    color: #999;
+    font-style: italic;
+    text-align: center;
+}

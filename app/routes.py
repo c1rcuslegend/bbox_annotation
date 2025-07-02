@@ -201,9 +201,121 @@ def register_routes(app):
         if request.method == 'POST':
             username = request.form.get('username')
             app.logger.info(f"Username received: {username}")
+
+            if username == 'admin':
+                return redirect(url_for('compare', username=username, class_index=0))
             return redirect(url_for('grid_image', username=username))
         else:
             return render_template('index.html')
+
+    @app.route('/<username>/compare/<int:class_index>')
+    def compare(username, class_index=None):
+        annotators = ['tetyana', 'richard', 'filip', 'evita']  # TODO: remove annotators hardcoded list
+
+        # Set current image index
+        current_image_index = class_index * 50
+
+        # get class names and mappings
+        label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+        assert label_indices_to_label_names is not None and label_indices_to_human_readable is not None
+
+        user_data = app.user_cache.get('tetyana')
+        if any(value is None for value in user_data.values()):
+            return "Error loading data."
+        proposals_info = user_data['proposals_info']
+
+        NUM_IMG_TO_FETCH = 50
+        selected_indices = []
+        selected_images = []
+        for i in range(NUM_IMG_TO_FETCH):
+            img_idx = current_image_index + i
+            selected_indices.append(img_idx)
+            image_data = proposals_info[selected_indices[i]]
+            image_name = image_data['image_name']
+            gt_class = image_data['ground_truth']
+            class_name = label_indices_to_label_names[str(gt_class)]
+            image_path = os.path.join(class_name, image_name)
+            selected_images.append(image_path)
+
+        copy_to_static_dir(selected_images, app.config['ANNOTATIONS_ROOT_FOLDER'],
+                           os.path.join(app.config['APP_ROOT_FOLDER'], app.config['STATIC_FOLDER'], 'images'))
+
+        bbox_data = []
+        borders = []
+        image_paths = {}
+        for user in annotators:
+            # Read bbox/checkbox selection
+            checkbox_data = read_json_file(
+                os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], user, f'checkbox_selections_{user}.json'), app
+            )
+
+            # Initialize bbox_data to store bounding boxes for each image
+            bbox_data.append({})
+            borders.append({})
+
+            for selected_index, image_path in zip(selected_indices, selected_images):
+                image_basename = os.path.basename(image_path)
+
+                # Process bounding box data for this image
+                bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': []}
+                if image_basename in checkbox_data:
+                    data = checkbox_data[image_basename]
+                    if data.get('label_type') == 'ood':
+                        borders[-1][selected_index] = 'border-ood'
+                    elif data.get('label_type') == 'uncertain':
+                        borders[-1][selected_index] = 'border-not-sure'
+                    elif len(data.get('bboxes', [])) > 1:
+                        labels = set()
+                        for bbox in data['bboxes']:
+                            if 'label' in bbox and int(bbox['label']) not in labels:
+                                if len(labels) == 0:
+                                    labels.add(int(bbox['label']))
+                                else:
+                                    borders[-1][selected_index] = 'border-m'
+                                    break
+                            else:
+                                borders[-1][selected_index] = 'border-uncertain'
+                                labels.add('-1')  # uncertain label
+                                break
+
+                    # Extract bounding boxes from annotations
+                    data = checkbox_data[image_basename]
+                    if isinstance(data, dict) and 'bboxes' in data and isinstance(data['bboxes'], list):
+                        for bbox in data['bboxes']:
+                            if 'coordinates' in bbox:
+                                bboxes['boxes'].append(bbox['coordinates'])
+                                if 'label' in bbox:
+                                    bboxes['labels'].append(bbox['label'])
+                                else:
+                                    bboxes['labels'].append(-1)  # Default label if unspecified
+                                bboxes['scores'].append(100)  # Default high confidence score
+                                if 'crowd_flag' in bbox:
+                                    bboxes['crowd_flags'].append(bbox['crowd_flag'])
+                                else:
+                                    bboxes['crowd_flags'].append(False)
+                                if 'reflected_flag' in bbox:
+                                    bboxes['reflected_flags'].append(bbox['reflected_flag'])
+                                else:
+                                    bboxes['reflected_flags'].append(False)
+
+                bbox_data[-1][selected_index] = convert_bboxes_to_serializable(bboxes, 0)
+
+                # Set image path
+                image_paths[selected_index] = os.path.join('images', image_path)
+            assert len(image_paths) == NUM_IMG_TO_FETCH
+
+        # Get cluster name for current class
+        cluster_name = app.get_cluster_name(class_index)
+        print(f"Cluster name for class {class_index}: {cluster_name}")
+
+        return render_template('compare_grid.html',
+                               image_paths=image_paths,
+                               bbox_data=bbox_data,
+                               borders=borders,
+                               users=annotators,
+                               human_readable_classes_map=label_indices_to_human_readable,
+                               cluster_name=cluster_name,
+                               class_index=class_index)
 
     @app.route('/<username>')
     def grid_image(username):
