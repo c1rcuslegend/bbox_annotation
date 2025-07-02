@@ -3,6 +3,7 @@ import numpy as np
 import json
 import time
 import timeit
+import threading
 from flask import render_template, request, redirect, url_for, jsonify
 
 from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict, \
@@ -94,6 +95,94 @@ def ensure_at_least_one_bbox(bboxes, threshold):
 def register_routes(app):
     # Initialize the global bbox data
     app.bbox_openclip_data = {}
+
+    # Background upload management
+    app.upload_threads = {}  # Dictionary to track upload threads by username
+    app.upload_cancel_events = {}  # Dictionary to track cancel events by username
+
+    def background_upload_to_drive(username):
+        """
+        Background function to upload user data to Google Drive.
+        Runs silently without user notification and can be cancelled.
+        """
+        try:
+            # Check if Google Drive is enabled
+            if not app.config.get('GOOGLE_DRIVE_ENABLED', False):
+                app.logger.debug(f"Background upload skipped for {username}: Google Drive disabled")
+                return
+
+            # Create cancel event for this upload
+            cancel_event = threading.Event()
+            app.upload_cancel_events[username] = cancel_event
+
+            # Initialize Google Drive service
+            drive_service = GoogleDriveService(
+                app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE'),
+                app.config.get('GOOGLE_DRIVE_TOKEN_FILE')
+            )
+
+            # Get user data directory
+            user_data_dir = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username)
+
+            # Get folder ID from config if specified
+            folder_id = app.config.get('GOOGLE_DRIVE_FOLDER_ID')
+
+            # Check if upload was cancelled before starting
+            if cancel_event.is_set():
+                app.logger.debug(f"Background upload cancelled for {username} before starting")
+                return
+
+            app.logger.debug(f"Starting background upload for {username}")
+
+            # Upload data to Google Drive
+            upload_results = drive_service.upload_user_data(username, user_data_dir, folder_id)
+
+            # Check if upload was cancelled after completion
+            if cancel_event.is_set():
+                app.logger.debug(f"Background upload for {username} was cancelled but completed anyway")
+                return
+
+            if upload_results['success']:
+                app.logger.debug(f"Background upload successful for {username}")
+            else:
+                app.logger.debug(f"Background upload failed for {username}: {upload_results['errors']}")
+
+        except Exception as e:
+            app.logger.debug(f"Background upload error for {username}: {str(e)}")
+        finally:
+            # Clean up
+            if username in app.upload_threads:
+                del app.upload_threads[username]
+            if username in app.upload_cancel_events:
+                del app.upload_cancel_events[username]
+
+    def trigger_background_upload(username):
+        """
+        Trigger a background upload for the given username.
+        Cancels any existing upload for the same user.
+        """
+        try:
+            # Cancel any existing upload for this user
+            if username in app.upload_cancel_events:
+                app.upload_cancel_events[username].set()
+                app.logger.debug(f"Cancelled previous upload for {username}")
+
+            # Wait for previous thread to finish if it exists
+            if username in app.upload_threads and app.upload_threads[username].is_alive():
+                app.upload_threads[username].join(timeout=1.0)  # Wait max 1 second
+
+            # Start new background upload
+            upload_thread = threading.Thread(
+                target=background_upload_to_drive,
+                args=(username,),
+                daemon=True  # Thread will die when main process dies
+            )
+            upload_thread.start()
+            app.upload_threads[username] = upload_thread
+            app.logger.debug(f"Started background upload thread for {username}")
+
+        except Exception as e:
+            app.logger.error(f"Error triggering background upload for {username}: {str(e)}")
 
     # Load hierarchy files for class navigation
     def load_hierarchy_files():
@@ -747,6 +836,10 @@ def register_routes(app):
             # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
 
+            # Trigger background upload to Google Drive if navigating (next/prev)
+            if direction in ["next", "prev"]:
+                trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
+
         except Exception as e:
             app.logger.error(f"Error in save_grid function for user {username}: {e}")
             # Return JSON error for AJAX requests (when direction is 'stay')
@@ -889,6 +982,9 @@ def register_routes(app):
 
             # Save the checkbox selections
             save_user_data(app, username, checkbox_selections=checkbox_selections)
+
+            # Trigger background upload to Google Drive when jumping to a class
+            trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
 
             app.logger.info(f"User {username} jumped to image index {target_index}")
         except Exception as e:
@@ -1147,6 +1243,9 @@ def register_routes(app):
 
             # Save the checkbox selections
             save_user_data(app, username, checkbox_selections=checkbox_selections)
+
+            # Trigger background upload to Google Drive when jumping to a cluster
+            trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
 
             app.logger.info(f"User {username} jumped to cluster {cluster_name}, class {target_class}")
 
