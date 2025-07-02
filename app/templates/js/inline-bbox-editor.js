@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	const inlineBboxSelector = document.getElementById('inline-bbox-selector');
 	const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
 	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox')
+	const inlineClassNumbersCheckbox = document.getElementById('inline-class-numbers-checkbox');
 	const deleteBoxBtn = document.getElementById('inline-bbox-delete');
 	const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
 	const cancelBtn = document.getElementById('inline-bbox-cancel');
@@ -833,25 +834,38 @@ document.addEventListener('DOMContentLoaded', function() {
 			originalRedraw.call(this);
 
 			if (this.bboxes && Array.isArray(this.bboxes.boxes)) {
+				// Draw all boxes except the selected one first
 				this.bboxes.boxes.forEach((box, i) => {
+					// Skip the selected box, we'll draw it later
+					if (i === this.selectedBboxIndex) return;
+					
 					const isUncertain = this.bboxes.uncertain_flags?.[i] || this.bboxes.labels?.[i] === -1;
 					const isCrowd = this.bboxes.crowd_flags?.[i];
 					const isReflected = this.bboxes.reflected_flags?.[i];
-					const isSelected = i === this.selectedBboxIndex;
+					const isSelected = false; // Always false here since we're skipping the selected box
 
 					const style = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
 
 					// Draw the box
 					this.ctx.save();
 					this.ctx.strokeStyle = style.stroke;
-					this.ctx.lineWidth = isSelected ? 3 : 1;
+					this.ctx.lineWidth = 1; // Non-selected boxes have normal line width
 					this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
 					this.ctx.restore();
 
 					// Prepare label text
 					const labelId = this.bboxes.labels?.[i] ?? (this.bboxes.gt?.[i] ?? 0);
 					const labelName = this.classLabels?.[labelId] ?? `Class ${labelId}`;
-					let labelText = isUncertain ? 'Not Sure' : `${labelId} - ${labelName}`;
+					
+					// Adjust label text based on isUncertain and showClassNumbersOnly flags
+					let labelText;
+					if (isUncertain) {
+						labelText = 'Not Sure';
+					} else if (this.showClassNumbersOnly) {
+						labelText = `${labelId}`;
+					} else {
+						labelText = `${labelId} - ${labelName}`;
+					}
 					
 					// Limit label text to 30 characters
 					if (labelText.length > 30) {
@@ -902,6 +916,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
 					this.ctx.restore();
 				});
+				
+				// Now draw the selected box (if any) on top
+				if (this.selectedBboxIndex >= 0 && this.selectedBboxIndex < this.bboxes.boxes.length) {
+					const i = this.selectedBboxIndex;
+					const box = this.bboxes.boxes[i];
+					
+					const isUncertain = this.bboxes.uncertain_flags?.[i] || this.bboxes.labels?.[i] === -1;
+					const isCrowd = this.bboxes.crowd_flags?.[i];
+					const isReflected = this.bboxes.reflected_flags?.[i];
+					const isSelected = true;
+
+					const style = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
+
+					// Draw the selected box with thicker lines
+					this.ctx.save();
+					this.ctx.strokeStyle = style.stroke;
+					this.ctx.lineWidth = 3; // Selected box has thicker line
+					this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+					this.ctx.restore();
+
+					// Prepare label text
+					const labelId = this.bboxes.labels?.[i] ?? (this.bboxes.gt?.[i] ?? 0);
+					const labelName = this.classLabels?.[labelId] ?? `Class ${labelId}`;
+					
+					// Adjust label text based on isUncertain and showClassNumbersOnly flags
+					let labelText;
+					if (isUncertain) {
+						labelText = 'Not Sure';
+					} else if (this.showClassNumbersOnly) {
+						labelText = `${labelId}`;
+					} else {
+						labelText = `${labelId} - ${labelName}`;
+					}
+					
+					// Limit label text to 30 characters
+					if (labelText.length > 30) {
+						labelText = labelText.substring(0, 27) + '...';
+					}
+
+					// Draw the label with smaller font
+					const fontSize = 12; // Reduced from 14 to 10
+					const padding = 3; // Slightly reduced padding
+					
+					this.ctx.save();
+					this.ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+					
+					// Measure text width after setting font
+					const textWidth = this.ctx.measureText(labelText).width;
+					const cornerRadius = 2; // Smaller radius for smaller font
+
+					const labelX = box[0] + 3; // Slightly reduced offset
+					const labelY = box[1] <= 5 ? box[1] + 16 : box[1] - 3; // Adjusted for smaller font
+
+					// Draw label background
+					this.ctx.fillStyle = style.fill;
+					this.ctx.beginPath();
+					this.ctx.moveTo(labelX - padding + cornerRadius, labelY - fontSize - padding);
+					this.ctx.lineTo(labelX + textWidth + padding - cornerRadius, labelY - fontSize - padding);
+					this.ctx.arcTo(labelX + textWidth + padding, labelY - fontSize - padding, labelX + textWidth + padding, labelY - fontSize - padding + cornerRadius, cornerRadius);
+					this.ctx.lineTo(labelX + textWidth + padding, labelY + padding - cornerRadius);
+					this.ctx.arcTo(labelX + textWidth + padding, labelY + padding, labelX + textWidth + padding - cornerRadius, labelY + padding, cornerRadius);
+					this.ctx.lineTo(labelX - padding + cornerRadius, labelY + padding);
+					this.ctx.arcTo(labelX - padding, labelY + padding, labelX - padding, labelY + padding - cornerRadius, cornerRadius);
+					this.ctx.lineTo(labelX - padding, labelY - fontSize - padding + cornerRadius);
+					this.ctx.arcTo(labelX - padding, labelY - fontSize - padding, labelX - padding + cornerRadius, labelY - fontSize - padding, cornerRadius);
+					this.ctx.closePath();
+					this.ctx.fill();
+
+					// Draw label border
+					this.ctx.strokeStyle = style.stroke;
+					this.ctx.lineWidth = 1;
+					this.ctx.stroke();
+
+					// Draw label text
+					this.ctx.fillStyle = style.text;
+					this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; // Slightly reduced shadow opacity
+					this.ctx.shadowBlur = 1; // Reduced shadow blur for smaller text
+					this.ctx.shadowOffsetX = 0.5; // Smaller shadow offset
+					this.ctx.shadowOffsetY = 0.5;
+					this.ctx.fillText(labelText, labelX, labelY);
+
+					this.ctx.restore();
+				}
 			}
 
 			if (inlineEditor.isDrawing && inlineEditor.tempBox) {
@@ -919,6 +1016,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		setupEnhancedClassSelector();
 		updateBboxSelector();
 		setupEventHandlers();
+
+		// Initialize class numbers checkbox if the editor exists
+		if (inlineEditor.editor && inlineClassNumbersCheckbox) {
+			inlineClassNumbersCheckbox.checked = inlineEditor.editor.getShowClassNumbersOnly();
+		}
 
 		if (inlineEditor.canvasElement) {
 			setupCanvasInteraction(inlineEditor.canvasElement);
@@ -1333,6 +1435,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		// Update the checkbox based on reflected object flag
 		updateReflectedCheckbox(boxIndex);
+		
+		// Make sure class numbers checkbox reflects the editor's current setting
+		if (inlineEditor.editor && inlineClassNumbersCheckbox) {
+			inlineClassNumbersCheckbox.checked = inlineEditor.editor.getShowClassNumbersOnly();
+		}
 
 		// Check if this is an uncertain box - either by flag or by label value
 		const isUncertain = (inlineEditor.bboxes.uncertain_flags &&
@@ -1420,6 +1527,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		inlineReflectedCheckbox.addEventListener('change', handleReflectedCheckboxChange);
 	}
 
+	if (inlineClassNumbersCheckbox) {
+		inlineClassNumbersCheckbox.addEventListener('change', handleClassNumbersCheckboxChange);
+	}
+
 	function handleCrowdCheckboxChange() {
 		if (inlineEditor.currentBoxIndex < 0) return;
 
@@ -1495,6 +1606,24 @@ document.addEventListener('DOMContentLoaded', function() {
 				advancedReflectedCheckbox.checked = inlineEditor.bboxes.reflected_flags[boxIndex];
 				debug(`Synced advanced reflected checkbox to: ${inlineEditor.bboxes.reflected_flags[boxIndex]}`);
 			}
+		}
+	}
+
+	function handleClassNumbersCheckboxChange() {
+		// Pass the checkbox state to the editor
+		if (inlineEditor.editor) {
+			inlineEditor.editor.setShowClassNumbersOnly(inlineClassNumbersCheckbox.checked);
+			
+			// Update the advanced editor's checkbox 
+			const advancedClassNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
+			if (advancedClassNumbersCheckbox) {
+				advancedClassNumbersCheckbox.checked = inlineClassNumbersCheckbox.checked;
+			}
+			
+			// Redraw the canvas with the new setting
+			inlineEditor.editor.redrawCanvas();
+			
+			debug(`Updated class numbers only mode to: ${inlineClassNumbersCheckbox.checked}`);
 		}
 	}
 

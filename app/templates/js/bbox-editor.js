@@ -19,6 +19,7 @@ class BBoxEditor {
         this.selectedBboxIndex = -1;
         this.originalBboxes = JSON.parse(JSON.stringify(this.bboxes)); // Deep copy for reverting changes
         this.classLabels = config.classLabels || {};
+        this.showClassNumbersOnly = false; 
 
         this.setupCanvas();
         // Make the editor globally accessible for inline editor to connect to
@@ -133,7 +134,15 @@ class BBoxEditor {
             const style = getBoxStyle(isCrowd, isReflected, isUncertain, false);
             const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-            let labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            let labelText;
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else if (this.showClassNumbersOnly) {
+                labelText = `${labelId}`;
+            } else {
+                labelText = `${labelId} - ${labelName}`;
+            }
             
             // Limit label text to 30 characters
             if (labelText.length > 30) {
@@ -155,7 +164,15 @@ class BBoxEditor {
             const style = getBoxStyle(isCrowd, isReflected, isUncertain, true);
             const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-            let labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            let labelText;
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else if (this.showClassNumbersOnly) {
+                labelText = `${labelId}`;
+            } else {
+                labelText = `${labelId} - ${labelName}`;
+            }
             
             // Limit label text to 30 characters
             if (labelText.length > 30) {
@@ -254,7 +271,12 @@ initializeNotSureBoxes() {
 
                 // Prepare label text
                 const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-                let labelText = `${labelId} - ${labelName}`; // Simplified format
+                let labelText;
+                if (this.showClassNumbersOnly) {
+                    labelText = `${labelId}`;
+                } else {
+                    labelText = `${labelId} - ${labelName}`;
+                }
                 
                 // Limit label text to 30 characters
                 if (labelText.length > 30) {
@@ -378,5 +400,16 @@ initializeNotSureBoxes() {
         this.redrawCanvas();
 
         event.stopPropagation();
+   }
+
+    // Method to toggle class numbers only display
+    setShowClassNumbersOnly(enabled) {
+        this.showClassNumbersOnly = enabled;
+        this.redrawCanvas();
+    }
+
+    // Method to get current display mode
+    getShowClassNumbersOnly() {
+        return this.showClassNumbersOnly;
     }
 }

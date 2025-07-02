@@ -45,6 +45,11 @@ class BBoxEditorUI {
 
         // Update bbox selector with available boxes
         this.updateBboxSelector(bboxes, boxIndex, editor.classLabels);
+        
+        // Update checkboxes to match current state
+        this.updateCrowdCheckbox(boxIndex);
+        this.updateReflectedCheckbox(boxIndex);
+        this.updateClassNumbersCheckbox();
 
         // Add event listener to handle modal close event
         document.addEventListener('bbox-modal-closed', function handleModalClose(e) {
@@ -465,7 +470,7 @@ class BBoxEditorUI {
                 editor.bboxes.crowd_flags[this.currentBoxIndex] = crowdCheckbox.checked;
                 console.log(`Updated crowd flag for box ${this.currentBoxIndex} to: ${crowdCheckbox.checked}`);
 
-                // Also sync with inline editor's checkbox if it exists
+                // Also sync with inline editor's checkbox
                 const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
                 if (inlineCrowdCheckbox) {
                     inlineCrowdCheckbox.checked = crowdCheckbox.checked;
@@ -491,6 +496,26 @@ class BBoxEditorUI {
                 if (inlineReflectedCheckbox) {
                     inlineReflectedCheckbox.checked = reflectedCheckbox.checked;
                     console.log(`Synced inline reflected checkbox to: ${reflectedCheckbox.checked}`);
+                }
+
+                // Redraw the advanced editor canvas
+                this.updatePreviewCanvas();
+            };
+        }
+
+        // Class Numbers Only checkbox
+        const classNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
+        if (classNumbersCheckbox) {
+            classNumbersCheckbox.onchange = () => {
+                // Update the editor's class numbers only mode
+                editor.setShowClassNumbersOnly(classNumbersCheckbox.checked);
+                console.log(`Updated class numbers only mode to: ${classNumbersCheckbox.checked}`);
+
+                // Also sync with inline editor's checkbox if it exists
+                const inlineClassNumbersCheckbox = document.getElementById('inline-class-numbers-checkbox');
+                if (inlineClassNumbersCheckbox) {
+                    inlineClassNumbersCheckbox.checked = classNumbersCheckbox.checked;
+                    console.log(`Synced inline class numbers checkbox to: ${classNumbersCheckbox.checked}`);
                 }
 
                 // Redraw the advanced editor canvas
@@ -883,6 +908,21 @@ class BBoxEditorUI {
         if (reflectedCheckbox && this.bboxes.reflected_flags) {
             reflectedCheckbox.checked = this.bboxes.reflected_flags[boxIndex];
             console.log(`Set reflected checkbox to: ${reflectedCheckbox.checked}`);
+        }
+    }
+
+    // Update the checkbox based on class numbers only flag
+    static updateClassNumbersCheckbox() {
+        const classNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
+        if (classNumbersCheckbox && this.editor) {
+            classNumbersCheckbox.checked = this.editor.getShowClassNumbersOnly();
+            console.log(`Set class numbers checkbox to: ${classNumbersCheckbox.checked}`);
+            
+            // Also update the inline editor's checkbox if it exists
+            const inlineClassNumbersCheckbox = document.getElementById('inline-class-numbers-checkbox');
+            if (inlineClassNumbersCheckbox) {
+                inlineClassNumbersCheckbox.checked = classNumbersCheckbox.checked;
+            }
         }
     }
 
@@ -1289,7 +1329,15 @@ class BBoxEditorUI {
             // Prepare label text
             const labelId = this.bboxes.labels?.[i] ?? this.bboxes.gt?.[i] ?? 0;
             const labelName = this.editor?.classLabels?.[labelId] ?? `Class ${labelId}`;
-            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            let labelText;
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else if (this.editor && this.editor.getShowClassNumbersOnly()) {
+                labelText = `${labelId}`;
+            } else {
+                labelText = `${labelId} - ${labelName}`;
+            }
 
             // Draw label
             drawLabel(ctx, labelText, labelX, labelY, boxStyle);
@@ -1326,7 +1374,15 @@ class BBoxEditorUI {
             // Prepare label text
             const labelId = this.bboxes.labels?.[this.selectedIndex] ?? this.bboxes.gt?.[this.selectedIndex] ?? 0;
             const labelName = this.editor?.classLabels?.[labelId] ?? `Class ${labelId}`;
-            const labelText = isUncertain ? "Not Sure" : `${labelId} - ${labelName}`;
+            
+            let labelText;
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else if (this.editor && this.editor.getShowClassNumbersOnly()) {
+                labelText = `${labelId}`;
+            } else {
+                labelText = `${labelId} - ${labelName}`;
+            }
 
             // Draw label
             drawLabel(ctx, labelText, labelX, labelY, boxStyle);
