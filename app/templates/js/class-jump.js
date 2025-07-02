@@ -15,7 +15,153 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up class dropdown navigation
     initClassDropdownNavigation();
+
+    initCompareSearchableDropdown();
 });
+
+// Initialize searchable compare dropdown component
+function initCompareSearchableDropdown() {
+    const container = document.querySelector('.compare-dropdown');
+    if (!container) return;
+
+    // Get the original select element
+    const originalSelect = document.getElementById('compareJump');
+    if (!originalSelect) return;
+
+    // Create custom dropdown elements
+    const customSelect = document.createElement('div');
+    customSelect.className = 'custom-compare-select';
+
+    // Create the search input that looks like a dropdown
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'compare-select-search';
+    searchInput.placeholder = 'Search or select a class to compare...';
+    searchInput.autocomplete = 'off';
+
+    // Create dropdown icon
+    const dropdownIcon = document.createElement('div');
+    dropdownIcon.className = 'compare-dropdown-icon';
+    dropdownIcon.innerHTML = '▼';
+
+    // Create dropdown options container
+    const dropdownOptions = document.createElement('div');
+    dropdownOptions.className = 'compare-select-options';
+
+    // Add elements to the DOM
+    customSelect.appendChild(searchInput);
+    customSelect.appendChild(dropdownIcon);
+    customSelect.appendChild(dropdownOptions);
+
+    // Replace the original select with our custom one
+    originalSelect.style.display = 'none';
+    container.insertBefore(customSelect, originalSelect);
+
+    // Populate options from the original select
+    const options = originalSelect.options;
+    for (let i = 0; i < options.length; i++) {
+        const option = document.createElement('div');
+        option.className = 'compare-select-option';
+        option.dataset.value = options[i].value;
+        option.textContent = options[i].textContent;
+        dropdownOptions.appendChild(option);
+
+        // Add click handler for each option
+        option.addEventListener('click', function() {
+            searchInput.value = this.textContent;
+            originalSelect.value = this.dataset.value;
+            dropdownOptions.classList.remove('show');
+
+            // Trigger compare if a class was selected
+            if (this.dataset.value) {
+                compareToClass(this.dataset.value);
+            }
+        });
+    }
+
+    // Show options on input focus or dropdown icon click
+    searchInput.addEventListener('focus', function() {
+        dropdownOptions.classList.add('show');
+    });
+
+    dropdownIcon.addEventListener('click', function() {
+        dropdownOptions.classList.toggle('show');
+        if (dropdownOptions.classList.contains('show')) {
+            searchInput.focus();
+        }
+    });
+
+    // Filter options on input
+    searchInput.addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        const options = dropdownOptions.querySelectorAll('.compare-select-option');
+
+        let anyVisible = false;
+        options.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            const value = option.dataset.value;
+
+            if (text.includes(filter) || (value && value.includes(filter))) {
+                option.style.display = '';
+                anyVisible = true;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        // If no options match, show a message
+        let noResultsMsg = dropdownOptions.querySelector('.compare-no-results');
+        if (!anyVisible) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'compare-no-results';
+                noResultsMsg.textContent = 'No matching classes found';
+                dropdownOptions.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = '';
+        } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!customSelect.contains(e.target)) {
+            dropdownOptions.classList.remove('show');
+        }
+    });
+
+    // Handle keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            // Get the first visible option
+            const visibleOption = dropdownOptions.querySelector('.compare-select-option:not([style*="display: none"])');
+            if (visibleOption) {
+                visibleOption.click();
+            }
+        } else if (e.key === 'Escape') {
+            dropdownOptions.classList.remove('show');
+        }
+    });
+}
+
+// Function to handle class comparison
+function compareToClass(selectedClass) {
+    if (!selectedClass) {
+        const classSelector = document.getElementById('compareJump');
+        selectedClass = classSelector.value;
+    }
+
+    if (selectedClass) {
+        // Get the current username from the URL
+        const currentPath = window.location.pathname;
+        const username = currentPath.split('/')[1]; // Assumes URL structure /<username>/...
+
+        // Navigate directly to the compare URL with the class index
+        const compareUrl = `/${username}/compare/${selectedClass}`;
+        window.location.href = compareUrl;
+    }
+}
 
 // Initialize searchable dropdown component
 function initSearchableDropdown() {

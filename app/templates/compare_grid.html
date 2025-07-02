@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Annotation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='vrg_favicon.ico') }}">
+
+    <!-- Include external JavaScript files -->
+    <script src="{{ url_for('static', filename='js/grid-view.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/class-jump.js') }}"></script>
+</head>
+
+<body>
+    <!-- New top navigation bar that flows with the page -->
+    <div class="top-nav-container">
+        <div class="top-nav-left">
+            <a href="{{ url_for('index') }}" class="top-nav-btn top-back-btn" id="back-button">
+                <i class="nav-icon">◀</i>
+                Back
+            </a>
+        </div>
+        <div class="top-nav-center">
+            <div class="class-info-inline">
+                <h2>{{ class_index }} : {{ human_readable_classes_map[class_index|string] if class_index|string in human_readable_classes_map else 'Unknown' }}</h2>
+                <h3>Class group: {{ cluster_name }}</h3>
+            </div>
+        </div>
+
+        <div class="top-nav-right">
+            <div class="top-compare-jump-container">
+                <div class="compare-dropdown">
+                    <!-- Original select - will be hidden and replaced by our custom dropdown -->
+                    <select id="compareJump">
+                        <!--<option value="">Jump to Class...</option> -->
+                        {% set sorted_classes = [] %}
+                        {% for class_id, class_name in human_readable_classes_map.items() %}
+                            {% set _ = sorted_classes.append((class_id|int, class_id, class_name)) %}
+                        {% endfor %}
+
+                        {% for int_id, class_id, class_name in sorted_classes|sort %}
+                            <option value="{{ class_id }}">{{ class_id }} - {{ class_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- Custom dropdown will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout-container-row">
+        <div class="image-display-row">
+            <!-- Column Headers -->
+            <div class="column-headers">
+                {% for user in users %}
+                    <div class="column-header">{{ user.title() }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="image-wrapper-row">
+                {% for i in image_paths.keys() %}
+                    <div class="image-row" data-image-index="{{ i }}">
+                        {% for copy in range(users|length) %}
+                            {% set absolute_index = i * users|length + copy %}
+                            <div class="image-container-row {{ borders[copy][i] if i in borders[copy] else 'no-border' }}" data-index="{{ absolute_index }}">
+                                <div class="bbox-container">
+                                    <img class="image-thumbnail" src="{{ url_for('static', filename=image_paths[i]) }}" alt="Input Image">
+                                    <div class="bbox-overlay"></div>
+                                    <!-- Store bbox data as embedded JSON -->
+                                    <script class="bbox-data" type="application/json">
+                                        {{ bbox_data[copy][i] | tojson | safe if i in bbox_data[copy] else '{}' }}
+                                    </script>
+                                    <div class="image-index">Relative Id: {{ i % 50 }} | Absolute Id: {{ i }} </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script id="human-readable-classes" type="application/json">{{ human_readable_classes_map|tojson }}</script>
+</body>
+</html>
