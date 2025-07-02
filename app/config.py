@@ -2,6 +2,7 @@
 import os
 
 USERNAME = "c1rcuslegend"
+UPLOAD_USERNAME = "demo" # Username used for uploading files to Google Drive (same as folder name in annotator_dirs)
 
 # App Port to run on
 PORT_NUMBER = 9000
@@ -32,8 +33,16 @@ USER_PATHS = {
         "EXAMPLES_DATASET_ROOT_DIR": "D:\\imagenet_val"
     },
     "tetiana": {
-        "ANNOTATIONS_ROOT_FOLDER": "./imagenet_val",
-        "EXAMPLES_DATASET_ROOT_DIR": "./imagenet_val"
+        "ANNOTATIONS_ROOT_FOLDER": "./img_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./img_val"
+    },
+    "filip": {
+        "ANNOTATIONS_ROOT_FOLDER": "./app/imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./app/imagenet_val"
+    },
+    "richard": {
+        "ANNOTATIONS_ROOT_FOLDER": "./app/imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./app/imagenet_val"
     }
 }
 
@@ -48,7 +57,19 @@ if USERNAME in USER_PATHS:
 else:
     raise ValueError(f"Unknown username: {USERNAME}. Please define it in USER_PATHS.")
 
-# Number of per class examples shown to the user
+# Google Drive Configuration
+GOOGLE_DRIVE_ENABLED = True  # Set to False to disable Google Drive integration
+GOOGLE_DRIVE_CREDENTIALS_FILE = os.path.join(APP_ROOT_FOLDER, 'credentials.json')
+GOOGLE_DRIVE_TOKEN_FILE = os.path.join(APP_ROOT_FOLDER, 'token.json')
+
+# Google Drive folder ID where files should be saved
+# If None, files will be saved to root or auto-created Multilabelfy_Data folder
+# To get the folder ID, open the folder in Google Drive and copy the ID from the URL
+# Example: https://drive.google.com/drive/folders/YOUR_FOLDER_ID_HERE
+GOOGLE_DRIVE_FOLDER_ID = "134YdKmKQdWyNPYdz-Q-cu5dHFrTpj_rc"  # Set this to your specific folder ID if you want to save to a specific folder
+# TODO: CHANGE THIS TO YOUR FOLDER ID
+
+# Number of examples per class
 NUM_EXAMPLES_PER_CLASS = 5
 
 # Dataset classes

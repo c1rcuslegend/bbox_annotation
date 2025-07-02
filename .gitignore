@@ -8,3 +8,5 @@ static
 app.log
 .vscode/launch.json
 app/gt_data/predictions.json
+app/credentials.json
+app/token.json

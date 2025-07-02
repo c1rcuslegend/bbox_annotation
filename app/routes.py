@@ -3,6 +3,7 @@ import numpy as np
 import json
 import time
 import timeit
+import threading
 from flask import render_template, request, redirect, url_for, jsonify
 
 from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, get_image_softmax_dict, \
@@ -10,6 +11,8 @@ from .helper_funcs import get_sample_images_for_categories, copy_to_static_dir, 
 from .app_utils import get_form_data, load_user_data, update_current_image_index, save_user_data, \
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
+from .google_drive_service import GoogleDriveService
+import traceback
 
 
 def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
@@ -92,6 +95,94 @@ def ensure_at_least_one_bbox(bboxes, threshold):
 def register_routes(app):
     # Initialize the global bbox data
     app.bbox_openclip_data = {}
+
+    # Background upload management
+    app.upload_threads = {}  # Dictionary to track upload threads by username
+    app.upload_cancel_events = {}  # Dictionary to track cancel events by username
+
+    def background_upload_to_drive(username):
+        """
+        Background function to upload user data to Google Drive.
+        Runs silently without user notification and can be cancelled.
+        """
+        try:
+            # Check if Google Drive is enabled
+            if not app.config.get('GOOGLE_DRIVE_ENABLED', False):
+                app.logger.debug(f"Background upload skipped for {username}: Google Drive disabled")
+                return
+
+            # Create cancel event for this upload
+            cancel_event = threading.Event()
+            app.upload_cancel_events[username] = cancel_event
+
+            # Initialize Google Drive service
+            drive_service = GoogleDriveService(
+                app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE'),
+                app.config.get('GOOGLE_DRIVE_TOKEN_FILE')
+            )
+
+            # Get user data directory
+            user_data_dir = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username)
+
+            # Get folder ID from config if specified
+            folder_id = app.config.get('GOOGLE_DRIVE_FOLDER_ID')
+
+            # Check if upload was cancelled before starting
+            if cancel_event.is_set():
+                app.logger.debug(f"Background upload cancelled for {username} before starting")
+                return
+
+            app.logger.debug(f"Starting background upload for {username}")
+
+            # Upload data to Google Drive
+            upload_results = drive_service.upload_user_data(username, user_data_dir, folder_id)
+
+            # Check if upload was cancelled after completion
+            if cancel_event.is_set():
+                app.logger.debug(f"Background upload for {username} was cancelled but completed anyway")
+                return
+
+            if upload_results['success']:
+                app.logger.debug(f"Background upload successful for {username}")
+            else:
+                app.logger.debug(f"Background upload failed for {username}: {upload_results['errors']}")
+
+        except Exception as e:
+            app.logger.debug(f"Background upload error for {username}: {str(e)}")
+        finally:
+            # Clean up
+            if username in app.upload_threads:
+                del app.upload_threads[username]
+            if username in app.upload_cancel_events:
+                del app.upload_cancel_events[username]
+
+    def trigger_background_upload(username):
+        """
+        Trigger a background upload for the given username.
+        Cancels any existing upload for the same user.
+        """
+        try:
+            # Cancel any existing upload for this user
+            if username in app.upload_cancel_events:
+                app.upload_cancel_events[username].set()
+                app.logger.debug(f"Cancelled previous upload for {username}")
+
+            # Wait for previous thread to finish if it exists
+            if username in app.upload_threads and app.upload_threads[username].is_alive():
+                app.upload_threads[username].join(timeout=1.0)  # Wait max 1 second
+
+            # Start new background upload
+            upload_thread = threading.Thread(
+                target=background_upload_to_drive,
+                args=(username,),
+                daemon=True  # Thread will die when main process dies
+            )
+            upload_thread.start()
+            app.upload_threads[username] = upload_thread
+            app.logger.debug(f"Started background upload thread for {username}")
+
+        except Exception as e:
+            app.logger.error(f"Error triggering background upload for {username}: {str(e)}")
 
     # Load hierarchy files for class navigation
     def load_hierarchy_files():
@@ -834,30 +925,46 @@ def register_routes(app):
             # Get the next class based on hierarchy
             if direction == "next":
                 next_class = app.get_next_class_in_hierarchy(current_class, "next")
-            else:
+            elif direction == "prev":
                 next_class = app.get_next_class_in_hierarchy(current_class, "prev")
+            else:
+                # For 'stay' direction, don't change the index
+                next_class = current_class
 
             print(f"Next class: {next_class}")
 
-            if (direction == "next" and current_image_index + 5 < (current_class+1)*50) or (direction == "prev" and current_image_index - 5 >= current_class*50):
-                new_index = current_image_index + 5 if direction == "next" else current_image_index - 5
-            else:
-                # Calculate new index based on class * 50
-                new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
+            # Only update index if not staying
+            if direction != "stay":
+                if (direction == "next" and current_image_index + 5 < (current_class+1)*50) or (direction == "prev" and current_image_index - 5 >= current_class*50):
+                    new_index = current_image_index + 5 if direction == "next" else current_image_index - 5
+                else:
+                    # Calculate new index based on class * 50
+                    new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
 
-            # Update the current image index
-            app.current_image_index_dct[username] = new_index
-
-            update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+                # Update the current image index
+                app.current_image_index_dct[username] = new_index
+                update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
 
             # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
 
+            # Trigger background upload to Google Drive if navigating (next/prev)
+            if direction in ["next", "prev"]:
+                trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
+
         except Exception as e:
             app.logger.error(f"Error in save_grid function for user {username}: {e}")
+            # Return JSON error for AJAX requests (when direction is 'stay')
+            if direction == "stay":
+                return jsonify({'success': False, 'error': 'An error occurred while saving'}), 500
             return "An error occurred"
 
         print(f"Time taken in save_grid: {timeit.default_timer() - start}")
+        
+        # Return JSON response for AJAX requests (when direction is 'stay')
+        if direction == "stay":
+            return jsonify({'success': True, 'message': 'Grid data saved successfully'})
+        
         return redirect(url_for('grid_image', username=username))
 
     @app.route('/review/<username>', methods=['POST'])
@@ -987,6 +1094,9 @@ def register_routes(app):
 
             # Save the checkbox selections
             save_user_data(app, username, checkbox_selections=checkbox_selections)
+
+            # Trigger background upload to Google Drive when jumping to a class
+            trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
 
             app.logger.info(f"User {username} jumped to image index {target_index}")
         except Exception as e:
@@ -1246,6 +1356,9 @@ def register_routes(app):
             # Save the checkbox selections
             save_user_data(app, username, checkbox_selections=checkbox_selections)
 
+            # Trigger background upload to Google Drive when jumping to a cluster
+            trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
+
             app.logger.info(f"User {username} jumped to cluster {cluster_name}, class {target_class}")
 
             print(f"Time taken in jump_to_cluster: {timeit.default_timer() - start}")
@@ -1375,6 +1488,162 @@ def register_routes(app):
 
         except Exception as e:
             app.logger.error(f"Error refreshing examples for {username}: {str(e)}")
-            import traceback
             traceback.print_exc()
             return jsonify({'error': str(e)}), 500
+
+    # Google Drive Integration Routes
+    @app.route('/upload_to_drive', methods=['POST'])
+    def upload_to_drive():
+        """Upload user annotation data to Google Drive."""
+        try:
+            # Check if Google Drive is enabled
+            if not app.config.get('GOOGLE_DRIVE_ENABLED', False):
+                return jsonify({'error': 'Google Drive integration is disabled'}), 400
+
+            # Get username from config
+            username = app.config.get('UPLOAD_USERNAME')
+            if not username:
+                return jsonify({'error': 'Username not configured'}), 400
+
+            # Initialize Google Drive service
+            drive_service = GoogleDriveService(
+                app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE'),
+                app.config.get('GOOGLE_DRIVE_TOKEN_FILE')
+            )
+
+            # Get user data directory
+            user_data_dir = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username)
+
+            # Get folder ID from config if specified
+            folder_id = app.config.get('GOOGLE_DRIVE_FOLDER_ID')
+
+            app.logger.info(f"Google Drive upload for user {username} started. Data directory: {user_data_dir}, Folder ID: {folder_id}")
+            
+            # Upload data to Google Drive
+            upload_results = drive_service.upload_user_data(username, user_data_dir, folder_id)
+
+            if upload_results['success']:
+                app.logger.info(f"Successfully uploaded data for user {username} to Google Drive")
+                return jsonify({
+                    'success': True,
+                    'message': f"Successfully uploaded file to Google Drive",
+                    'uploaded_files': upload_results['uploaded_files']
+                })
+            else:
+                app.logger.error(f"Failed to upload data for user {username}: {upload_results['errors']}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Upload failed',
+                    'errors': upload_results['errors']
+                }), 500
+
+        except Exception as e:
+            app.logger.error(f"Error uploading to Google Drive for user {username}: {str(e)}")
+            traceback.print_exc()
+            return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+    @app.route('/download_from_drive', methods=['POST'])
+    def download_from_drive():
+        """Download user annotation data from Google Drive."""
+        try:
+            # Check if Google Drive is enabled
+            if not app.config.get('GOOGLE_DRIVE_ENABLED', False):
+                return jsonify({'error': 'Google Drive integration is disabled'}), 400
+
+            # Get username from config
+            username = app.config.get('UPLOAD_USERNAME')
+            if not username:
+                return jsonify({'error': 'Username not configured'}), 400
+
+            # Initialize Google Drive service
+            drive_service = GoogleDriveService(
+                app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE'),
+                app.config.get('GOOGLE_DRIVE_TOKEN_FILE')
+            )
+
+            # Get user data directory
+            user_data_dir = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username)
+
+            # Get folder ID from config if specified
+            folder_id = app.config.get('GOOGLE_DRIVE_FOLDER_ID')
+
+            # Download data from Google Drive
+            download_results = drive_service.download_user_data(username, user_data_dir, folder_id)
+
+            if download_results['success']:
+                app.logger.info(f"Successfully downloaded data for user {username} from Google Drive")
+                
+                # Clear user cache to force reload with new data
+                if username in app.user_cache:
+                    del app.user_cache[username]
+                
+                # Reload current image index from file if it exists
+                index_file_path = os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username,
+                                               f'current_image_index_{username}.txt')
+                if os.path.exists(index_file_path):
+                    try:
+                        with open(index_file_path, 'r') as f:
+                            app.current_image_index_dct[username] = int(f.read())
+                    except (ValueError, FileNotFoundError):
+                        app.current_image_index_dct[username] = 0
+                else:
+                    app.current_image_index_dct[username] = 0
+                
+                # Repopulate the cache with the newly downloaded data
+                from app.app_utils import load_user_specific_data
+                load_user_specific_data(username, app)
+                
+                return jsonify({
+                    'success': True,
+                    'message': f"Successfully downloaded file from Google Drive",
+                    'downloaded_files': download_results['downloaded_files'],
+                    'reload_page': True  # Signal frontend to reload
+                })
+            else:
+                app.logger.error(f"Failed to download data for user {username}: {download_results['errors']}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Download failed',
+                    'errors': download_results['errors']
+                }), 500
+
+        except Exception as e:
+            app.logger.error(f"Error downloading from Google Drive for user {username}: {str(e)}")
+            traceback.print_exc()
+            return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+    @app.route('/check_drive_status', methods=['GET'])
+    def check_drive_status():
+        """Check if Google Drive service is available and user has data."""
+        try:
+            if not app.config.get('GOOGLE_DRIVE_ENABLED', False):
+                return jsonify({'available': False, 'reason': 'Google Drive integration is disabled'})
+
+            # Check if credentials file exists
+            credentials_file = app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE')
+            if not os.path.exists(credentials_file):
+                return jsonify({
+                    'available': False, 
+                    'reason': 'Google Drive credentials file not found'
+                })
+
+            # Try to initialize service (this will check authentication)
+            drive_service = GoogleDriveService(
+                app.config.get('GOOGLE_DRIVE_CREDENTIALS_FILE'),
+                app.config.get('GOOGLE_DRIVE_TOKEN_FILE')
+            )
+            
+            # Try to authenticate to check if service is working
+            drive_service.authenticate()
+
+            return jsonify({
+                'available': True,
+                'message': 'Google Drive service is available'
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error checking Google Drive status: {str(e)}")
+            return jsonify({
+                'available': False,
+                'reason': f'Google Drive service error: {str(e)}'
+            })
