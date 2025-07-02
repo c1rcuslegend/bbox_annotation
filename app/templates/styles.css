@@ -1966,6 +1966,7 @@ body {
 
 .top-back-btn:hover {
     background: linear-gradient(45deg, #2980b9, #3498db);
+}
   
 /* Google Drive Buttons */
 .drive-buttons-wrapper {
@@ -2148,6 +2149,7 @@ body {
     color: #999;
     font-style: italic;
     text-align: center;
+}
 
 .download-btn {
     background: linear-gradient(45deg, #3498db, #2980b9);
