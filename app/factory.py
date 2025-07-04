@@ -3,6 +3,7 @@ import app.config as config
 from app.routes import register_routes
 from app.app_utils import setup_logging, load_users_data
 from app.app_utils import check_that_needed_files_exist, check_dataset_dirs_have_same_names
+from app.time_tracker_utils import initialize_time_tracker
 
 def create_app():
     app = Flask(__name__)
@@ -11,6 +12,7 @@ def create_app():
     # Add USERNAME to app config for easy access
     app.config['USERNAME'] = config.USERNAME
     app.config['GOOGLE_DRIVE_FOLDER_ID'] = getattr(config, 'GOOGLE_DRIVE_FOLDER_ID', None)
+    app.config['GOOGLE_DRIVE_TIME_TRACKING_FOLDER_ID'] = getattr(config, 'GOOGLE_DRIVE_TIME_TRACKING_FOLDER_ID', None)
 
     # reconfigure static folder
     app.static_folder = app.config['STATIC_FOLDER']
@@ -32,6 +34,9 @@ def create_app():
 
     # Load user data
     load_users_data(app)
+
+    # Initialize time tracker
+    initialize_time_tracker(config.UPLOAD_USERNAME)
 
     register_routes(app)
 

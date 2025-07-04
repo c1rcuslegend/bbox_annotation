@@ -69,6 +69,11 @@ GOOGLE_DRIVE_TOKEN_FILE = os.path.join(APP_ROOT_FOLDER, 'token.json')
 GOOGLE_DRIVE_FOLDER_ID = "134YdKmKQdWyNPYdz-Q-cu5dHFrTpj_rc"  # Set this to your specific folder ID if you want to save to a specific folder
 # TODO: CHANGE THIS TO YOUR FOLDER ID
 
+# Google Drive folder ID for time tracking data (Google Sheets)
+# This should be a separate folder from the main annotation data
+GOOGLE_DRIVE_TIME_TRACKING_FOLDER_ID = "1qgcl6kt1wq7NYMdIZCkb07DPdMazy_we"  # TODO: CHANGE THIS TO YOUR TIME TRACKING FOLDER ID
+# If None, time tracking sheets will be saved to the auto-created Time_Tracking folder
+
 # Number of examples per class
 NUM_EXAMPLES_PER_CLASS = 5
 

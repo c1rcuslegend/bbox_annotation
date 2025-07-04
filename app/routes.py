@@ -12,6 +12,7 @@ from .app_utils import get_form_data, load_user_data, update_current_image_index
     get_label_indices_to_label_names_dicts, save_json_data, update_current_image_index_simple, read_json_file
 from class_mapping.class_loader import ClassDictionary
 from .google_drive_service import GoogleDriveService
+from .time_tracker_utils import get_time_tracker, initialize_time_tracker
 import traceback
 
 
@@ -561,6 +562,16 @@ def register_routes(app):
         # Load class_corrected_images from checkbox selection file
         class_dict = ClassDictionary()
         current_class = current_image_index // 50
+        
+        # Time tracking: Start class session only if class changed
+        time_tracker = get_time_tracker()
+        class_name = label_indices_to_human_readable.get(str(current_class), f"Class_{current_class}")
+        time_tracker.start_class_session_if_changed(str(current_class), class_name)
+        
+        # End any active image session when returning to grid view
+        if time_tracker.current_image_id:
+            time_tracker.end_image_session()
+        
         class_corrected_images = 0
         for img_name_key in man_annotated_bboxes_dict.keys():
             if class_corrected_images == 50:
@@ -658,6 +669,14 @@ def register_routes(app):
         current_gt_class = current_image_data['ground_truth']
         current_class_name = label_indices_to_label_names[str(current_gt_class)]
         current_imagepath = [os.path.join(current_class_name, current_image)]
+
+        # Time tracking: Start class session only if class changed, and start image session
+        time_tracker = get_time_tracker()
+        class_name = label_indices_to_human_readable.get(str(current_gt_class), f"Class_{current_gt_class}")
+        time_tracker.start_class_session_if_changed(str(current_gt_class), class_name)
+        
+        # Start tracking time spent on this specific image (simplified)
+        time_tracker.start_image_session(current_image, current_image_index)
 
         # top_categories = image_softmax_dict[current_image][:20]
 
@@ -885,11 +904,18 @@ def register_routes(app):
         for base_name in all_image_base_names:
             if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
                 del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
+                # Time tracking: Log deannotation in grid mode
+                time_tracker = get_time_tracker()
+                time_tracker.log_activity('grid_deannotation', {'image_name': base_name})
                 continue
             if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
                 continue  # Skip images that are already annotated by the user
 
             checkbox_selections[base_name] = {}
+            # Time tracking: Log annotation in grid mode
+            time_tracker = get_time_tracker()
+            time_tracker.log_activity('grid_annotation', {'image_name': base_name})
+            
             # Get existing data
             bboxes = bboxes_dict[base_name]['boxes']
             scores = bboxes_dict[base_name]['scores']
@@ -944,6 +970,14 @@ def register_routes(app):
                 # Update the current image index
                 app.current_image_index_dct[username] = new_index
                 update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+                
+                # Time tracking: Check if class changed and start new session if needed
+                new_class = new_index // 50
+                if new_class != current_class:
+                    time_tracker = get_time_tracker()
+                    label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+                    class_name = label_indices_to_human_readable.get(str(new_class), f"Class_{new_class}")
+                    time_tracker.start_class_session(str(new_class), class_name)
 
             # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
@@ -980,6 +1014,11 @@ def register_routes(app):
 
     @app.route('/back2grid/<username>', methods=['POST', 'GET'])
     def back2grid(username):
+        # End any active image session when returning to grid
+        time_tracker = get_time_tracker()
+        if time_tracker.current_image_id:
+            time_tracker.end_image_session()
+            
         image_index = request.form.get("image_index")
         return redirect(url_for('grid_image', username=username, image_index=image_index))
 
@@ -1055,11 +1094,18 @@ def register_routes(app):
         for base_name in all_image_base_names:
             if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
                 del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
+                # Time tracking: Log deannotation in grid mode
+                time_tracker = get_time_tracker()
+                time_tracker.log_activity('grid_deannotation', {'image_name': base_name})
                 continue
             if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
                 continue  # Skip images that are already annotated by the user
 
             checkbox_selections[base_name] = {}
+            # Time tracking: Log annotation in grid mode
+            time_tracker = get_time_tracker()
+            time_tracker.log_activity('grid_annotation', {'image_name': base_name})
+            
             # Get existing data
             if base_name in bboxes_dict:
                 bboxes = bboxes_dict[base_name]['boxes']
@@ -1089,16 +1135,22 @@ def register_routes(app):
                     checked_images_count += 1
 
         try:
+            # Get current class before updating
+            current_index = app.current_image_index_dct.get(username, 0)
+            current_class = current_index // 50
+            
             # Update the in-memory index
             update_current_image_index_simple(app, username, app.current_image_index_dct, target_index)
-
-            # Save the checkbox selections
-            save_user_data(app, username, checkbox_selections=checkbox_selections)
-
-            # Trigger background upload to Google Drive when jumping to a class
-            trigger_background_upload(app.config.get('UPLOAD_USERNAME'))
-
-            app.logger.info(f"User {username} jumped to image index {target_index}")
+            
+            # Time tracking: Log class change/visit only if class actually changed
+            time_tracker = get_time_tracker()
+            new_class = target_index // 50
+            
+            if new_class != current_class:
+                label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+                class_name = label_indices_to_human_readable.get(str(new_class), f"Class_{new_class}")
+                time_tracker.start_class_session(str(new_class), class_name)
+            
         except Exception as e:
             app.logger.error(f"Error in jump_to_class function for user {username}: {e}")
             return "An error occurred"
@@ -1182,33 +1234,45 @@ def register_routes(app):
             checkbox_selections[base_image_name] = image_data
 
         try:
-            # Modified to use the hierarchy-based navigation
-            current_image_index = app.current_image_index_dct.get(username, 0)
-            current_class = current_image_index // 50
+            # Only navigate if direction is explicitly set to next/prev AND it's not just a save
+            should_navigate = direction in ["next", "prev"] and direction != "save"
+            
+            if should_navigate:
+                # Modified to use the hierarchy-based navigation
+                current_image_index = app.current_image_index_dct.get(username, 0)
+                current_class = current_image_index // 50
 
-            print(f"Current class: {current_class}")
-            print(f"Current image index: {current_image_index}")
+                print(f"Current class: {current_class}")
+                print(f"Current image index: {current_image_index}")
 
-            # Get the next class based on hierarchy
-            if direction == "next":
-                next_class = app.get_next_class_in_hierarchy(current_class, "next")
-            else:
-                next_class = app.get_next_class_in_hierarchy(current_class, "prev")
+                # Get the next class based on hierarchy
+                if direction == "next":
+                    next_class = app.get_next_class_in_hierarchy(current_class, "next")
+                else:
+                    next_class = app.get_next_class_in_hierarchy(current_class, "prev")
 
-            print(f"Next class: {next_class}")
+                print(f"Next class: {next_class}")
 
-            # Fixed skipping 5 images at once when pressing the next/prev button
-            if (direction == "next" and current_image_index + 1 < (current_class + 1) * 50) or (
-                    direction == "prev" and current_image_index - 1 >= current_class * 50):
-                new_index = current_image_index + 1 if direction == "next" else current_image_index - 1
-            else:
-                # Calculate new index based on class * 50
-                new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
+                # Fixed skipping 5 images at once when pressing the next/prev button
+                if (direction == "next" and current_image_index + 1 < (current_class + 1) * 50) or (
+                        direction == "prev" and current_image_index - 1 >= current_class * 50):
+                    new_index = current_image_index + 1 if direction == "next" else current_image_index - 1
+                else:
+                    # Calculate new index based on class * 50
+                    new_index = next_class * 50 if direction == "next" else (next_class + 1) * 50 - 1
 
-            # Update the current image index
-            app.current_image_index_dct[username] = new_index
+                # Update the current image index
+                app.current_image_index_dct[username] = new_index
 
-            update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+                update_current_image_index_simple(app, username, app.current_image_index_dct, new_index)
+                
+                # Time tracking: Check if class changed and start new session if needed
+                new_class = new_index // 50
+                if new_class != current_class:
+                    time_tracker = get_time_tracker()
+                    label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+                    class_name = label_indices_to_human_readable.get(str(new_class), f"Class_{new_class}")
+                    time_tracker.start_class_session(str(new_class), class_name)
 
             # Save only the checkbox_selections, leave comments unchanged
             save_user_data(app, username, checkbox_selections=checkbox_selections)
@@ -1317,11 +1381,18 @@ def register_routes(app):
             for base_name in all_image_base_names:
                 if base_name in man_annotated_bboxes_dict and base_name not in checked_image_base_names:
                     del checkbox_selections[base_name]  # Remove all bboxes for unchecked images
+                    # Time tracking: Log deannotation in grid mode
+                    time_tracker = get_time_tracker()
+                    time_tracker.log_activity('grid_deannotation', {'image_name': base_name})
                     continue
                 if base_name in man_annotated_bboxes_dict or base_name not in checked_image_base_names:
                     continue  # Skip images that are already annotated by the user
 
                 checkbox_selections[base_name] = {}
+                # Time tracking: Log annotation in grid mode
+                time_tracker = get_time_tracker()
+                time_tracker.log_activity('grid_annotation', {'image_name': base_name})
+                
                 # Get existing data
                 if base_name in bboxes_dict:
                     bboxes = bboxes_dict[base_name]['boxes']
@@ -1522,19 +1593,71 @@ def register_routes(app):
             # Upload data to Google Drive
             upload_results = drive_service.upload_user_data(username, user_data_dir, folder_id)
 
-            if upload_results['success']:
-                app.logger.info(f"Successfully uploaded data for user {username} to Google Drive")
-                return jsonify({
+            # Get time tracking data and upload both JSON and Google Sheet
+            time_tracker = get_time_tracker()
+            time_tracking_results = {'success': True, 'errors': []}
+            json_upload_results = {'success': True, 'errors': []}
+            
+            # Always try to upload time tracking data if it exists
+            if time_tracker and time_tracker.session_data:
+                # Finalize the current session to ensure complete data
+                time_tracker.finalize_session()
+                
+                # Get time tracking folder ID (same folder for both JSON and Google Sheets)
+                time_tracking_folder_id = app.config.get('GOOGLE_DRIVE_TIME_TRACKING_FOLDER_ID')
+                
+                # Upload time tracking JSON file
+                json_upload_results = drive_service.upload_time_tracking_json(
+                    username,
+                    time_tracker.session_data,
+                    user_data_dir,
+                    time_tracking_folder_id
+                )
+                
+                # Upload time tracking data as Google Sheet (only if there are class sessions)
+                if time_tracker.session_data.get('class_sessions'):
+                    time_tracking_results = drive_service.create_time_tracking_sheet(
+                        username, 
+                        time_tracker.session_data, 
+                        time_tracking_folder_id
+                    )
+                else:
+                    app.logger.info(f"No class sessions found for user {username}, skipping Google Sheet creation")
+                    time_tracking_results = {'success': True, 'message': 'No class sessions to export'}
+
+            # Determine overall success
+            overall_success = (upload_results['success'] and 
+                             time_tracking_results['success'] and 
+                             json_upload_results['success'])
+            
+            if overall_success:
+                app.logger.info(f"Successfully uploaded all data for user {username} to Google Drive")
+                response_data = {
                     'success': True,
-                    'message': f"Successfully uploaded file to Google Drive",
+                    'message': f"Successfully uploaded all data to Google Drive",
                     'uploaded_files': upload_results['uploaded_files']
-                })
+                }
+                
+                # Add time tracking JSON info if uploaded
+                if json_upload_results.get('uploaded_file'):
+                    response_data['time_tracking_json'] = json_upload_results['uploaded_file']['filename']
+                
+                # Add Google Sheet info if created
+                if time_tracking_results.get('sheet_url'):
+                    response_data['time_tracking_sheet'] = time_tracking_results['sheet_url']
+                elif time_tracking_results.get('message'):
+                    response_data['time_tracking_note'] = time_tracking_results['message']
+                    
+                return jsonify(response_data)
             else:
-                app.logger.error(f"Failed to upload data for user {username}: {upload_results['errors']}")
+                errors = (upload_results.get('errors', []) + 
+                         time_tracking_results.get('errors', []) + 
+                         json_upload_results.get('errors', []))
+                app.logger.error(f"Failed to upload data for user {username}: {errors}")
                 return jsonify({
                     'success': False,
                     'message': 'Upload failed',
-                    'errors': upload_results['errors']
+                    'errors': errors
                 }), 500
 
         except Exception as e:
@@ -1647,3 +1770,27 @@ def register_routes(app):
                 'available': False,
                 'reason': f'Google Drive service error: {str(e)}'
             })
+
+    @app.route('/time_tracking_status', methods=['GET'])
+    def time_tracking_status():
+        """Get current time tracking status for debugging."""
+        try:
+            time_tracker = get_time_tracker()
+            if time_tracker:
+                status = {
+                    'session_id': time_tracker.session_id,
+                    'username': time_tracker.username,
+                    'current_class_id': time_tracker.current_class_id,
+                    'current_session_active': time_tracker.current_class_session is not None,
+                    'current_image_id': time_tracker.current_image_id,
+                    'current_image_session_active': time_tracker.current_image_id is not None,
+                    'total_class_sessions': len(time_tracker.session_data.get('class_sessions', [])),
+                    'session_start_time': time_tracker.session_data.get('start_time'),
+                    'current_class_session': time_tracker.current_class_session,
+                    'total_image_sessions': sum(len(cs.get('image_sessions', [])) for cs in time_tracker.session_data.get('class_sessions', []))
+                }
+                return jsonify(status)
+            else:
+                return jsonify({'error': 'No time tracker initialized'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500

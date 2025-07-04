@@ -50,6 +50,7 @@
             document.getElementById('none-proposed-btn').addEventListener('click', function(e) {
                 e.preventDefault();
                 document.getElementById('label_type').value = 'ood';
+                document.getElementById('direction').value = 'save';
                 document.getElementById('save').submit();
             });
 
@@ -245,7 +246,7 @@
 
                 <!-- Hidden inputs for form submission -->
                 <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
-                <input id="direction" form="save" style="display:none;" type="text" name="direction" value="next">
+                <input id="direction" form="save" style="display:none;" type="text" name="direction" value="save">
             </div>
         </div>
 
