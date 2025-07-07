@@ -37,12 +37,12 @@ USER_PATHS = {
         "EXAMPLES_DATASET_ROOT_DIR": "./img_val"
     },
     "filip": {
-        "ANNOTATIONS_ROOT_FOLDER": "./app/imagenet_val",
-        "EXAMPLES_DATASET_ROOT_DIR": "./app/imagenet_val"
+        "ANNOTATIONS_ROOT_FOLDER": "./imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./imagenet_val"
     },
     "richard": {
-        "ANNOTATIONS_ROOT_FOLDER": "./app/imagenet_val",
-        "EXAMPLES_DATASET_ROOT_DIR": "./app/imagenet_val"
+        "ANNOTATIONS_ROOT_FOLDER": "./imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "./imagenet_val"
     }
 }
 
