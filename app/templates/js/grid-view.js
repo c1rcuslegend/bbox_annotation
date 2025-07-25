@@ -147,6 +147,50 @@ function addUncertainBoxStyles() {
             font-weight: bold;
         }
         
+        /* Rendition box styles */
+        .bbox.rendition-box {
+            border: 2px solid #FF7043 !important; /* Orange border for rendition boxes */
+        }
+        
+        .bbox-label.rendition-label {
+            background-color: rgba(255, 112, 67, 0.85) !important; /* Orange background */
+            color: white !important; /* White text for better contrast on orange */
+            font-weight: bold;
+        }
+        
+        /* Crowd Rendition box styles */
+        .bbox.crowd-rendition-box {
+            border: 2px solid #B39DDB !important; /* Light purple border for crowd rendition boxes */
+        }
+        
+        .bbox-label.crowd-rendition-label {
+            background-color: rgba(179, 157, 219, 0.85) !important; /* Light purple background */
+            color: white !important; /* White text for better contrast on light purple */
+            font-weight: bold;
+        }
+        
+        /* Reflected Rendition box styles */
+        .bbox.reflected-rendition-box {
+            border: 2px solid #FF8A65 !important; /* Orange-coral border for reflected rendition boxes */
+        }
+        
+        .bbox-label.reflected-rendition-label {
+            background-color: rgba(255, 138, 101, 0.85) !important; /* Orange-coral background */
+            color: white !important; /* White text for better contrast on orange-coral */
+            font-weight: bold;
+        }
+        
+        /* Crowd Reflected Rendition box styles */
+        .bbox.crowd-reflected-rendition-box {
+            border: 2px solid #81C784 !important; /* Light green border for crowd reflected rendition boxes */
+        }
+        
+        .bbox-label.crowd-reflected-rendition-label {
+            background-color: rgba(129, 199, 132, 0.85) !important; /* Light green background */
+            color: white !important; /* White text for better contrast on light green */
+            font-weight: bold;
+        }
+        
     `;
     document.head.appendChild(style);
 }
@@ -270,9 +314,20 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
             // Check if this box is a reflected box
             const isReflected = bboxData.reflected_flags && bboxData.reflected_flags[index];
 
+            // Check if this box is a rendition box
+            const isRendition = bboxData.rendition_flags && bboxData.rendition_flags[index];
+
             // Apply appropriate classes
-            if (isReflected && isCrowd) {
+            if (isCrowd && isReflected && isRendition) {
+                bboxDiv.classList.add('crowd-reflected-rendition-box');
+            } else if (isReflected && isRendition) {
+                bboxDiv.classList.add('reflected-rendition-box');
+            } else if (isCrowd && isRendition) {
+                bboxDiv.classList.add('crowd-rendition-box');
+            } else if (isCrowd && isReflected) {
                 bboxDiv.classList.add('crowd-reflected-box');
+            } else if (isRendition) {
+                bboxDiv.classList.add('rendition-box');
             } else if (isReflected) {
                 bboxDiv.classList.add('reflected-box');
             } else if (isCrowd) {
@@ -318,8 +373,17 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
 
                 // Add crowd-label class if it's a crowd box
                 // Add reflected-label class if it's a reflected box
-                if (isReflected && isCrowd) {
+                // Add rendition-label class if it's a rendition box
+                if (isCrowd && isReflected && isRendition) {
+                    labelDiv.classList.add('crowd-reflected-rendition-label');
+                } else if (isReflected && isRendition) {
+                    labelDiv.classList.add('reflected-rendition-label');
+                } else if (isCrowd && isRendition) {
+                    labelDiv.classList.add('crowd-rendition-label');
+                } else if (isCrowd && isReflected) {
                     labelDiv.classList.add('crowd-reflected-label');
+                } else if (isRendition) {
+                    labelDiv.classList.add('rendition-label');
                 } else if (isReflected) {
                     labelDiv.classList.add('reflected-label');
                 } else if (isCrowd) {

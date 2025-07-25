@@ -49,6 +49,7 @@ class BBoxEditorUI {
         // Update checkboxes to match current state
         this.updateCrowdCheckbox(boxIndex);
         this.updateReflectedCheckbox(boxIndex);
+        this.updateRenditionCheckbox(boxIndex);
         this.updateClassNumbersCheckbox();
 
         // Add event listener to handle modal close event
@@ -271,6 +272,9 @@ class BBoxEditorUI {
                     // Also remove reflected flag if it exists
                     if (bboxes.reflected_flags) bboxes.reflected_flags.splice(deletedIndex, 1);
 
+                    // Also remove rendition flag if it exists
+                    if (bboxes.rendition_flags) bboxes.rendition_flags.splice(deletedIndex, 1);
+
                     // Also remove uncertain flags if they exist
                     if (bboxes.uncertain_flags) bboxes.uncertain_flags.splice(deletedIndex, 1);
 
@@ -310,6 +314,7 @@ class BBoxEditorUI {
                 if (bboxes.labels) bboxes.labels = [];
                 if (bboxes.crowd_flags) bboxes.crowd_flags = [];
                 if (bboxes.reflected_flags) bboxes.reflected_flags = [];
+                if (bboxes.rendition_flags) bboxes.rendition_flags = [];
                 if (bboxes.uncertain_flags) bboxes.uncertain_flags = [];
 
                 // Also clear gt field if it exists
@@ -496,6 +501,27 @@ class BBoxEditorUI {
                 if (inlineReflectedCheckbox) {
                     inlineReflectedCheckbox.checked = reflectedCheckbox.checked;
                     console.log(`Synced inline reflected checkbox to: ${reflectedCheckbox.checked}`);
+                }
+
+                // Redraw the advanced editor canvas
+                this.updatePreviewCanvas();
+            };
+        }
+
+        // Rendition checkbox
+        const renditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+        if (renditionCheckbox) {
+            renditionCheckbox.onchange = () => {
+                if (this.currentBoxIndex < 0) return;
+                // Update the rendition_flags array based on the checkbox state
+                editor.bboxes.rendition_flags[this.currentBoxIndex] = renditionCheckbox.checked;
+                console.log(`Updated rendition flag for box ${this.currentBoxIndex} to: ${renditionCheckbox.checked}`);
+
+                // Also sync with inline editor's checkbox if it exists
+                const inlineRenditionCheckbox = document.getElementById('inline-rendition-checkbox');
+                if (inlineRenditionCheckbox) {
+                    inlineRenditionCheckbox.checked = renditionCheckbox.checked;
+                    console.log(`Synced inline rendition checkbox to: ${renditionCheckbox.checked}`);
                 }
 
                 // Redraw the advanced editor canvas
@@ -911,6 +937,15 @@ class BBoxEditorUI {
         }
     }
 
+    // Update the checkbox based on rendition flag
+    static updateRenditionCheckbox(boxIndex) {
+        const renditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+        if (renditionCheckbox && this.bboxes.rendition_flags) {
+            renditionCheckbox.checked = this.bboxes.rendition_flags[boxIndex];
+            console.log(`Set rendition checkbox to: ${renditionCheckbox.checked}`);
+        }
+    }
+
     // Update the checkbox based on class numbers only flag
     static updateClassNumbersCheckbox() {
         const classNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
@@ -1005,7 +1040,10 @@ class BBoxEditorUI {
                     this.updateCrowdCheckbox(this.currentBoxIndex);
 
                     // Update the reflected checkbox
-                    this.updateReflectedCheckbox(this.currentBoxIndex)
+                    this.updateReflectedCheckbox(this.currentBoxIndex);
+
+                    // Update the rendition checkbox
+                    this.updateRenditionCheckbox(this.currentBoxIndex);
 
                     // Update editor selection
                     editor.selectedBboxIndex = selectedIndex;
@@ -1565,6 +1603,9 @@ class BBoxEditorUI {
                 // Update the reflected checkbox
                 this.updateReflectedCheckbox(this.selectedIndex);
 
+                // Update the rendition checkbox
+                this.updateRenditionCheckbox(this.selectedIndex);
+
                 // Update UI
                 this.updateBoxValues(this.bboxes.boxes[clickedBoxIndex]);
 
@@ -1712,6 +1753,9 @@ class BBoxEditorUI {
                 // Update the reflected checkbox
                 this.updateReflectedCheckbox(this.selectedIndex);
 
+                // Update the rendition checkbox
+                this.updateRenditionCheckbox(this.selectedIndex);
+
                 // Update input fields
                 this.updateBoxValues(box);
                 this.updatePreviewCanvas();
@@ -1746,6 +1790,9 @@ class BBoxEditorUI {
 
                 // Update the reflected checkbox
                 this.updateReflectedCheckbox(this.selectedIndex);
+
+                // Update the rendition checkbox
+                this.updateRenditionCheckbox(this.selectedIndex);
 
                 // Update input fields
                 this.updateBoxValues(box);
@@ -1941,6 +1988,7 @@ class BBoxEditorUI {
                     this.updateBoxValues(this.tempBox);
                     this.updateCrowdCheckbox(newIndex);
                     this.updateReflectedCheckbox(newIndex);
+                    this.updateRenditionCheckbox(newIndex);
 
                     // Update bbox selector dropdown
                     this.updateBboxSelector(this.bboxes, newIndex, this.editor ? this.editor.classLabels : {});

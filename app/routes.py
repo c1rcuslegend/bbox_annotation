@@ -28,6 +28,7 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 'gt': [],
                 'crowd_flags': [],
                 'reflected_flags': [],
+                'rendition_flags': [],
                 'uncertain_flags': [],
                 'possible_labels': []
             }
@@ -43,6 +44,7 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                     result['gt'].append(bboxes_unprocessed['gt'][i])
                 result['crowd_flags'].append(bboxes_unprocessed['crowd_flags'][i] if 'crowd_flags' in bboxes_unprocessed else False)
                 result['reflected_flags'].append(bboxes_unprocessed['reflected_flags'][i] if 'reflected_flags' in bboxes_unprocessed else False)
+                result['rendition_flags'].append(bboxes_unprocessed['rendition_flags'][i] if 'rendition_flags' in bboxes_unprocessed else False)
                 result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i] if 'uncertain_flags' in bboxes_unprocessed else False)
                 result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i] if 'possible_labels' in bboxes_unprocessed else [])
 
@@ -349,7 +351,7 @@ def register_routes(app):
                 image_basename = os.path.basename(image_path)
 
                 # Process bounding box data for this image
-                bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': []}
+                bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': []}
                 if image_basename in checkbox_data:
                     data = checkbox_data[image_basename]
                     if data.get('label_type') == 'ood':
@@ -389,6 +391,10 @@ def register_routes(app):
                                     bboxes['reflected_flags'].append(bbox['reflected_flag'])
                                 else:
                                     bboxes['reflected_flags'].append(False)
+                                if 'rendition_flag' in bbox:
+                                    bboxes['rendition_flags'].append(bbox['rendition_flag'])
+                                else:
+                                    bboxes['rendition_flags'].append(False)
 
                 bbox_data[-1][selected_index] = convert_bboxes_to_serializable(bboxes, 0)
 
@@ -492,7 +498,7 @@ def register_routes(app):
                 borders[selected_index] = 'border-poss-m'
 
             # Process bounding box data for this image
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': []}
             if image_basename in man_annotated_bboxes_dict:
                 checked_labels.add(image_basename)
 
@@ -534,6 +540,10 @@ def register_routes(app):
                                 bboxes['reflected_flags'].append(bbox['reflected_flag'])
                             else:
                                 bboxes['reflected_flags'].append(False)
+                            if 'rendition_flag' in bbox:
+                                bboxes['rendition_flags'].append(bbox['rendition_flag'])
+                            else:
+                                bboxes['rendition_flags'].append(False)
             else:
                 # print ("we go for open clip data")
                 data = app.load_bbox_openclip_data(username)[image_basename]
@@ -544,6 +554,7 @@ def register_routes(app):
                     bboxes['scores'].append(score)
                     bboxes['crowd_flags'].append(False)
                     bboxes['reflected_flags'].append(False)
+                    bboxes['rendition_flags'].append(False)
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
 
@@ -726,6 +737,7 @@ def register_routes(app):
                     labels = []
                     crowd_flags = []
                     reflected_flags = []
+                    rendition_flags = []
                     uncertain_flags = []
                     possible_labels = []
 
@@ -739,6 +751,7 @@ def register_routes(app):
                         scores.append(100)
                         crowd_flags.append(bbox.get('crowd_flag', False))
                         reflected_flags.append(bbox.get('reflected_flag', False))
+                        rendition_flags.append(bbox.get('rendition_flag', False))
                         uncertain_flags.append(bbox.get('uncertain_flag', False))
                         possible_labels.append(bbox.get('possible_label', []))
 
@@ -755,6 +768,7 @@ def register_routes(app):
                               'labels': labels,
                               'crowd_flags': crowd_flags,
                               'reflected_flags': reflected_flags,
+                              'rendition_flags': rendition_flags,
                               'uncertain_flags': uncertain_flags,
                               'possible_labels': possible_labels
                               }
@@ -771,6 +785,7 @@ def register_routes(app):
                 labels = []
                 crowd_flags = []
                 reflected_flags = []
+                rendition_flags = []
                 uncertain_flags = []
                 possible_labels = []
                 checked_labels = set()
@@ -782,6 +797,7 @@ def register_routes(app):
                     scores.append(100)  # Default high confidence score
                     crowd_flags.append(bbox.get('crowd_flag', False))
                     reflected_flags.append(bbox.get('reflected_flag', False))
+                    rendition_flags.append(bbox.get('rendition_flag', False))
                     uncertain_flags.append(bbox.get('uncertain_flag', False))
                     possible_labels.append(bbox.get('possible_label', []))
 
@@ -797,6 +813,7 @@ def register_routes(app):
                           'labels': labels,
                           'crowd_flags': crowd_flags,
                           'reflected_flags': reflected_flags,
+                          'rendition_flags': rendition_flags,
                           'uncertain_flags': uncertain_flags,
                           'possible_labels': possible_labels
                           }

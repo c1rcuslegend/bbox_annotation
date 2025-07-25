@@ -58,18 +58,33 @@ class BBoxEditor {
             console.log("BBoxEditor: Initializing missing reflected_flags array");
             this.bboxes.reflected_flags = new Array(this.bboxes.boxes.length).fill(false);
         }
+        if (this.bboxes?.boxes && !this.bboxes.rendition_flags) {
+            console.log("BBoxEditor: Initializing missing rendition_flags array");
+            this.bboxes.rendition_flags = new Array(this.bboxes.boxes.length).fill(false);
+        }
 
-        const getBoxStyle = (isCrowd, isReflected, isUncertain, isSelected) => {
+        const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
             const styles = {
                 normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
                 uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
                 crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
                 reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+                rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
                 crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+                crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+                reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+                crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
                 selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
             };
 
+            // Check for three-flag combination first
+            if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
+            // Then two-flag combinations
             if (isCrowd && isReflected) return styles.crowdReflected;
+            if (isCrowd && isRendition) return styles.crowdRendition;
+            if (isReflected && isRendition) return styles.reflectedRendition;
+            // Then single flags
+            if (isRendition) return styles.rendition;
             if (isReflected) return styles.reflected;
             if (isCrowd) return styles.crowd;
             if (isUncertain) return styles.uncertain;
@@ -126,12 +141,13 @@ class BBoxEditor {
             const isUncertain = this.bboxes.uncertain_flags?.[index] || this.bboxes.labels?.[index] === -1;
             const isCrowd = this.bboxes.crowd_flags?.[index];
             const isReflected = this.bboxes.reflected_flags?.[index];
+            const isRendition = this.bboxes.rendition_flags?.[index];
             const isSelected = index === this.selectedBboxIndex;
 
             // Skip selected box for now
             if (isSelected) return;
 
-            const style = getBoxStyle(isCrowd, isReflected, isUncertain, false);
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, false);
             const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
             
@@ -160,8 +176,9 @@ class BBoxEditor {
             const isUncertain = this.bboxes.uncertain_flags?.[this.selectedBboxIndex] || this.bboxes.labels?.[this.selectedBboxIndex] === -1;
             const isCrowd = this.bboxes.crowd_flags?.[this.selectedBboxIndex];
             const isReflected = this.bboxes.reflected_flags?.[this.selectedBboxIndex];
+            const isRendition = this.bboxes.rendition_flags?.[this.selectedBboxIndex];
 
-            const style = getBoxStyle(isCrowd, isReflected, isUncertain, true);
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, true);
             const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
             

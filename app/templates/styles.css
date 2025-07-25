@@ -1232,7 +1232,7 @@ body {
     margin-bottom: 10px;
 }
 
-.crowd-container, .reflected-container {
+.crowd-container, .reflected-container, .rendition-container {
     display: flex;
     width: 100%;
     margin-top: 15px;
@@ -1241,19 +1241,19 @@ body {
     align-items: center;
 }
 
-.crowd-container label, .reflected-container label {
+.crowd-container label, .reflected-container label, .rendition-container label {
     font-weight: 600;
     color: #555;
     font-size: medium;
 }
 
-.bbox-crowd-container, .bbox-reflected-container {
+.bbox-crowd-container, .bbox-reflected-container, .bbox-rendition-container {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.bbox-crowd-container label, .bbox-reflected-container label {
+.bbox-crowd-container label, .bbox-reflected-container label, .bbox-rendition-container label {
     margin-bottom: 8px;
     color: #2c3e50;
     font-weight: 600;
@@ -1299,6 +1299,8 @@ body {
     z-index: 99;
     display: none;
     min-width: 250px;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .legend-container.show {
@@ -1368,6 +1370,22 @@ body {
 
 .legend-box.border-crowd {
     border: 3px solid #7B1FA2;
+}
+
+.legend-box.border-rendition {
+    border: 3px solid #FF7043;
+}
+
+.legend-box.border-crowd-rendition {
+    border: 3px solid #B39DDB;
+}
+
+.legend-box.border-reflected-rendition {
+    border: 3px solid #FF8A65;
+}
+
+.legend-box.border-crowd-reflected-rendition {
+    border: 3px solid #81C784;
 }
 
 /* Custom scrollbar styling */
@@ -1913,6 +1931,22 @@ body {
     border: 3px solid #45b7aa;
 }
 
+.image-container-row.border-rendition {
+    border: 3px solid #FF7043;
+}
+
+.image-container-row.border-crowd-rendition {
+    border: 3px solid #B39DDB;
+}
+
+.image-container-row.border-reflected-rendition {
+    border: 3px solid #FF8A65;
+}
+
+.image-container-row.border-crowd-reflected-rendition {
+    border: 3px solid #81C784;
+}
+
 .image-container-row.no-border {
     border: none;
 }
@@ -2162,4 +2196,8 @@ body {
 .btn-icon {
     margin-right: 8px;
     font-size: 16px;
+}
+
+.container input:checked ~ .checkmark-rendition {
+    background-image: linear-gradient(45deg, #FF7043, #D84315);
 }

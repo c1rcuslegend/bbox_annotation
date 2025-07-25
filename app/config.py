@@ -58,7 +58,7 @@ else:
     raise ValueError(f"Unknown username: {USERNAME}. Please define it in USER_PATHS.")
 
 # Google Drive Configuration
-GOOGLE_DRIVE_ENABLED = True  # Set to False to disable Google Drive integration
+GOOGLE_DRIVE_ENABLED = False  # Set to False to disable Google Drive integration
 GOOGLE_DRIVE_CREDENTIALS_FILE = os.path.join(APP_ROOT_FOLDER, 'credentials.json')
 GOOGLE_DRIVE_TOKEN_FILE = os.path.join(APP_ROOT_FOLDER, 'token.json')
 

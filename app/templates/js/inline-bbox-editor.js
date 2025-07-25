@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Get DOM elements for controls
 	const inlineBboxSelector = document.getElementById('inline-bbox-selector');
 	const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
-	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox')
+	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox');
+	const inlineRenditionCheckbox = document.getElementById('inline-rendition-checkbox');
 	const inlineClassNumbersCheckbox = document.getElementById('inline-class-numbers-checkbox');
 	const deleteBoxBtn = document.getElementById('inline-bbox-delete');
 	const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
@@ -267,6 +268,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 			} else if (inlineEditor.bboxes.reflected_flags) {
 				debug(`Reflected flags found: ${JSON.stringify(inlineEditor.bboxes.reflected_flags)}`);
+			}
+
+			// Ensure rendition flags array exists
+			if (!inlineEditor.bboxes.rendition_flags && inlineEditor.bboxes.boxes) {
+				debug('Creating missing rendition flags array with default values');
+				inlineEditor.bboxes.rendition_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+			} else if (inlineEditor.bboxes.rendition_flags) {
+				debug(`Rendition flags found: ${JSON.stringify(inlineEditor.bboxes.rendition_flags)}`);
 			}
 
 			// Ensure uncertain flags array exists
@@ -550,7 +559,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			let bboxData = {
 				coordinates: box,
 				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
-				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i],
+				rendition_flag: inlineEditor.bboxes.rendition_flags && inlineEditor.bboxes.rendition_flags[i]
 			};
 
 			if (isUncertain) {
@@ -703,6 +713,21 @@ document.addEventListener('DOMContentLoaded', function() {
 				debug(`Synced inline reflected checkbox to: ${isReflected} after modal close`);
 			}
 		}
+
+		// If we have a selected box, update the inline rendition checkbox
+		if (inlineEditor.currentBoxIndex >= 0 && inlineEditor.bboxes &&
+			inlineEditor.bboxes.rendition_flags &&
+			inlineEditor.currentBoxIndex < inlineEditor.bboxes.rendition_flags.length) {
+
+			// Get the current rendition flag state from the bboxes data
+			const isRendition = inlineEditor.bboxes.rendition_flags[inlineEditor.currentBoxIndex];
+
+			// Update the inline checkbox
+			if (inlineRenditionCheckbox) {
+				inlineRenditionCheckbox.checked = isRendition;
+				debug(`Synced inline rendition checkbox to: ${isRendition} after modal close`);
+			}
+		}
 	});
 
 	// Check for main editor and connect to it
@@ -720,17 +745,28 @@ document.addEventListener('DOMContentLoaded', function() {
 		debug('Main editor found, connecting...');
 
 		// Helper function to determine box styles
-		const getBoxStyle = (isCrowd, isReflected, isUncertain, isSelected) => {
+		const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
 			const styles = {
 				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
 				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
 				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
 				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+				rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
 				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+				crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+				reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+				crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
 				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
 			};
 
+			// Check for three-flag combination first
+			if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
+			// Then two-flag combinations
 			if (isCrowd && isReflected) return styles.crowdReflected;
+			if (isCrowd && isRendition) return styles.crowdRendition;
+			if (isReflected && isRendition) return styles.reflectedRendition;
+			// Then single flags
+			if (isRendition) return styles.rendition;
 			if (isReflected) return styles.reflected;
 			if (isCrowd) return styles.crowd;
 			if (isUncertain) return styles.uncertain;
@@ -842,9 +878,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					const isUncertain = this.bboxes.uncertain_flags?.[i] || this.bboxes.labels?.[i] === -1;
 					const isCrowd = this.bboxes.crowd_flags?.[i];
 					const isReflected = this.bboxes.reflected_flags?.[i];
+					const isRendition = this.bboxes.rendition_flags?.[i];
 					const isSelected = false; // Always false here since we're skipping the selected box
 
-					const style = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
+					const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
 
 					// Draw the box
 					this.ctx.save();
@@ -925,9 +962,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					const isUncertain = this.bboxes.uncertain_flags?.[i] || this.bboxes.labels?.[i] === -1;
 					const isCrowd = this.bboxes.crowd_flags?.[i];
 					const isReflected = this.bboxes.reflected_flags?.[i];
+					const isRendition = this.bboxes.rendition_flags?.[i];
 					const isSelected = true;
 
-					const style = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
+					const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
 
 					// Draw the selected box with thicker lines
 					this.ctx.save();
@@ -1435,6 +1473,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		// Update the checkbox based on reflected object flag
 		updateReflectedCheckbox(boxIndex);
+
+		// Update the checkbox based on rendition flag
+		updateRenditionCheckbox(boxIndex);
 		
 		// Make sure class numbers checkbox reflects the editor's current setting
 		if (inlineEditor.editor && inlineClassNumbersCheckbox) {
@@ -1527,6 +1568,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		inlineReflectedCheckbox.addEventListener('change', handleReflectedCheckboxChange);
 	}
 
+	if (inlineRenditionCheckbox) {
+		inlineRenditionCheckbox.addEventListener('change', handleRenditionCheckboxChange);
+	}
+
 	if (inlineClassNumbersCheckbox) {
 		inlineClassNumbersCheckbox.addEventListener('change', handleClassNumbersCheckboxChange);
 	}
@@ -1609,6 +1654,45 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 
+	function handleRenditionCheckboxChange() {
+		if (inlineEditor.currentBoxIndex < 0) return;
+
+		// Update the rendition_flags array based on the checkbox state
+		inlineEditor.bboxes.rendition_flags[inlineEditor.currentBoxIndex] = inlineRenditionCheckbox.checked;
+
+		// Also update the checkbox in the advanced editor if it's open
+		const advancedRenditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+		if (advancedRenditionCheckbox) {
+			advancedRenditionCheckbox.checked = inlineRenditionCheckbox.checked;
+			debug(`Synced advanced rendition checkbox to: ${inlineRenditionCheckbox.checked}`);
+		}
+
+		// Immediately redraw the canvas to show the updated box color
+		if (inlineEditor.editor) {
+			inlineEditor.editor.redrawCanvas();
+			debug(`Redrawing canvas after rendition checkbox change to ${inlineRenditionCheckbox.checked}`);
+		}
+
+		// Update hidden form field
+		updateHiddenBboxesField();
+
+		debug(`Updated rendition flag for box ${inlineEditor.currentBoxIndex} to: ${inlineRenditionCheckbox.checked}`);
+	}
+
+	function updateRenditionCheckbox(boxIndex) {
+		if (inlineRenditionCheckbox && inlineEditor.bboxes.rendition_flags) {
+			inlineRenditionCheckbox.checked = inlineEditor.bboxes.rendition_flags[boxIndex];
+			debug(`Set rendition checkbox to: ${inlineRenditionCheckbox.checked}`);
+
+			// Also update the advanced editor's checkbox if it exists
+			const advancedRenditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+			if (advancedRenditionCheckbox) {
+				advancedRenditionCheckbox.checked = inlineEditor.bboxes.rendition_flags[boxIndex];
+				debug(`Synced advanced rendition checkbox to: ${inlineEditor.bboxes.rendition_flags[boxIndex]}`);
+			}
+		}
+	}
+
 	function handleClassNumbersCheckboxChange() {
 		// Pass the checkbox state to the editor
 		if (inlineEditor.editor) {
@@ -1653,6 +1737,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Remove reflected object flag if it exists
 		if (inlineEditor.bboxes.reflected_flags) {
 			inlineEditor.bboxes.reflected_flags.splice(deletedIndex, 1);
+		}
+
+		// Remove rendition flag if it exists
+		if (inlineEditor.bboxes.rendition_flags) {
+			inlineEditor.bboxes.rendition_flags.splice(deletedIndex, 1);
 		}
 
 		// Remove uncertain flag and possible_labels if they exist
@@ -1705,6 +1794,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		if (inlineEditor.bboxes.reflected_flags) {
 			inlineEditor.bboxes.reflected_flags = [];
+		}
+		if (inlineEditor.bboxes.rendition_flags) {
+			inlineEditor.bboxes.rendition_flags = [];
 		}
 		if (inlineEditor.bboxes.uncertain_flags) {
 			inlineEditor.bboxes.uncertain_flags = [];
@@ -2295,6 +2387,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
 						inlineEditor.bboxes.reflected_flags.push(false);
+						inlineEditor.bboxes.rendition_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags[newBoxIndex] = true;
 
 						// Get selected classes for uncertainty
@@ -2338,6 +2431,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						// Push new values to arrays (don't modify existing items)
 						inlineEditor.bboxes.crowd_flags.push(false);
 						inlineEditor.bboxes.reflected_flags.push(false);
+						inlineEditor.bboxes.rendition_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags.push(false);
 						inlineEditor.bboxes.possible_labels.push([]);
 
@@ -2380,7 +2474,9 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Update UI
 					updateBboxSelector();
 					updateCrowdCheckbox(newBoxIndex);
-					updateReflectedCheckbox(newBoxIndex);
+                    updateReflectedCheckbox(newBoxIndex);
+                    updateRenditionCheckbox(newBoxIndex);
+					updateRenditionCheckbox(newBoxIndex);
 
 					// Select the box to update UI elements properly
 					selectBox(newBoxIndex);
