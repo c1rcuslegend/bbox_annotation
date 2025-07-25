@@ -51,7 +51,28 @@
                 e.preventDefault();
                 document.getElementById('label_type').value = 'ood';
                 document.getElementById('direction').value = 'save';
-                document.getElementById('save').submit();
+                
+                // Submit the form and navigate back to grid
+                const form = document.getElementById('save');
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Navigate back to grid view after saving
+                        window.location.href = `/back2grid/{{ username }}`;
+                    } else {
+                        console.error('Save failed, but navigating anyway');
+                        window.location.href = `/back2grid/{{ username }}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving:', error);
+                    window.location.href = `/back2grid/{{ username }}`;
+                });
             });
 
             document.getElementById('not-sure-btn').addEventListener('click', function(e) {
@@ -80,9 +101,6 @@
 
                 // Hide the uncertainty modal so that the user can now draw the uncertain box.
                 document.getElementById('uncertainty-modal-container').classList.remove('show-modal');
-
-                // Optionally, notify the user that they can now draw the box.
-                console.log('Uncertainty mode activated. Now draw a box for uncertain labeling.');
             });
         };
 
@@ -147,6 +165,7 @@
     <script src="{{ url_for('static', filename='js/inline-bbox-editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/whole-image-bbox.js') }}"></script>
     <script src="{{ url_for('static', filename='js/refresh-btn.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/keyboard-shortcuts.js') }}"></script>
 </head>
 
 <body>
@@ -436,13 +455,59 @@
     <!-- Keyboard Navigation Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Add keyboard event listener for navigation
+            // Add keyboard event listener for navigation and shortcuts
             document.addEventListener('keydown', function(event) {
                 // Only trigger navigation if not typing in an input field (but allow for checkboxes and radio buttons)
                 if ((event.target.tagName === 'INPUT' && event.target.type !== 'checkbox' && event.target.type !== 'radio') || 
                     event.target.tagName === 'TEXTAREA' || 
                     event.target.tagName === 'SELECT') {
                     return;
+                }
+
+                // Handle Ctrl key combinations first
+                if (event.ctrlKey) {
+                    switch(event.key.toLowerCase()) {
+                        case 'g': // Ctrl+G - Toggle Crowd of Instances
+                            event.preventDefault();
+                            toggleCrowdFlag();
+                            break;
+                        case 'r': // Ctrl+R - Toggle Reflected Object
+                            event.preventDefault();
+                            toggleReflectedFlag();
+                            break;
+                        case 'v': // Ctrl+V - Toggle Rendition flag
+                            event.preventDefault();
+                            toggleRenditionFlag();
+                            break;
+                        case 'x': // Ctrl+X - Delete current bbox
+                            event.preventDefault();
+                            deleteCurrentBbox();
+                            break;
+                        case 's': // Ctrl+S - Save changes
+                            event.preventDefault();
+                            saveChanges();
+                            break;
+                        case 'a': // Ctrl+A - Create whole image bbox
+                            event.preventDefault();
+                            createWholeImageBBox();
+                            break;
+                        case 'z': // Ctrl+Z - Not sure (uncertainty mode)
+                            event.preventDefault();
+                            activateNotSureMode();
+                            break;
+                    }
+                    return; // Don't process other keys when Ctrl is pressed
+                }
+                
+                // Handle Shift key combinations
+                if (event.shiftKey) {
+                    switch(event.key.toLowerCase()) {
+                        case 's': // Shift+S - None of ImageNet classes
+                            event.preventDefault();
+                            activateNoneOfImageNetMode();
+                            break;
+                    }
+                    return; // Don't process other keys when Shift is pressed
                 }
 
                 // Left Arrow or 'A' key - Previous
@@ -476,6 +541,154 @@
                 }
             });
         });
+
+        // Keyboard shortcut handler functions
+        function toggleCrowdFlag() {
+            const crowdCheckbox = document.getElementById('inline-crowd-checkbox');
+            if (crowdCheckbox) {
+                crowdCheckbox.checked = !crowdCheckbox.checked;
+                // Trigger change event to update the bbox editor
+                crowdCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        function toggleReflectedFlag() {
+            const reflectedCheckbox = document.getElementById('inline-reflected-checkbox');
+            if (reflectedCheckbox) {
+                reflectedCheckbox.checked = !reflectedCheckbox.checked;
+                // Trigger change event to update the bbox editor
+                reflectedCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        function toggleRenditionFlag() {
+            const renditionCheckbox = document.getElementById('inline-rendition-checkbox');
+            if (renditionCheckbox) {
+                renditionCheckbox.checked = !renditionCheckbox.checked;
+                // Trigger change event to update the bbox editor
+                renditionCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
+
+        function deleteCurrentBbox() {
+            const deleteBtn = document.getElementById('inline-bbox-delete');
+            if (deleteBtn) {
+                deleteBtn.click();
+            }
+        }
+
+        function saveChanges() {
+            // Set direction to save
+            document.getElementById('direction').value = 'save';
+            document.getElementById('save').submit();
+        }
+
+        function activateNotSureMode() {
+            const notSureBtn = document.getElementById('not-sure-btn');
+            if (notSureBtn) {
+                notSureBtn.click();
+            }
+        }
+
+        function activateNoneOfImageNetMode() {
+            const noneProposedBtn = document.getElementById('none-proposed-btn');
+            if (noneProposedBtn) {
+                noneProposedBtn.click();
+            }
+        }
+
+        // Note: createWholeImageBBox function is already defined in whole-image-bbox.js
+
+        // Visual feedback function for keyboard shortcuts
+        function showKeyboardShortcutFeedback(message) {
+            // Create or reuse existing feedback element
+            let feedbackElement = document.getElementById('keyboard-shortcut-feedback');
+            if (!feedbackElement) {
+                feedbackElement = document.createElement('div');
+                feedbackElement.id = 'keyboard-shortcut-feedback';
+                feedbackElement.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(40, 167, 69, 0.9);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(feedbackElement);
+            }
+
+            feedbackElement.textContent = message;
+            feedbackElement.style.opacity = '1';
+            
+            // Clear any existing timeout
+            if (feedbackElement.fadeTimeout) {
+                clearTimeout(feedbackElement.fadeTimeout);
+            }
+            
+            // Hide after 2 seconds
+            feedbackElement.fadeTimeout = setTimeout(() => {
+                feedbackElement.style.opacity = '0';
+            }, 2000);
+        }
+
+        // Update all keyboard shortcut functions to show feedback
+        const originalToggleCrowdFlag = toggleCrowdFlag;
+        toggleCrowdFlag = function() {
+            originalToggleCrowdFlag();
+            showKeyboardShortcutFeedback('Crowd Flag Toggled (Ctrl+G)');
+        };
+
+        const originalToggleReflectedFlag = toggleReflectedFlag;
+        toggleReflectedFlag = function() {
+            originalToggleReflectedFlag();
+            showKeyboardShortcutFeedback('Reflected Flag Toggled (Ctrl+R)');
+        };
+
+        const originalToggleRenditionFlag = toggleRenditionFlag;
+        toggleRenditionFlag = function() {
+            originalToggleRenditionFlag();
+            showKeyboardShortcutFeedback('Rendition Flag Toggled (Ctrl+V)');
+        };
+
+        const originalDeleteCurrentBbox = deleteCurrentBbox;
+        deleteCurrentBbox = function() {
+            originalDeleteCurrentBbox();
+            showKeyboardShortcutFeedback('BBox Deleted (Ctrl+X)');
+        };
+
+        const originalSaveChanges = saveChanges;
+        saveChanges = function() {
+            originalSaveChanges();
+            showKeyboardShortcutFeedback('Changes Saved (Ctrl+S)');
+        };
+
+        const originalActivateNotSureMode = activateNotSureMode;
+        activateNotSureMode = function() {
+            originalActivateNotSureMode();
+            showKeyboardShortcutFeedback('Not Sure Mode (Ctrl+Z)');
+        };
+
+        const originalActivateNoneOfImageNetMode = activateNoneOfImageNetMode;
+        activateNoneOfImageNetMode = function() {
+            originalActivateNoneOfImageNetMode();
+            showKeyboardShortcutFeedback('None of ImageNet Mode (Shift+S)');
+        };
+
+        // Add feedback for Ctrl+A (whole image bbox)
+        window.originalCreateWholeImageBBox = window.createWholeImageBBox;
+        window.createWholeImageBBox = function() {
+            if (window.originalCreateWholeImageBBox) {
+                window.originalCreateWholeImageBBox();
+                showKeyboardShortcutFeedback('Whole Image BBox Created (Ctrl+A)');
+            }
+        };
     </script>
 </body>
 </html>

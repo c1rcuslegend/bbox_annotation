@@ -10,6 +10,7 @@
     <!-- Include external JavaScript files -->
     <script src="{{ url_for('static', filename='js/grid-view.js') }}"></script>
     <script src="{{ url_for('static', filename='js/class-jump.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/keyboard-shortcuts.js') }}"></script>
 </head>
 
 <body>
@@ -245,6 +246,17 @@
                     return;
                 }
 
+                // Handle Ctrl key combinations
+                if (event.ctrlKey) {
+                    switch(event.key.toLowerCase()) {
+                        case 's': // Ctrl+S - Save grid without navigation
+                            event.preventDefault();
+                            saveGridWithoutNavigation();
+                            break;
+                    }
+                    return; // Don't process other keys when Ctrl is pressed
+                }
+
                 // Left Arrow or 'A' key - Previous
                 if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
                     event.preventDefault();
@@ -269,10 +281,76 @@
                     }, 50);
                 }
             });
-
-            // Show keyboard shortcuts hint
-            console.log('Keyboard Navigation: Use ← → arrow keys or A/D keys to navigate between image sets');
         });
+
+        // Grid-specific keyboard shortcut functions
+        function saveGridWithoutNavigation() {
+            // Show visual feedback
+            showKeyboardShortcutFeedback('Grid Saved (Ctrl+S)');
+            
+            // Set direction to 'stay' to save without navigation
+            change('stay');
+            
+            // Submit form via AJAX to avoid page reload
+            const form = document.getElementById('save');
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showKeyboardShortcutFeedback('✓ Grid Saved Successfully');
+                } else {
+                    showKeyboardShortcutFeedback('⚠ Save Error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving grid:', error);
+                showKeyboardShortcutFeedback('⚠ Save Error');
+            });
+        }
+
+        // Visual feedback function for keyboard shortcuts (same as in detail view)
+        function showKeyboardShortcutFeedback(message) {
+            // Create or reuse existing feedback element
+            let feedbackElement = document.getElementById('keyboard-shortcut-feedback');
+            if (!feedbackElement) {
+                feedbackElement = document.createElement('div');
+                feedbackElement.id = 'keyboard-shortcut-feedback';
+                feedbackElement.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(40, 167, 69, 0.9);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(feedbackElement);
+            }
+
+            feedbackElement.textContent = message;
+            feedbackElement.style.opacity = '1';
+            
+            // Clear any existing timeout
+            if (feedbackElement.fadeTimeout) {
+                clearTimeout(feedbackElement.fadeTimeout);
+            }
+            
+            // Hide after 2 seconds
+            feedbackElement.fadeTimeout = setTimeout(() => {
+                feedbackElement.style.opacity = '0';
+            }, 2000);
+        }
 
         // Google Drive functionality
         function uploadToDrive() {
