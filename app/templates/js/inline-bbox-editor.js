@@ -616,6 +616,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		debug(`Updated hidden field with label_type: ${labelType}, bboxes: ${bboxDataArray.length}`);
 	}
 
+	// Make the function globally accessible for keyboard shortcuts
+	window.updateHiddenBboxesField = updateHiddenBboxesField;
+
 	// Hook up checkbox event listeners
 	function setupCategoryCheckboxListeners() {
 		// Also check for the global lastSelectedClassId from checkbox.js

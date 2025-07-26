@@ -202,48 +202,42 @@ class BBoxEditor {
         }
     }
 
-// Force a complete redraw of the canvas with the same Not Sure box handling
-forceRedraw() {
-    // Just call redrawCanvas to avoid duplicating all the logic
-    this.redrawCanvas();
-}
+    // Add an initialize method to handle Not Sure boxes on load
+    // Call this after the constructor
+    initializeNotSureBoxes() {
+        // Check for -1 labels and ensure they're properly marked as uncertain
+        if (this.bboxes && this.bboxes.labels && this.bboxes.labels.length > 0) {
+            // Ensure uncertain_flags array exists
+            if (!this.bboxes.uncertain_flags) {
+                this.bboxes.uncertain_flags = new Array(this.bboxes.boxes.length).fill(false);
+            }
 
-// Add an initialize method to handle Not Sure boxes on load
-// Call this after the constructor
-initializeNotSureBoxes() {
-    // Check for -1 labels and ensure they're properly marked as uncertain
-    if (this.bboxes && this.bboxes.labels && this.bboxes.labels.length > 0) {
-        // Ensure uncertain_flags array exists
-        if (!this.bboxes.uncertain_flags) {
-            this.bboxes.uncertain_flags = new Array(this.bboxes.boxes.length).fill(false);
-        }
+            // Set uncertain_flags for any box with label -1
+            for (let i = 0; i < this.bboxes.labels.length; i++) {
+                if (this.bboxes.labels[i] === -1) {
+                    this.bboxes.uncertain_flags[i] = true;
+                    console.log(`Box ${i} has label -1, marked as uncertain`);
 
-        // Set uncertain_flags for any box with label -1
-        for (let i = 0; i < this.bboxes.labels.length; i++) {
-            if (this.bboxes.labels[i] === -1) {
-                this.bboxes.uncertain_flags[i] = true;
-                console.log(`Box ${i} has label -1, marked as uncertain`);
+                    // Ensure possible_labels array exists
+                    if (!this.bboxes.possible_labels) {
+                        this.bboxes.possible_labels = new Array(this.bboxes.boxes.length).fill([]);
+                    }
 
-                // Ensure possible_labels array exists
-                if (!this.bboxes.possible_labels) {
-                    this.bboxes.possible_labels = new Array(this.bboxes.boxes.length).fill([]);
-                }
-
-                // Add default empty array for possible_labels if needed
-                if (i >= this.bboxes.possible_labels.length || !this.bboxes.possible_labels[i]) {
-                    if (this.bboxes.possible_labels.length <= i) {
-                        // Extend the array if needed
-                        while (this.bboxes.possible_labels.length <= i) {
-                            this.bboxes.possible_labels.push([]);
+                    // Add default empty array for possible_labels if needed
+                    if (i >= this.bboxes.possible_labels.length || !this.bboxes.possible_labels[i]) {
+                        if (this.bboxes.possible_labels.length <= i) {
+                            // Extend the array if needed
+                            while (this.bboxes.possible_labels.length <= i) {
+                                this.bboxes.possible_labels.push([]);
+                            }
+                        } else {
+                            this.bboxes.possible_labels[i] = [];
                         }
-                    } else {
-                        this.bboxes.possible_labels[i] = [];
                     }
                 }
             }
         }
     }
-}
 
     // Force a complete redraw of the canvas
     forceRedraw() {

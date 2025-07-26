@@ -18,11 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
         wholeImageBtn2.addEventListener('click', function() {
             createWholeImageBBox();
 
-            // Close the advanced editor modal if it's open
-            const modal = document.getElementById('bbox-modal-container');
-            if (modal && modal.classList.contains('show-modal')) {
-                modal.classList.remove('show-modal');
-            }
+            // Don't close the advanced editor modal - let it stay open for further editing
+            // The user can close it manually if needed
         });
     }
 });
@@ -38,11 +35,38 @@ function createWholeImageBBox() {
     let editor = null;
     let bboxes = null;
     let img = null;
-    let isInlineMode = false;
-
-    // First check if we're in the inline editor mode
-    if (window.inlineEditor) {
-        console.log('Using inline editor reference (global inlineEditor)');
+    let isInlineMode = false;        // First check if we're in the advanced editor modal
+    const advancedModal = document.getElementById('bbox-modal-container');
+    if (advancedModal && advancedModal.classList.contains('show-modal')) {
+        isInlineMode = false; // We're in advanced mode
+        
+        // Always use the shared bboxes array from the inline editor
+        if (window.inlineEditor && window.inlineEditor.bboxes) {
+            bboxes = window.inlineEditor.bboxes; // Use direct reference, not a copy
+            
+            // Try multiple ways to get the advanced editor reference
+            if (window.BBoxEditorUI && window.BBoxEditorUI.editor) {
+                editor = window.BBoxEditorUI.editor;
+                img = editor.img;
+            } else if (window.bboxEditor) {
+                editor = window.bboxEditor;
+                img = editor.img;
+            }
+        } else {
+            // Fallback if inline editor not available
+            if (window.BBoxEditorUI && window.BBoxEditorUI.editor) {
+                editor = window.BBoxEditorUI.editor;
+                bboxes = editor.bboxes;
+                img = editor.img;
+            } else if (window.bboxEditor) {
+                editor = window.bboxEditor;
+                bboxes = editor.bboxes;
+                img = editor.img;
+            }
+        }
+    }
+    // Check if we're in the inline editor mode
+    else if (window.inlineEditor) {
         isInlineMode = true;
 
         // Get the editor references from the inline editor
@@ -52,24 +76,16 @@ function createWholeImageBBox() {
             editor = window.bboxEditor;
         }
 
-        // Get bboxes from inline editor - make a deep copy to avoid reference issues
-        bboxes = JSON.parse(JSON.stringify(window.inlineEditor.bboxes));
+        // Use direct reference to bboxes from inline editor - not a copy
+        bboxes = window.inlineEditor.bboxes;
 
         // Get the image element
         img = document.querySelector('#image-with-bboxes img');
     }
-    // Check if we're in the modal/advanced editor context
-    else if (window.BBoxEditorUI && window.BBoxEditorUI.editor) {
-        console.log('Using advanced editor reference');
-        editor = window.BBoxEditorUI.editor;
-        bboxes = JSON.parse(JSON.stringify(editor.bboxes)); // Deep copy
-        img = editor.img;
-    }
     // Check if there's a global editor reference (from the main page)
     else if (window.bboxEditor) {
-        console.log('Using global editor reference');
         editor = window.bboxEditor;
-        bboxes = JSON.parse(JSON.stringify(editor.bboxes)); // Deep copy
+        bboxes = editor.bboxes; // Use direct reference, not a copy
         img = editor.img;
 
         // Check if we're still in inline mode
@@ -542,17 +558,21 @@ function createWholeImageBBox() {
 
     } else {
         // For advanced editor mode
+        console.log('Updating advanced editor mode');
+        
         if (editor) {
             // Update the editor's bboxes
             editor.bboxes = bboxes;
             editor.selectedBboxIndex = newBoxIndex; // Select the new box
             editor.redrawCanvas();
+            console.log(`Updated advanced editor with new box index ${newBoxIndex}`);
 
             // If the BBoxEditorUI is available, update it too
             if (window.BBoxEditorUI) {
                 window.BBoxEditorUI.bboxes = bboxes;
                 window.BBoxEditorUI.selectedIndex = newBoxIndex;
                 window.BBoxEditorUI.currentBoxIndex = newBoxIndex;
+                console.log('Updated BBoxEditorUI state');
 
                 // Check if the new box is uncertain
                 const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[newBoxIndex]) ||
@@ -590,10 +610,31 @@ function createWholeImageBBox() {
 
                     // Set the value explicitly
                     boxSelector.value = newBoxIndex.toString();
+                    console.log(`[WHOLE-IMAGE] Set bbox selector value to ${newBoxIndex}`);
 
                     // Trigger a change event
                     const event = new Event('change');
                     boxSelector.dispatchEvent(event);
+                    console.log(`[WHOLE-IMAGE] Dispatched change event for bbox selector with value ${newBoxIndex}`);
+                    
+                    // Double-check the value was set correctly
+                    setTimeout(() => {
+                        const actualValue = boxSelector.value;
+                        console.log(`[WHOLE-IMAGE] Bbox selector value after event: ${actualValue}`);
+                        
+                        // Verify BBoxEditorUI state
+                        if (window.BBoxEditorUI) {
+                            console.log(`[WHOLE-IMAGE] BBoxEditorUI.currentBoxIndex after selector change: ${window.BBoxEditorUI.currentBoxIndex}`);
+                            console.log(`[WHOLE-IMAGE] BBoxEditorUI.editor.selectedBboxIndex: ${window.BBoxEditorUI.editor ? window.BBoxEditorUI.editor.selectedBboxIndex : 'N/A'}`);
+                        }
+                        
+                        // Verify all bbox state
+                        console.log(`[WHOLE-IMAGE] Total boxes after whole image creation: ${bboxes.boxes.length}`);
+                        bboxes.boxes.forEach((box, i) => {
+                            const label = bboxes.labels ? bboxes.labels[i] : 'unknown';
+                            console.log(`[WHOLE-IMAGE]   Box ${i}: [${box.join(', ')}] label: ${label}`);
+                        });
+                    }, 10);
                 }
 
                 // Update class selector
@@ -633,6 +674,44 @@ function createWholeImageBBox() {
 
                 // Update preview canvas
                 window.BBoxEditorUI.updatePreviewCanvas();
+                
+                // Force a small delay to ensure DOM updates are complete
+                setTimeout(() => {
+                    // Ensure the editor reference is properly set for keyboard shortcuts
+                    if (editor && window.BBoxEditorUI) {
+                        window.BBoxEditorUI.editor = editor;
+                        window.bboxEditor = editor; // Ensure global reference is maintained
+                        
+                        // IMPORTANT: Ensure currentBoxIndex is properly set after whole image bbox creation
+                        window.BBoxEditorUI.currentBoxIndex = newBoxIndex;
+                        console.log(`Explicitly set BBoxEditorUI.currentBoxIndex to ${newBoxIndex} after whole image bbox creation`);
+                        
+                        // Also ensure the editor's selectedBboxIndex is set
+                        editor.selectedBboxIndex = newBoxIndex;
+                        console.log(`Set editor.selectedBboxIndex to ${newBoxIndex}`);
+                        
+                        // Refresh any cached element references that keyboard shortcuts might use
+                        console.log('Refreshed editor references after whole image bbox creation in advanced mode');
+                        
+                        // Verify the delete button handler is working by testing it
+                        const deleteBtn = document.getElementById('bbox-delete');
+                        if (deleteBtn) {
+                            console.log('Delete button found after whole image bbox creation');
+                            // Verify that the button has the proper event handler
+                            const hasHandler = deleteBtn.onclick !== null;
+                            console.log(`Delete button has onclick handler: ${hasHandler}`);
+                        } else {
+                            console.error('Delete button NOT found after whole image bbox creation!');
+                        }
+                    }
+                    
+                    // Ensure focus is properly managed - remove focus from any input elements
+                    // that might interfere with keyboard shortcuts
+                    const focusedElement = document.activeElement;
+                    if (focusedElement && (focusedElement.tagName === 'INPUT' || focusedElement.tagName === 'SELECT')) {
+                        focusedElement.blur();
+                    }
+                }, 50);
             }
         }
     }

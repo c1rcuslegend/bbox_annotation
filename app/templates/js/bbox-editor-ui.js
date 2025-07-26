@@ -15,36 +15,46 @@ class BBoxEditorUI {
         this.editor = editor;
         this.currentBoxIndex = boxIndex;
 
+        // Make the editor globally accessible for whole image bbox functionality
+        window.BBoxEditorUI.editor = editor;
+        window.BBoxEditorUI.currentBoxIndex = boxIndex;
+
+        // Always use the shared bboxes from inline editor if available
+        if (window.inlineEditor && window.inlineEditor.bboxes) {
+            this.bboxes = window.inlineEditor.bboxes;
+            editor.bboxes = window.inlineEditor.bboxes; // Sync the main editor too
+        } else {
+            this.bboxes = bboxes;
+        }
+
         // Check if Not Sure mode is active from the inline editor
         this.checkNotSureMode();
 
         // Handle gt field - ensure labels array exists
-        if (!bboxes.labels && bboxes.gt) {
-            console.log("BBoxEditorUI: Using 'gt' field as labels");
-            bboxes.labels = bboxes.gt;
+        if (!this.bboxes.labels && this.bboxes.gt) {
+            this.bboxes.labels = this.bboxes.gt;
         }
 
         // Initialize Not Sure boxes
-        this.bboxes = bboxes;
         this.initializeNotSureBoxes();
 
         // Show the modal
         modal.classList.add('show-modal');
 
         // Set up the enhanced class selector dropdown with search
-        this.setupEnhancedClassSelector(boxIndex, bboxes, editor.classLabels);
+        this.setupEnhancedClassSelector(boxIndex, this.bboxes, editor.classLabels);
 
         // Set up event listeners
-        this.setupEventListeners(bboxes, editor);
+        this.setupEventListeners(this.bboxes, editor);
 
         // Populate input fields
         this.updateBoxValues(box);
 
         // Initialize the preview canvas
-        this.initPreviewCanvas(previewCanvas, editor.img, bboxes, boxIndex);
+        this.initPreviewCanvas(previewCanvas, editor.img, this.bboxes, boxIndex);
 
         // Update bbox selector with available boxes
-        this.updateBboxSelector(bboxes, boxIndex, editor.classLabels);
+        this.updateBboxSelector(this.bboxes, boxIndex, editor.classLabels);
         
         // Update checkboxes to match current state
         this.updateCrowdCheckbox(boxIndex);
@@ -109,33 +119,28 @@ class BBoxEditorUI {
         if (possibleLabelsDiv && possibleLabelsDiv.dataset.labels) {
             try {
                 this.possibleLabels = JSON.parse(possibleLabelsDiv.dataset.labels);
-                console.log("BBoxEditorUI: Retrieved possible labels from hidden div:", this.possibleLabels);
             } catch (e) {
-                console.error("BBoxEditorUI: Error parsing possible labels:", e);
+                // Error parsing labels - ignore
             }
         }
 
         // Check for inline editor Not Sure state
         if (indicator) {
-            console.log("BBoxEditorUI: Not Sure mode active from inline editor");
             this.notSureMode = true;
 
             // If we didn't get labels from the hidden div, try the global variable
             if (this.possibleLabels.length === 0 && window.selectedUncertainClasses &&
                 Array.isArray(window.selectedUncertainClasses)) {
                 this.possibleLabels = [...window.selectedUncertainClasses];
-                console.log("BBoxEditorUI: Captured possible labels from global:", this.possibleLabels);
             }
         } else if (window.uncertaintyMode) {
             // Also check the global uncertainty mode flag
-            console.log("BBoxEditorUI: Not Sure mode active via global flag");
             this.notSureMode = true;
 
             // If we didn't get labels from the hidden div, try the global variable
             if (this.possibleLabels.length === 0 && window.selectedUncertainClasses &&
                 Array.isArray(window.selectedUncertainClasses)) {
                 this.possibleLabels = [...window.selectedUncertainClasses];
-                console.log("BBoxEditorUI: Captured possible labels from global:", this.possibleLabels);
             }
         } else {
             this.notSureMode = false;
@@ -150,14 +155,12 @@ class BBoxEditorUI {
         const indicator = document.getElementById('uncertainty-mode-indicator');
         if (indicator) {
             indicator.remove();
-            console.log("BBoxEditorUI: Removed Not Sure mode indicator");
         }
 
         // Remove the yellow border from image container
         const imageContainer = document.querySelector('.image-editor-right');
         if (imageContainer) {
             imageContainer.style.border = '';
-            console.log("BBoxEditorUI: Removed yellow border from image container");
         }
 
         // Reset global uncertainty mode flag if it exists
@@ -173,7 +176,6 @@ class BBoxEditorUI {
         // Reset selection in inline editor if needed
         if (window.inlineEditor && typeof window.inlineEditor.resetUncertaintyCheckboxes === 'function') {
             window.inlineEditor.resetUncertaintyCheckboxes();
-            console.log("BBoxEditorUI: Reset uncertainty checkboxes in inline editor");
         }
 
         // Reset the possible labels in uncertainty modal
@@ -199,10 +201,42 @@ class BBoxEditorUI {
     }
 
     static setupEventListeners(bboxes, editor) {
-        // Close button
+        // Close button 
         const closeButton = document.querySelector('.bbox-editor-close');
         if (closeButton) {
             closeButton.onclick = () => {
+                // Save current changes before closing (same logic as save button)
+                this.saveCurrentChanges(bboxes, editor);
+                
+                // Update the hidden form field if needed
+                if (typeof window.updateHiddenBboxesField === 'function') {
+                    window.updateHiddenBboxesField();
+                }
+                
+                // Make sure inline editor is in sync
+                if (window.inlineEditor) {
+                    // Ensure bboxes is shared
+                    window.inlineEditor.bboxes = bboxes;
+                    if (window.inlineEditor.editor) {
+                        window.inlineEditor.editor.bboxes = bboxes;
+                        window.inlineEditor.editor.redrawCanvas();
+                    }
+                    
+                    // Update bbox selector
+                    if (typeof window.inlineEditor.updateBboxSelector === 'function') {
+                        window.inlineEditor.updateBboxSelector();
+                    }
+                }
+                
+                // Create a custom event to trigger updates in other components
+                const event = new CustomEvent('bbox-modal-closed', {
+                    detail: {
+                        needsRedraw: true
+                    }
+                });
+                document.dispatchEvent(event);
+                
+                // Close the modal
                 document.getElementById('bbox-modal-container').classList.remove('show-modal');
             };
         }
@@ -211,45 +245,39 @@ class BBoxEditorUI {
         const saveButton = document.getElementById('bbox-update');
         if (saveButton) {
             saveButton.onclick = () => {
-                if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.boxes.length) {
-                    const x1 = parseInt(document.getElementById('bbox-x1').value) || 0;
-                    const y1 = parseInt(document.getElementById('bbox-y1').value) || 0;
-                    const x2 = parseInt(document.getElementById('bbox-x2').value) || 0;
-                    const y2 = parseInt(document.getElementById('bbox-y2').value) || 0;
-
-                    // Get selected class
-                    const classSelector = document.getElementById('bbox-class-selector');
-                    const newClassId = parseInt(classSelector.value);
-                    bboxes.labels[this.currentBoxIndex] = newClassId;
-
-                    // Update uncertain flag based on class
-                    if (!bboxes.uncertain_flags) {
-                        bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
-                    }
-                    bboxes.uncertain_flags[this.currentBoxIndex] = (newClassId === -1);
-
-                    // Update gt field if it exists
-                    if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
-                        bboxes.gt[this.currentBoxIndex] = newClassId;
-                        console.log(`BBoxEditorUI: Updated gt[${this.currentBoxIndex}] to class ${newClassId}`);
-                    }
-
-                    this.updateBboxSelector(bboxes, this.currentBoxIndex, editor.classLabels);
-
-                    // Update coordinates
-                    bboxes.boxes[this.currentBoxIndex] = [
-                        Math.min(x1, x2),
-                        Math.min(y1, y2),
-                        Math.max(x1, x2),
-                        Math.max(y1, y2)
-                    ];
-
-                    // Save bboxes via AJAX
-                    this.saveBboxes(bboxes);
-
-                    editor.redrawCanvas();
-                    document.getElementById('bbox-modal-container').classList.remove('show-modal');
+                // Save current changes
+                this.saveCurrentChanges(bboxes, editor);
+                
+                // Update the hidden form field if needed
+                if (typeof window.updateHiddenBboxesField === 'function') {
+                    window.updateHiddenBboxesField();
                 }
+                
+                // Make sure inline editor is in sync
+                if (window.inlineEditor) {
+                    // Ensure bboxes is shared
+                    window.inlineEditor.bboxes = bboxes;
+                    if (window.inlineEditor.editor) {
+                        window.inlineEditor.editor.bboxes = bboxes;
+                        window.inlineEditor.editor.redrawCanvas();
+                    }
+                    
+                    // Update bbox selector
+                    if (typeof window.inlineEditor.updateBboxSelector === 'function') {
+                        window.inlineEditor.updateBboxSelector();
+                    }
+                }
+                
+                // Create a custom event to trigger updates in other components
+                const event = new CustomEvent('bbox-modal-closed', {
+                    detail: {
+                        needsRedraw: true
+                    }
+                });
+                document.dispatchEvent(event);
+                
+                // Close the modal
+                document.getElementById('bbox-modal-container').classList.remove('show-modal');
             };
         }
 
@@ -257,49 +285,122 @@ class BBoxEditorUI {
         const deleteButton = document.getElementById('bbox-delete');
         if (deleteButton) {
             deleteButton.onclick = () => {
-                if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.boxes.length) {
-                    // Store the index being deleted
-                    const deletedIndex = this.currentBoxIndex;
-
-                    // Remove box, score and label from the arrays
+                // Get the bbox selector state
+                const bboxSelector = document.getElementById('bbox-selector');
+                const selectorValue = bboxSelector ? bboxSelector.value : 'N/A';
+                
+                // Try to get the current box index from multiple sources for robustness
+                let boxIndexToDelete = this.currentBoxIndex;
+                
+                // Fallback 1: Check the bbox selector value
+                if (boxIndexToDelete < 0 || boxIndexToDelete >= bboxes.boxes.length) {
+                    if (bboxSelector && bboxSelector.value !== "-1") {
+                        boxIndexToDelete = parseInt(bboxSelector.value);
+                    }
+                }
+                
+                // Fallback 2: Check the editor's selectedBboxIndex
+                if (boxIndexToDelete < 0 || boxIndexToDelete >= bboxes.boxes.length) {
+                    if (editor && editor.selectedBboxIndex >= 0 && editor.selectedBboxIndex < bboxes.boxes.length) {
+                        boxIndexToDelete = editor.selectedBboxIndex;
+                    }
+                }
+                
+                if (boxIndexToDelete >= 0 && boxIndexToDelete < bboxes.boxes.length) {
+                    // IMPORTANT: Ensure we only delete the correct index
+                    const deletedIndex = boxIndexToDelete;
+                    
+                    // Remove box, score, label, and flags using splice (same as inline editor)
                     bboxes.boxes.splice(deletedIndex, 1);
                     bboxes.scores.splice(deletedIndex, 1);
-                    if (bboxes.labels) bboxes.labels.splice(deletedIndex, 1);
-
-                    // Also remove crowd flag if it exists
-                    if (bboxes.crowd_flags) bboxes.crowd_flags.splice(deletedIndex, 1);
-
-                    // Also remove reflected flag if it exists
-                    if (bboxes.reflected_flags) bboxes.reflected_flags.splice(deletedIndex, 1);
-
-                    // Also remove rendition flag if it exists
-                    if (bboxes.rendition_flags) bboxes.rendition_flags.splice(deletedIndex, 1);
-
-                    // Also remove uncertain flags if they exist
-                    if (bboxes.uncertain_flags) bboxes.uncertain_flags.splice(deletedIndex, 1);
-
-                    // Also update gt field if it exists
+                    
+                    if (bboxes.labels) {
+                        bboxes.labels.splice(deletedIndex, 1);
+                    }
+                    
+                    // Remove crowd flag if it exists
+                    if (bboxes.crowd_flags) {
+                        bboxes.crowd_flags.splice(deletedIndex, 1);
+                    }
+                    
+                    // Remove reflected flag if it exists
+                    if (bboxes.reflected_flags) {
+                        bboxes.reflected_flags.splice(deletedIndex, 1);
+                    }
+                    
+                    // Remove rendition flag if it exists
+                    if (bboxes.rendition_flags) {
+                        bboxes.rendition_flags.splice(deletedIndex, 1);
+                    }
+                    
+                    // Remove uncertain flag and possible_labels if they exist
+                    if (bboxes.uncertain_flags) {
+                        bboxes.uncertain_flags.splice(deletedIndex, 1);
+                    }
+                    
+                    if (bboxes.possible_labels) {
+                        bboxes.possible_labels.splice(deletedIndex, 1);
+                    }
+                    
+                    // Also remove from gt if it exists
                     if (bboxes.gt) {
                         bboxes.gt.splice(deletedIndex, 1);
                         console.log(`BBoxEditorUI: Removed box ${deletedIndex} from gt array`);
                     }
-
-                    // Reset the current box index
+                    
+                    console.log(`Remaining boxes after deletion: ${bboxes.boxes.length}`);
+                    
+                    // Log all boxes after deletion
+                    console.log('Boxes after deletion:');
+                    bboxes.boxes.forEach((box, i) => {
+                        const label = bboxes.labels ? bboxes.labels[i] : 'unknown';
+                        console.log(`  Box ${i}: [${box.join(', ')}] label: ${label}`);
+                    });
+                    
+                    // Reset the current box index (same as inline editor)
                     this.currentBoxIndex = -1;
-                    editor.selectedBboxIndex = -1;
-
-                    // Create a fresh copy of the bboxes object to ensure change detection
-                    editor.bboxes = JSON.parse(JSON.stringify(bboxes));
-
-                    // Force a complete redraw of the canvas
-                    editor.forceRedraw();
-
-                    // Update the dropdown selector
+                    
+                    // Update the editor's selection state (same as inline editor)
+                    if (editor) {
+                        editor.selectedBboxIndex = -1;
+                        editor.bboxes = bboxes; // Update editor's reference to the modified bboxes
+                        editor.redrawCanvas();
+                    }
+                    
+                    // Update the global inline editor if it exists (same as inline editor does)
+                    if (window.inlineEditor) {
+                        window.inlineEditor.bboxes = bboxes;
+                        window.inlineEditor.currentBoxIndex = -1;
+                        
+                        // Update the inline editor's main editor if connected
+                        if (window.inlineEditor.editor) {
+                            window.inlineEditor.editor.bboxes = bboxes;
+                            window.inlineEditor.editor.selectedBboxIndex = -1;
+                            window.inlineEditor.editor.redrawCanvas();
+                        }
+                    }
+                    
+                    // Update the UI controls
                     this.updateBboxSelector(bboxes, -1, editor.classLabels);
-
-                    // Immediately clear form fields and redraw the canvas
                     this.resetFormFields();
                     this.updatePreviewCanvas();
+                    
+                    // Trigger the change event on the bbox selector to ensure proper cleanup
+                    if (bboxSelector) {
+                        bboxSelector.value = "-1";
+                        bboxSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    // Update hidden form fields if the function exists (mimic inline editor)
+                    if (typeof window.updateHiddenBboxesField === 'function') {
+                        window.updateHiddenBboxesField();
+                    }
+                    
+                    console.log(`Delete: Successfully deleted box ${deletedIndex}, remaining boxes: ${bboxes.boxes.length}`);
+                    console.log('=== DELETE OPERATION COMPLETE ===');
+                } else {
+                    console.error(`Delete: Cannot delete box - invalid index ${boxIndexToDelete}`);
+                    console.log('=== DELETE OPERATION FAILED ===');
                 }
             };
         }
@@ -339,132 +440,18 @@ class BBoxEditorUI {
                 // Immediately clear form fields and redraw the canvas
                 this.resetFormFields();
                 this.updatePreviewCanvas();
+                
+                // Trigger the change event on the bbox selector to ensure proper cleanup
+                const bboxSelector = document.getElementById('bbox-selector');
+                if (bboxSelector) {
+                    bboxSelector.value = "-1";
+                    bboxSelector.dispatchEvent(new Event('change'));
+                }
             };
         }
 
-        // Update the Cancel button to handle uncertain boxes properly
-        const cancelButton = document.getElementById('bbox-cancel');
-        if (cancelButton) {
-            cancelButton.onclick = () => {
-                // Restore the original bboxes data with a fresh copy
-                bboxes.boxes = [...editor.originalBboxes.boxes];
-                bboxes.scores = [...editor.originalBboxes.scores];
-
-                if (editor.originalBboxes.labels) {
-                    bboxes.labels = [...editor.originalBboxes.labels];
-                }
-
-                // Restore uncertain_flags array if it exists
-                if (editor.originalBboxes.uncertain_flags) {
-                    bboxes.uncertain_flags = [...editor.originalBboxes.uncertain_flags];
-                } else {
-                    // If uncertain_flags doesn't exist in original, create it based on labels
-                    bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
-                    if (bboxes.labels) {
-                        for (let i = 0; i < bboxes.labels.length; i++) {
-                            if (bboxes.labels[i] === -1) {
-                                bboxes.uncertain_flags[i] = true;
-                            }
-                        }
-                    }
-                }
-
-                // Restore possible_labels array if it exists
-                if (editor.originalBboxes.possible_labels) {
-                    bboxes.possible_labels = JSON.parse(JSON.stringify(editor.originalBboxes.possible_labels));
-                } else if (bboxes.uncertain_flags.some(flag => flag === true)) {
-                    // Create possible_labels array if needed
-                    bboxes.possible_labels = new Array(bboxes.boxes.length).fill([]);
-                }
-
-                // Restore gt array if it exists
-                if (editor.originalBboxes.gt) {
-                    bboxes.gt = [...editor.originalBboxes.gt];
-                    console.log("BBoxEditorUI: Restored gt array from original data");
-                }
-
-                // Update the editor's reference
-                editor.bboxes = bboxes;
-
-                // Make sure to mark any boxes with label -1 as uncertain
-                if (bboxes.labels) {
-                    for (let i = 0; i < bboxes.labels.length; i++) {
-                        if (bboxes.labels[i] === -1) {
-                            if (!bboxes.uncertain_flags) {
-                                bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
-                            }
-                            bboxes.uncertain_flags[i] = true;
-
-                            if (!bboxes.possible_labels) {
-                                bboxes.possible_labels = new Array(bboxes.boxes.length).fill([]);
-                            }
-                        }
-                    }
-                }
-
-                // Force a complete redraw
-                editor.forceRedraw();
-
-                // Update label_type field if needed
-                const hasUncertainBoxes = bboxes.uncertain_flags && bboxes.uncertain_flags.some(flag => flag === true);
-                const labelTypeField = document.getElementById('label_type');
-                if (labelTypeField) {
-                    labelTypeField.value = hasUncertainBoxes ? "uncertain" : "basic";
-                }
-
-                // Make sure the main editor is notified that we have uncertain boxes
-                // This ensures they'll be displayed correctly when returning to inline view
-                if (window.inlineEditor) {
-                    window.inlineEditor.initializeNotSureBoxes = function() {
-                        console.log('Initializing Not Sure display from modal editor');
-
-                        if (this.bboxes && this.bboxes.labels) {
-                            // Ensure uncertain_flags array exists
-                            if (!this.bboxes.uncertain_flags) {
-                                this.bboxes.uncertain_flags = new Array(this.bboxes.boxes.length).fill(false);
-                            }
-
-                            // Mark all -1 labels as uncertain
-                            for (let i = 0; i < this.bboxes.labels.length; i++) {
-                                if (this.bboxes.labels[i] === -1) {
-                                    this.bboxes.uncertain_flags[i] = true;
-
-                                    // Ensure possible_labels array exists
-                                    if (!this.bboxes.possible_labels) {
-                                        this.bboxes.possible_labels = new Array(this.bboxes.boxes.length).fill([]);
-                                    }
-
-                                    console.log(`Box ${i} has label -1, marked as uncertain`);
-                                }
-                            }
-
-                            // Force redraw
-                            if (this.editor) {
-                                this.editor.redrawCanvas();
-                            }
-                        }
-                    };
-
-                    // Call the initialize function immediately
-                    window.inlineEditor.initializeNotSureBoxes();
-                }
-
-                // Create a custom event that will trigger any inline editor to update
-                const event = new CustomEvent('bbox-modal-closed', {
-                    detail: {
-                        hasUncertainBoxes: hasUncertainBoxes,
-                        needsRedraw: true
-                    }
-                });
-                document.dispatchEvent(event);
-
-                // Reset Not Sure mode
-                this.turnOffNotSureMode();
-
-                // Close the modal
-                document.getElementById('bbox-modal-container').classList.remove('show-modal');
-            };
-        }
+        // Note: Cancel button has been removed to prevent state desynchronization
+        // All changes are now applied directly to the shared bboxes array
 
         // Crowd checkbox
         const crowdCheckbox = document.getElementById('bbox-crowd-checkbox');
@@ -551,6 +538,68 @@ class BBoxEditorUI {
 
         // Setup input field change events
         this.setupInputEvents(bboxes, editor);
+    }
+
+    // Helper method to save current changes (used by both save and close buttons)
+    static saveCurrentChanges(bboxes, editor) {
+        if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.boxes.length) {
+            const x1 = parseInt(document.getElementById('bbox-x1').value) || 0;
+            const y1 = parseInt(document.getElementById('bbox-y1').value) || 0;
+            const x2 = parseInt(document.getElementById('bbox-x2').value) || 0;
+            const y2 = parseInt(document.getElementById('bbox-y2').value) || 0;
+
+            // Get selected class
+            const classSelector = document.getElementById('bbox-class-selector');
+            if (classSelector) {
+                const newClassId = parseInt(classSelector.value);
+                bboxes.labels[this.currentBoxIndex] = newClassId;
+
+                // Update uncertain flag based on class
+                if (!bboxes.uncertain_flags) {
+                    bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
+                }
+                bboxes.uncertain_flags[this.currentBoxIndex] = (newClassId === -1);
+
+                // Update gt field if it exists
+                if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
+                    bboxes.gt[this.currentBoxIndex] = newClassId;
+                }
+            }
+
+            // Update coordinates
+            bboxes.boxes[this.currentBoxIndex] = [
+                Math.min(x1, x2),
+                Math.min(y1, y2),
+                Math.max(x1, x2),
+                Math.max(y1, y2)
+            ];
+
+            // Ensure the inline editor and main editor are using the same shared bboxes
+            if (window.inlineEditor) {
+                if (!Object.is(window.inlineEditor.bboxes, bboxes)) {
+                    window.inlineEditor.bboxes = bboxes;
+                }
+                
+                if (window.inlineEditor.editor && !Object.is(window.inlineEditor.editor.bboxes, bboxes)) {
+                    window.inlineEditor.editor.bboxes = bboxes;
+                }
+                
+                // Force redraw of inline editor
+                if (window.inlineEditor.editor) {
+                    window.inlineEditor.editor.redrawCanvas();
+                }
+            }
+
+            // Make sure the main editor has the same bboxes reference
+            if (editor && !Object.is(editor.bboxes, bboxes)) {
+                editor.bboxes = bboxes;
+            }
+            
+            // Redraw the main editor canvas
+            if (editor) {
+                editor.redrawCanvas();
+            }
+        }
     }
 
     static setupEnhancedClassSelector(boxIndex, bboxes, classLabels) {
@@ -1033,9 +1082,14 @@ class BBoxEditorUI {
         if (bboxSelector) {
             bboxSelector.addEventListener('change', (e) => {
                 const selectedIndex = parseInt(e.target.value);
+                console.log(`[SELECTOR-CHANGE] BBox selector changed to: ${selectedIndex} (options count: ${bboxSelector.options.length})`);
+                console.log(`[SELECTOR-CHANGE] Current bboxes.boxes.length: ${bboxes.boxes.length}`);
+                
                 if (selectedIndex >= 0 && selectedIndex < bboxes.boxes.length) {
                     // Update the current box index reference for the class
                     this.currentBoxIndex = selectedIndex;
+                    console.log(`[SELECTOR-CHANGE] Updated currentBoxIndex to: ${selectedIndex}`);
+                    
                     // Update the crowd checkbox
                     this.updateCrowdCheckbox(this.currentBoxIndex);
 
@@ -1047,6 +1101,7 @@ class BBoxEditorUI {
 
                     // Update editor selection
                     editor.selectedBboxIndex = selectedIndex;
+                    console.log(`[SELECTOR-CHANGE] Updated editor.selectedBboxIndex to: ${selectedIndex}`);
 
                     // Update UI values with the newly selected box values
                     this.updateBoxValues(bboxes.boxes[selectedIndex]);
@@ -1100,6 +1155,30 @@ class BBoxEditorUI {
                     editor.redrawCanvas();
                     this.selectedIndex = selectedIndex;
                     this.updatePreviewCanvas();
+                } else {
+                    // No box selected (selectedIndex is -1 or invalid)
+                    // Clear all form fields and reset editor state
+                    this.currentBoxIndex = -1;
+                    editor.selectedBboxIndex = -1;
+                    
+                    // Reset form fields
+                    this.resetFormFields();
+                    
+                    // Reset checkboxes to unchecked state
+                    const crowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+                    const reflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+                    const renditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+                    
+                    if (crowdCheckbox) crowdCheckbox.checked = false;
+                    if (reflectedCheckbox) reflectedCheckbox.checked = false;
+                    if (renditionCheckbox) renditionCheckbox.checked = false;
+                    
+                    // Clear canvas selection and redraw
+                    editor.redrawCanvas();
+                    this.selectedIndex = -1;
+                    this.updatePreviewCanvas();
+                    
+                    console.log('BBoxEditorUI: Cleared selection, no box selected');
                 }
             });
         }
@@ -1264,17 +1343,28 @@ class BBoxEditorUI {
         if (!this.previewCtx || !this.img) return;
 
         // Helper function to determine box styles
-		const getBoxStyle = (isCrowd, isReflected, isUncertain, isSelected) => {
+		const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
 			const styles = {
 				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
 				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
 				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
 				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+				rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
 				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+				crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+				reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+				crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
 				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
 			};
 
+			// Check for three-flag combination first
+			if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
+			// Then two-flag combinations
 			if (isCrowd && isReflected) return styles.crowdReflected;
+			if (isCrowd && isRendition) return styles.crowdRendition;
+			if (isReflected && isRendition) return styles.reflectedRendition;
+			// Then single flags
+			if (isRendition) return styles.rendition;
 			if (isReflected) return styles.reflected;
 			if (isCrowd) return styles.crowd;
 			if (isUncertain) return styles.uncertain;
@@ -1343,9 +1433,10 @@ class BBoxEditorUI {
                                 (this.bboxes.labels && this.bboxes.labels[i] === -1);
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
             const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[i];
+            const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[i];
             const isSelected = false;
 
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
+            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
 
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;
@@ -1388,9 +1479,10 @@ class BBoxEditorUI {
                                 (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] === -1);
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedIndex];
             const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[this.selectedIndex];
+            const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[this.selectedIndex];
             const isSelected = true;
 
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isUncertain, isSelected);
+            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
 
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;

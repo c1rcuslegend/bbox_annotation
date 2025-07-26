@@ -230,7 +230,7 @@
 
                     <!-- Show Class Numbers Only checkbox container -->
                     <div class="reflected-container">
-                        <label for="inline-class-numbers-checkbox">Simplified BBox Labels</label>
+                        <label for="inline-class-numbers-checkbox">Simplified Labels</label>
                         <label class="container">
                             <input type="checkbox" id="inline-class-numbers-checkbox" name="inline-class-numbers-checkbox">
                             <div class="checkmark"></div>
@@ -405,7 +405,7 @@
                     </div>
 
                     <div class="bbox-reflected-container">
-                        <label for="bbox-class-numbers-checkbox">Simplified BBox Labels</label>
+                        <label for="bbox-class-numbers-checkbox">Simplified Labels</label>
                         <label class="container">
                             <input type="checkbox" id="bbox-class-numbers-checkbox" name="bbox-class-numbers-checkbox">
                             <div class="checkmark"></div>
@@ -435,7 +435,6 @@
                         <button id="bbox-delete" class="bbox-editor-button bbox-editor-button-delete">Delete Box</button>
                         <button id="bbox-delete-all" class="bbox-editor-button bbox-editor-button-delete-all">Delete All Boxes</button>
                         <button id="bbox-whole-image" class="bbox-editor-button whole-image-btn">Whole Image Box</button>
-                        <button id="bbox-cancel" class="bbox-editor-button bbox-editor-button-cancel">Cancel Changes</button>
                     </div>
                 </div>
                 <div class="bbox-editor-preview">
@@ -457,12 +456,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Add keyboard event listener for navigation and shortcuts
             document.addEventListener('keydown', function(event) {
-                // Only trigger navigation if not typing in an input field (but allow for checkboxes and radio buttons)
+                // Only trigger navigation if not typing in an input field (but allow for checkboxes, radio buttons, and images)
                 if ((event.target.tagName === 'INPUT' && event.target.type !== 'checkbox' && event.target.type !== 'radio') || 
                     event.target.tagName === 'TEXTAREA' || 
-                    event.target.tagName === 'SELECT') {
+                    (event.target.tagName === 'SELECT' && !event.target.closest('#image-with-bboxes'))) {
                     return;
                 }
+
+                // Allow shortcuts to work even when image, canvas, or other image-related elements are focused
+                // This ensures shortcuts work after clicking on the image
 
                 // Handle Ctrl key combinations first
                 if (event.ctrlKey) {
@@ -479,6 +481,10 @@
                             event.preventDefault();
                             toggleRenditionFlag();
                             break;
+                        case 'c': // Ctrl+C - Copy and paste selected bbox
+                            event.preventDefault();
+                            copyAndPasteBbox();
+                            break;
                         case 'x': // Ctrl+X - Delete current bbox
                             event.preventDefault();
                             deleteCurrentBbox();
@@ -491,9 +497,14 @@
                             event.preventDefault();
                             createWholeImageBBox();
                             break;
-                        case 'z': // Ctrl+Z - Not sure (uncertainty mode)
+                        case 'z': // Ctrl+Z - Not sure (uncertainty mode) - disabled in advanced editor
                             event.preventDefault();
-                            activateNotSureMode();
+                            // Check if we're in advanced editor mode
+                            const advancedModal = document.getElementById('bbox-modal-container');
+                            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+                            if (!isAdvancedMode) {
+                                activateNotSureMode();
+                            }
                             break;
                     }
                     return; // Don't process other keys when Ctrl is pressed
@@ -539,45 +550,398 @@
                         event.target.blur();
                     }, 50);
                 }
+                
+                // Also remove focus from images and canvas elements to ensure shortcuts work
+                if (event.target.tagName === 'IMG' || event.target.tagName === 'CANVAS') {
+                    setTimeout(function() {
+                        event.target.blur();
+                        // Optionally focus on document body to ensure shortcuts work
+                        if (document.body) {
+                            document.body.focus();
+                        }
+                    }, 50);
+                }
             });
         });
 
         // Keyboard shortcut handler functions
         function toggleCrowdFlag() {
-            const crowdCheckbox = document.getElementById('inline-crowd-checkbox');
-            if (crowdCheckbox) {
-                crowdCheckbox.checked = !crowdCheckbox.checked;
-                // Trigger change event to update the bbox editor
-                crowdCheckbox.dispatchEvent(new Event('change'));
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode
+                const crowdCheckbox = document.getElementById('bbox-crowd-checkbox');
+                if (crowdCheckbox) {
+                    crowdCheckbox.checked = !crowdCheckbox.checked;
+                    crowdCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled crowd flag in advanced mode:', crowdCheckbox.checked);
+                } else {
+                    console.error('Crowd checkbox not found in advanced editor mode');
+                }
+            } else {
+                // Inline editor mode
+                const crowdCheckbox = document.getElementById('inline-crowd-checkbox');
+                if (crowdCheckbox) {
+                    crowdCheckbox.checked = !crowdCheckbox.checked;
+                    crowdCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled crowd flag in inline mode:', crowdCheckbox.checked);
+                } else {
+                    console.error('Crowd checkbox not found in inline editor mode');
+                }
             }
         }
 
         function toggleReflectedFlag() {
-            const reflectedCheckbox = document.getElementById('inline-reflected-checkbox');
-            if (reflectedCheckbox) {
-                reflectedCheckbox.checked = !reflectedCheckbox.checked;
-                // Trigger change event to update the bbox editor
-                reflectedCheckbox.dispatchEvent(new Event('change'));
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode
+                const reflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
+                if (reflectedCheckbox) {
+                    reflectedCheckbox.checked = !reflectedCheckbox.checked;
+                    reflectedCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled reflected flag in advanced mode:', reflectedCheckbox.checked);
+                } else {
+                    console.error('Reflected checkbox not found in advanced editor mode');
+                }
+            } else {
+                // Inline editor mode
+                const reflectedCheckbox = document.getElementById('inline-reflected-checkbox');
+                if (reflectedCheckbox) {
+                    reflectedCheckbox.checked = !reflectedCheckbox.checked;
+                    reflectedCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled reflected flag in inline mode:', reflectedCheckbox.checked);
+                } else {
+                    console.error('Reflected checkbox not found in inline editor mode');
+                }
             }
         }
 
         function toggleRenditionFlag() {
-            const renditionCheckbox = document.getElementById('inline-rendition-checkbox');
-            if (renditionCheckbox) {
-                renditionCheckbox.checked = !renditionCheckbox.checked;
-                // Trigger change event to update the bbox editor
-                renditionCheckbox.dispatchEvent(new Event('change'));
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode
+                const renditionCheckbox = document.getElementById('bbox-rendition-checkbox');
+                if (renditionCheckbox) {
+                    renditionCheckbox.checked = !renditionCheckbox.checked;
+                    renditionCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled rendition flag in advanced mode:', renditionCheckbox.checked);
+                } else {
+                    console.error('Rendition checkbox not found in advanced editor mode');
+                }
+            } else {
+                // Inline editor mode
+                const renditionCheckbox = document.getElementById('inline-rendition-checkbox');
+                if (renditionCheckbox) {
+                    renditionCheckbox.checked = !renditionCheckbox.checked;
+                    renditionCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled rendition flag in inline mode:', renditionCheckbox.checked);
+                } else {
+                    console.error('Rendition checkbox not found in inline editor mode');
+                }
             }
         }
 
         function deleteCurrentBbox() {
-            const deleteBtn = document.getElementById('inline-bbox-delete');
-            if (deleteBtn) {
-                deleteBtn.click();
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode - simply click the delete button
+                const deleteBtn = document.getElementById('bbox-delete');
+                if (deleteBtn) {
+                    deleteBtn.click();
+                    console.log('Triggered delete button click in advanced editor mode');
+                } else {
+                    console.error('Delete button not found in advanced editor mode');
+                }
+            } else {
+                // Inline editor mode
+                const deleteBtn = document.getElementById('inline-bbox-delete');
+                if (deleteBtn) {
+                    deleteBtn.click();
+                    console.log('Triggered delete button click in inline editor mode');
+                } else {
+                    console.error('Delete button not found in inline editor mode');
+                }
+            }
+        }
+
+        function copyAndPasteBbox() {
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            let bboxSelector;
+            if (isAdvancedMode) {
+                // Advanced editor mode
+                bboxSelector = document.getElementById('bbox-selector');
+                console.log('Advanced mode - bbox selector found:', !!bboxSelector);
+            } else {
+                // Inline editor mode
+                bboxSelector = document.getElementById('inline-bbox-selector');
+                console.log('Inline mode - bbox selector found:', !!bboxSelector);
+            }
+            
+            if (!bboxSelector || bboxSelector.value === '' || bboxSelector.value === 'none' || bboxSelector.value === '-1') {
+                console.log('No bbox selected for copying');
+                return; // No bbox selected
+            }
+
+            console.log('Copying bbox with selector value:', bboxSelector.value);
+
+            // Get current bbox data from the appropriate source
+            const currentBboxIndex = parseInt(bboxSelector.value);
+            let bboxes = null;
+            
+            if (isAdvancedMode) {
+                // In advanced mode, get bboxes from BBoxEditorUI or the editor directly
+                if (window.BBoxEditorUI && window.BBoxEditorUI.bboxes) {
+                    bboxes = window.BBoxEditorUI.bboxes;
+                    console.log('Using BBoxEditorUI.bboxes for advanced mode');
+                } else if (window.BBoxEditorUI && window.BBoxEditorUI.editor && window.BBoxEditorUI.editor.bboxes) {
+                    bboxes = window.BBoxEditorUI.editor.bboxes;
+                    console.log('Using BBoxEditorUI.editor.bboxes for advanced mode');
+                } else if (window.bboxEditor && window.bboxEditor.bboxes) {
+                    bboxes = window.bboxEditor.bboxes;
+                    console.log('Using global bboxEditor.bboxes for advanced mode');
+                }
+            } else {
+                // In inline mode, use the usual sources
+                if (window.inlineEditor && window.inlineEditor.bboxes) {
+                    bboxes = window.inlineEditor.bboxes;
+                    console.log('Using inlineEditor.bboxes');
+                } else if (window.bboxEditor && window.bboxEditor.bboxes) {
+                    bboxes = window.bboxEditor.bboxes;
+                    console.log('Using bboxEditor.bboxes');
+                } else if (window.bboxes) {
+                    bboxes = window.bboxes;
+                    console.log('Using global window.bboxes');
+                }
+            }
+
+            if (!bboxes || !bboxes.boxes || isNaN(currentBboxIndex) || !bboxes.boxes[currentBboxIndex]) {
+                console.error('Cannot find bbox data for copying', {
+                    bboxes: !!bboxes,
+                    boxes: bboxes ? !!bboxes.boxes : false,
+                    currentBboxIndex: currentBboxIndex,
+                    isValidIndex: bboxes && bboxes.boxes ? currentBboxIndex < bboxes.boxes.length : false
+                });
+                return;
+            }
+
+            // Get the current bbox data
+            const currentBox = bboxes.boxes[currentBboxIndex];
+            const currentLabel = bboxes.labels && bboxes.labels[currentBboxIndex] !== undefined ? bboxes.labels[currentBboxIndex] : 0;
+            const currentCrowdFlag = bboxes.crowd_flags && bboxes.crowd_flags[currentBboxIndex] ? bboxes.crowd_flags[currentBboxIndex] : false;
+            const currentReflectedFlag = bboxes.reflected_flags && bboxes.reflected_flags[currentBboxIndex] ? bboxes.reflected_flags[currentBboxIndex] : false;
+            const currentRenditionFlag = bboxes.rendition_flags && bboxes.rendition_flags[currentBboxIndex] ? bboxes.rendition_flags[currentBboxIndex] : false;
+            const currentUncertainFlag = bboxes.uncertain_flags && bboxes.uncertain_flags[currentBboxIndex] ? bboxes.uncertain_flags[currentBboxIndex] : false;
+            const currentPossibleLabels = bboxes.possible_labels && bboxes.possible_labels[currentBboxIndex] ? bboxes.possible_labels[currentBboxIndex] : [];
+
+            // Initialize arrays if they don't exist
+            if (!bboxes.boxes) bboxes.boxes = [];
+            if (!bboxes.scores) bboxes.scores = [];
+            if (!bboxes.labels) bboxes.labels = [];
+            if (!bboxes.crowd_flags) bboxes.crowd_flags = [];
+            if (!bboxes.reflected_flags) bboxes.reflected_flags = [];
+            if (!bboxes.rendition_flags) bboxes.rendition_flags = [];
+            if (!bboxes.uncertain_flags) bboxes.uncertain_flags = [];
+            if (!bboxes.possible_labels) bboxes.possible_labels = [];
+
+            // Store the index before adding the new box
+            const newBoxIndex = bboxes.boxes.length;
+
+            // Add the exact copy of the bbox
+            bboxes.boxes.push([...currentBox]); // Use array copy
+            bboxes.scores.push(100); // Default score
+            bboxes.labels.push(currentLabel);
+            bboxes.crowd_flags.push(currentCrowdFlag);
+            bboxes.reflected_flags.push(currentReflectedFlag);
+            bboxes.rendition_flags.push(currentRenditionFlag);
+            bboxes.uncertain_flags.push(currentUncertainFlag);
+            bboxes.possible_labels.push([...currentPossibleLabels]); // Copy possible labels
+
+            // Also update gt field if it exists
+            if (bboxes.gt) {
+                // Ensure gt array has correct length
+                while (bboxes.gt.length < newBoxIndex) {
+                    bboxes.gt.push(0);
+                }
+                bboxes.gt.push(currentLabel);
+            }
+
+            console.log(`Copied bbox: [${currentBox.join(', ')}] with label ${currentLabel}`);
+
+            if (isAdvancedMode) {
+                // For advanced mode, update the BBoxEditorUI state directly
+                if (window.BBoxEditorUI) {
+                    window.BBoxEditorUI.bboxes = bboxes;
+                    window.BBoxEditorUI.currentBoxIndex = newBoxIndex;
+                    window.BBoxEditorUI.selectedIndex = newBoxIndex;
+                    
+                    // Update the editor reference if available
+                    if (window.BBoxEditorUI.editor) {
+                        window.BBoxEditorUI.editor.bboxes = bboxes;
+                        window.BBoxEditorUI.editor.selectedBboxIndex = newBoxIndex;
+                        window.BBoxEditorUI.editor.redrawCanvas();
+                    }
+                    
+                    // Update the bbox selector dropdown and trigger UI update
+                    window.BBoxEditorUI.updateBboxSelector(bboxes, newBoxIndex, window.BBoxEditorUI.editor ? window.BBoxEditorUI.editor.classLabels : {});
+                    
+                    // Update the form fields to show the new bbox
+                    window.BBoxEditorUI.updateBoxValues(bboxes.boxes[newBoxIndex]);
+                    
+                    // Update checkboxes
+                    window.BBoxEditorUI.updateCrowdCheckbox(newBoxIndex);
+                    window.BBoxEditorUI.updateReflectedCheckbox(newBoxIndex);
+                    window.BBoxEditorUI.updateRenditionCheckbox(newBoxIndex);
+                    
+                    // Update the preview canvas
+                    window.BBoxEditorUI.updatePreviewCanvas();
+                    
+                    // Set the bbox selector to the new bbox
+                    const advancedBboxSelector = document.getElementById('bbox-selector');
+                    if (advancedBboxSelector) {
+                        advancedBboxSelector.value = newBoxIndex.toString();
+                        advancedBboxSelector.dispatchEvent(new Event('change'));
+                    }
+                    
+                    console.log('Updated advanced editor UI with new copied bbox');
+                }
+            } else {
+                // For inline mode, use the existing logic
+                // Update the inline editor's state
+                if (window.inlineEditor) {
+                    window.inlineEditor.bboxes = bboxes;
+                    window.inlineEditor.currentBoxIndex = newBoxIndex;
+
+                    // If the editor is connected, update it too
+                    if (window.inlineEditor.editor) {
+                        window.inlineEditor.editor.bboxes = bboxes;
+                        window.inlineEditor.editor.selectedBboxIndex = newBoxIndex;
+                        window.inlineEditor.editor.redrawCanvas();
+                    }
+                }
+
+                // Update the bbox editor if it exists
+                if (window.bboxEditor) {
+                    window.bboxEditor.bboxes = bboxes;
+                    window.bboxEditor.selectedBboxIndex = newBoxIndex;
+                    window.bboxEditor.redrawCanvas();
+                }
+
+                // Update inline editor selector
+                const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+                if (inlineBboxSelector) {
+                    // Store current option texts to preserve them
+                    const existingOptions = {};
+                    for (let i = 0; i < inlineBboxSelector.options.length; i++) {
+                        const option = inlineBboxSelector.options[i];
+                        if (option.value !== "-1") {
+                            existingOptions[option.value] = option.textContent;
+                        }
+                    }
+
+                    // Clear and rebuild options
+                    while (inlineBboxSelector.options.length > 0) {
+                        inlineBboxSelector.remove(0);
+                    }
+
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "-1";
+                    defaultOption.textContent = "Select a box...";
+                    inlineBboxSelector.appendChild(defaultOption);
+
+                    // Add options for each bbox, preserving existing names
+                    for (let i = 0; i < bboxes.boxes.length; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        
+                        // Use existing name if available, otherwise create new name
+                        if (existingOptions[i]) {
+                            option.textContent = existingOptions[i];
+                        } else {
+                            // This is the new copied bbox
+                            option.textContent = `BBox ${i + 1} (Copy)`;
+                        }
+                        
+                        inlineBboxSelector.appendChild(option);
+                    }
+
+                    // Select the new bbox
+                    inlineBboxSelector.value = newBoxIndex;
+
+                    // Trigger change event to update the inline editor
+                    inlineBboxSelector.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Update the hidden bboxes field if it exists
+            const bboxesField = document.getElementById('bboxes-data-field');
+            if (bboxesField) {
+                let bboxDataArray = [];
+                bboxes.boxes.forEach((box, i) => {
+                    const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                                       (bboxes.labels && bboxes.labels[i] === -1);
+
+                    let bboxData = {
+                        coordinates: box,
+                        crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i],
+                        reflected_flag: bboxes.reflected_flags && bboxes.reflected_flags[i],
+                        rendition_flag: bboxes.rendition_flags && bboxes.rendition_flags[i]
+                    };
+
+                    if (isUncertain) {
+                        bboxData.uncertain_flag = true;
+                        bboxData.possible_labels = bboxes.possible_labels && bboxes.possible_labels[i] ?
+                            bboxes.possible_labels[i] : [];
+                        bboxData.label = -1;
+                    } else {
+                        bboxData.label = bboxes.labels && bboxes.labels[i] !== undefined ?
+                            bboxes.labels[i] : 0;
+                    }
+
+                    bboxDataArray.push(bboxData);
+                });
+
+                const labelType = document.getElementById('label_type')?.value || "basic";
+                const formData = {
+                    bboxes: bboxDataArray,
+                    label_type: labelType
+                };
+
+                bboxesField.value = JSON.stringify(formData);
+            }
+
+            // Update the bbox data element
+            const bboxDataElem = document.getElementById('bbox-data');
+            if (bboxDataElem) {
+                bboxDataElem.textContent = JSON.stringify(bboxes);
+            }
+
+            // Call the refresh function if it exists
+            if (window.refreshInlineEditor) {
+                window.refreshInlineEditor();
             }
         }
 
         function saveChanges() {
+            // Ensure bbox data is updated before saving
+            if (window.updateHiddenBboxesField && typeof window.updateHiddenBboxesField === 'function') {
+                window.updateHiddenBboxesField();
+            }
+            
             // Set direction to save
             document.getElementById('direction').value = 'save';
             document.getElementById('save').submit();
@@ -663,6 +1027,12 @@
             showKeyboardShortcutFeedback('BBox Deleted (Ctrl+X)');
         };
 
+        const originalCopyAndPasteBbox = copyAndPasteBbox;
+        copyAndPasteBbox = function() {
+            originalCopyAndPasteBbox();
+            showKeyboardShortcutFeedback('BBox Copied & Pasted (Ctrl+C)');
+        };
+
         const originalSaveChanges = saveChanges;
         saveChanges = function() {
             originalSaveChanges();
@@ -671,8 +1041,13 @@
 
         const originalActivateNotSureMode = activateNotSureMode;
         activateNotSureMode = function() {
-            originalActivateNotSureMode();
-            showKeyboardShortcutFeedback('Not Sure Mode (Ctrl+Z)');
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            if (!isAdvancedMode) {
+                originalActivateNotSureMode();
+                showKeyboardShortcutFeedback('Not Sure Mode (Ctrl+Z)');
+            }
         };
 
         const originalActivateNoneOfImageNetMode = activateNoneOfImageNetMode;
@@ -684,10 +1059,14 @@
         // Add feedback for Ctrl+A (whole image bbox)
         window.originalCreateWholeImageBBox = window.createWholeImageBBox;
         window.createWholeImageBBox = function() {
+            console.log('createWholeImageBBox called via keyboard shortcut');
+            
+            // Always call the original function - it will detect the mode internally
             if (window.originalCreateWholeImageBBox) {
                 window.originalCreateWholeImageBBox();
-                showKeyboardShortcutFeedback('Whole Image BBox Created (Ctrl+A)');
             }
+            
+            showKeyboardShortcutFeedback('Whole Image BBox Created (Ctrl+A)');
         };
     </script>
 </body>

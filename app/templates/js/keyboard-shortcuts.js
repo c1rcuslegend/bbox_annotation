@@ -10,8 +10,9 @@ const DETAIL_VIEW_SHORTCUTS = {
     'Esc': 'Return to grid view',
     'Ctrl+G': 'Toggle Crowd of Instances flag for selected bbox',
     'Ctrl+R': 'Toggle Reflected Object flag for selected bbox', 
-    'Ctrl+V': 'Toggle Rendition flag for selected bbox', 
+    'Ctrl+V': 'Toggle Rendition flag for selected bbox',
     'Ctrl+X': 'Delete currently selected bounding box',
+    'Ctrl+C': 'Copy and paste selected bounding box',
     'Ctrl+A': 'Create whole image bounding box',
     'Ctrl+Z': 'Activate "Not Sure" mode',
     'Shift+S': 'Mark image as "None of ImageNet classes"'
