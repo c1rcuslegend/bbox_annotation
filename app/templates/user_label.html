@@ -481,10 +481,6 @@
                             event.preventDefault();
                             toggleRenditionFlag();
                             break;
-                        case 'c': // Ctrl+C - Copy and paste selected bbox
-                            event.preventDefault();
-                            copyAndPasteBbox();
-                            break;
                         case 'x': // Ctrl+X - Delete current bbox
                             event.preventDefault();
                             deleteCurrentBbox();
@@ -516,6 +512,10 @@
                         case 's': // Shift+S - None of ImageNet classes
                             event.preventDefault();
                             activateNoneOfImageNetMode();
+                            break;
+                        case 'c': // Shift+C - Copy and paste selected bbox
+                            event.preventDefault();
+                            copyAndPasteBbox();
                             break;
                     }
                     return; // Don't process other keys when Shift is pressed
@@ -741,10 +741,10 @@
             // Get the current bbox data
             const currentBox = bboxes.boxes[currentBboxIndex];
             const currentLabel = bboxes.labels && bboxes.labels[currentBboxIndex] !== undefined ? bboxes.labels[currentBboxIndex] : 0;
-            const currentCrowdFlag = bboxes.crowd_flags && bboxes.crowd_flags[currentBboxIndex] ? bboxes.crowd_flags[currentBboxIndex] : false;
-            const currentReflectedFlag = bboxes.reflected_flags && bboxes.reflected_flags[currentBboxIndex] ? bboxes.reflected_flags[currentBboxIndex] : false;
-            const currentRenditionFlag = bboxes.rendition_flags && bboxes.rendition_flags[currentBboxIndex] ? bboxes.rendition_flags[currentBboxIndex] : false;
-            const currentUncertainFlag = bboxes.uncertain_flags && bboxes.uncertain_flags[currentBboxIndex] ? bboxes.uncertain_flags[currentBboxIndex] : false;
+            const currentCrowdFlag = bboxes.crowd_flags && bboxes.crowd_flags[currentBboxIndex] !== undefined ? bboxes.crowd_flags[currentBboxIndex] : false;
+            const currentReflectedFlag = bboxes.reflected_flags && bboxes.reflected_flags[currentBboxIndex] !== undefined ? bboxes.reflected_flags[currentBboxIndex] : false;
+            const currentRenditionFlag = bboxes.rendition_flags && bboxes.rendition_flags[currentBboxIndex] !== undefined ? bboxes.rendition_flags[currentBboxIndex] : false;
+            const currentUncertainFlag = bboxes.uncertain_flags && bboxes.uncertain_flags[currentBboxIndex] !== undefined ? bboxes.uncertain_flags[currentBboxIndex] : false;
             const currentPossibleLabels = bboxes.possible_labels && bboxes.possible_labels[currentBboxIndex] ? bboxes.possible_labels[currentBboxIndex] : [];
 
             // Initialize arrays if they don't exist
@@ -756,6 +756,27 @@
             if (!bboxes.rendition_flags) bboxes.rendition_flags = [];
             if (!bboxes.uncertain_flags) bboxes.uncertain_flags = [];
             if (!bboxes.possible_labels) bboxes.possible_labels = [];
+
+            // Ensure all flag arrays have the correct length before adding new values
+            const currentLength = bboxes.boxes.length;
+            while (bboxes.crowd_flags.length < currentLength) {
+                bboxes.crowd_flags.push(false);
+            }
+            while (bboxes.reflected_flags.length < currentLength) {
+                bboxes.reflected_flags.push(false);
+            }
+            while (bboxes.rendition_flags.length < currentLength) {
+                bboxes.rendition_flags.push(false);
+            }
+            while (bboxes.uncertain_flags.length < currentLength) {
+                bboxes.uncertain_flags.push(false);
+            }
+            while (bboxes.possible_labels.length < currentLength) {
+                bboxes.possible_labels.push([]);
+            }
+            while (bboxes.labels.length < currentLength) {
+                bboxes.labels.push(0);
+            }
 
             // Store the index before adding the new box
             const newBoxIndex = bboxes.boxes.length;
@@ -1030,7 +1051,7 @@
         const originalCopyAndPasteBbox = copyAndPasteBbox;
         copyAndPasteBbox = function() {
             originalCopyAndPasteBbox();
-            showKeyboardShortcutFeedback('BBox Copied & Pasted (Ctrl+C)');
+            showKeyboardShortcutFeedback('BBox Copied & Pasted (Shift+C)');
         };
 
         const originalSaveChanges = saveChanges;

@@ -623,6 +623,11 @@ class BBoxEditorUI {
             bboxes.reflected_flags = Array(bboxes.boxes.length).fill(false);
         }
 
+        // Ensure rendition flags exists in bboxes
+        if (!bboxes.rendition_flags) {
+            bboxes.rendition_flags = Array(bboxes.boxes.length).fill(false);
+        }
+
         // Ensure uncertain_flags array exists in bboxes
         if (!bboxes.uncertain_flags) {
             bboxes.uncertain_flags = Array(bboxes.boxes.length).fill(false);

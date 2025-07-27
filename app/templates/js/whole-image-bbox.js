@@ -143,6 +143,16 @@ function createWholeImageBBox() {
         bboxes.crowd_flags = Array(bboxes.boxes.length).fill(false);
     }
 
+    // Ensure we have reflected_flags array
+    if (!bboxes.reflected_flags) {
+        bboxes.reflected_flags = Array(bboxes.boxes.length).fill(false);
+    }
+
+    // Ensure we have rendition_flags array
+    if (!bboxes.rendition_flags) {
+        bboxes.rendition_flags = Array(bboxes.boxes.length).fill(false);
+    }
+
     // Get the image dimensions
     const imgWidth = img.naturalWidth;
     const imgHeight = img.naturalHeight;
@@ -171,6 +181,12 @@ function createWholeImageBBox() {
         while (bboxes.crowd_flags.length < newBoxIndex) {
             bboxes.crowd_flags.push(false);
         }
+        while (bboxes.reflected_flags.length < newBoxIndex) {
+            bboxes.reflected_flags.push(false);
+        }
+        while (bboxes.rendition_flags.length < newBoxIndex) {
+            bboxes.rendition_flags.push(false);
+        }
         while (bboxes.possible_labels.length < newBoxIndex) {
             bboxes.possible_labels.push([]);
         }
@@ -186,6 +202,8 @@ function createWholeImageBBox() {
         // Mark this box as uncertain - add at the end of array
         bboxes.uncertain_flags.push(true);
         bboxes.crowd_flags.push(false);
+        bboxes.reflected_flags.push(false);
+        bboxes.rendition_flags.push(false);
 
         // Get selected uncertainty classes
         let selectedClasses = [];
@@ -262,6 +280,12 @@ function createWholeImageBBox() {
         while (bboxes.crowd_flags.length < newBoxIndex) {
             bboxes.crowd_flags.push(false);
         }
+        while (bboxes.reflected_flags.length < newBoxIndex) {
+            bboxes.reflected_flags.push(false);
+        }
+        while (bboxes.rendition_flags.length < newBoxIndex) {
+            bboxes.rendition_flags.push(false);
+        }
         while (bboxes.possible_labels.length < newBoxIndex) {
             bboxes.possible_labels.push([]);
         }
@@ -277,6 +301,8 @@ function createWholeImageBBox() {
         // Mark this box as NOT uncertain - add at the end of array
         bboxes.uncertain_flags.push(false);
         bboxes.crowd_flags.push(false);
+        bboxes.reflected_flags.push(false);
+        bboxes.rendition_flags.push(false);
         bboxes.possible_labels.push([]);
 
         // Determine the class ID to use

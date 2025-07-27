@@ -2360,14 +2360,38 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Make sure arrays exist with proper length
 					if (!inlineEditor.bboxes.crowd_flags) {
 						inlineEditor.bboxes.crowd_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					} else if (inlineEditor.bboxes.crowd_flags.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.crowd_flags.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.crowd_flags.push(false);
+						}
 					}
 
 					if (!inlineEditor.bboxes.reflected_flags) {
 						inlineEditor.bboxes.reflected_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					} else if (inlineEditor.bboxes.reflected_flags.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.reflected_flags.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.reflected_flags.push(false);
+						}
+					}
+
+					if (!inlineEditor.bboxes.rendition_flags) {
+						inlineEditor.bboxes.rendition_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					} else if (inlineEditor.bboxes.rendition_flags.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.rendition_flags.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.rendition_flags.push(false);
+						}
 					}
 
 					if (!inlineEditor.bboxes.uncertain_flags) {
 						inlineEditor.bboxes.uncertain_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					} else if (inlineEditor.bboxes.uncertain_flags.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.uncertain_flags.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.uncertain_flags.push(false);
+						}
 					}
 
 					if (!inlineEditor.bboxes.possible_labels) {
@@ -2382,6 +2406,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 					if (!inlineEditor.bboxes.labels) {
 						inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
+					} else if (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.labels.push(0);
+						}
 					}
 
 					// Handle differently based on uncertainty mode
