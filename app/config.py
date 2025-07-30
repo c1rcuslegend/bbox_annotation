@@ -25,8 +25,8 @@ THRESHOLD = 50
 
 USER_PATHS = {
     "gonikisgo": {
-        "ANNOTATIONS_ROOT_FOLDER": "/Users/gonikisgo/Desktop/val",
-        "EXAMPLES_DATASET_ROOT_DIR": "/Users/gonikisgo/Desktop/val"
+        "ANNOTATIONS_ROOT_FOLDER": "/Users/gonikisgo/val",
+        "EXAMPLES_DATASET_ROOT_DIR": "/Users/gonikisgo/val"
     },
     "c1rcuslegend": {
         "ANNOTATIONS_ROOT_FOLDER": "D:\\imagenet_val",
@@ -43,6 +43,10 @@ USER_PATHS = {
     "richard": {
         "ANNOTATIONS_ROOT_FOLDER": "./imagenet_val",
         "EXAMPLES_DATASET_ROOT_DIR": "./imagenet_val"
+    },
+    "evitapp": {
+        "ANNOTATIONS_ROOT_FOLDER": "C:\\Users\Evita\Desktop\imagenet_val",
+        "EXAMPLES_DATASET_ROOT_DIR": "C:\\Users\Evita\Desktop\imagenet_val"
     }
 }
 
