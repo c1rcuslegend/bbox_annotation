@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	const inlineCrowdCheckbox = document.getElementById('inline-crowd-checkbox');
 	const inlineReflectedCheckbox = document.getElementById('inline-reflected-checkbox');
 	const inlineRenditionCheckbox = document.getElementById('inline-rendition-checkbox');
+	const inlineOcrNeededCheckbox = document.getElementById('inline-ocr-needed-checkbox');
 	const inlineClassNumbersCheckbox = document.getElementById('inline-class-numbers-checkbox');
 	const deleteBoxBtn = document.getElementById('inline-bbox-delete');
 	const deleteAllBtn = document.getElementById('inline-bbox-delete-all');
@@ -276,6 +277,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				inlineEditor.bboxes.rendition_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 			} else if (inlineEditor.bboxes.rendition_flags) {
 				debug(`Rendition flags found: ${JSON.stringify(inlineEditor.bboxes.rendition_flags)}`);
+			}
+
+			// Ensure ocr_needed flags array exists
+			if (!inlineEditor.bboxes.ocr_needed_flags && inlineEditor.bboxes.boxes) {
+				debug('Creating missing ocr_needed flags array with default values');
+				inlineEditor.bboxes.ocr_needed_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+			} else if (inlineEditor.bboxes.ocr_needed_flags) {
+				debug(`OCR needed flags found: ${JSON.stringify(inlineEditor.bboxes.ocr_needed_flags)}`);
 			}
 
 			// Ensure uncertain flags array exists
@@ -560,7 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
 				coordinates: box,
 				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
 				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i],
-				rendition_flag: inlineEditor.bboxes.rendition_flags && inlineEditor.bboxes.rendition_flags[i]
+				rendition_flag: inlineEditor.bboxes.rendition_flags && inlineEditor.bboxes.rendition_flags[i],
+				ocr_needed_flag: inlineEditor.bboxes.ocr_needed_flags && inlineEditor.bboxes.ocr_needed_flags[i]
 			};
 
 			if (isUncertain) {
@@ -748,27 +758,44 @@ document.addEventListener('DOMContentLoaded', function() {
 		debug('Main editor found, connecting...');
 
 		// Helper function to determine box styles
-		const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
+		const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) => {
 			const styles = {
 				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
 				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
 				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
 				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
 				rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
+				ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
 				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
 				crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+				crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
 				reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+				reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
+				renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
 				crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
+				crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
+				crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
+				reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
+				crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
 				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
 			};
 
-			// Check for three-flag combination first
+			// Check for four-flag combination first
+			if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
+			// Then three-flag combinations
+			if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
+			if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
+			if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
 			if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
 			// Then two-flag combinations
+			if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
+			if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
+			if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
 			if (isCrowd && isReflected) return styles.crowdReflected;
 			if (isCrowd && isRendition) return styles.crowdRendition;
 			if (isReflected && isRendition) return styles.reflectedRendition;
 			// Then single flags
+			if (isOcrNeeded) return styles.ocrNeeded;
 			if (isRendition) return styles.rendition;
 			if (isReflected) return styles.reflected;
 			if (isCrowd) return styles.crowd;
@@ -882,9 +909,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					const isCrowd = this.bboxes.crowd_flags?.[i];
 					const isReflected = this.bboxes.reflected_flags?.[i];
 					const isRendition = this.bboxes.rendition_flags?.[i];
+					const isOcrNeeded = this.bboxes.ocr_needed_flags?.[i];
 					const isSelected = false; // Always false here since we're skipping the selected box
 
-					const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
+					const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
 
 					// Draw the box
 					this.ctx.save();
@@ -966,9 +994,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					const isCrowd = this.bboxes.crowd_flags?.[i];
 					const isReflected = this.bboxes.reflected_flags?.[i];
 					const isRendition = this.bboxes.rendition_flags?.[i];
+					const isOcrNeeded = this.bboxes.ocr_needed_flags?.[i];
 					const isSelected = true;
 
-					const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
+					const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
 
 					// Draw the selected box with thicker lines
 					this.ctx.save();
@@ -1479,6 +1508,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		// Update the checkbox based on rendition flag
 		updateRenditionCheckbox(boxIndex);
+
+		// Update the checkbox based on ocr_needed flag
+		updateOcrNeededCheckbox(boxIndex);
 		
 		// Make sure class numbers checkbox reflects the editor's current setting
 		if (inlineEditor.editor && inlineClassNumbersCheckbox) {
@@ -1573,6 +1605,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	if (inlineRenditionCheckbox) {
 		inlineRenditionCheckbox.addEventListener('change', handleRenditionCheckboxChange);
+	}
+
+	if (inlineOcrNeededCheckbox) {
+		inlineOcrNeededCheckbox.addEventListener('change', handleOcrNeededCheckboxChange);
 	}
 
 	if (inlineClassNumbersCheckbox) {
@@ -1692,6 +1728,45 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (advancedRenditionCheckbox) {
 				advancedRenditionCheckbox.checked = inlineEditor.bboxes.rendition_flags[boxIndex];
 				debug(`Synced advanced rendition checkbox to: ${inlineEditor.bboxes.rendition_flags[boxIndex]}`);
+			}
+		}
+	}
+
+	function handleOcrNeededCheckboxChange() {
+		if (inlineEditor.currentBoxIndex < 0) return;
+
+		// Update the ocr_needed_flags array based on the checkbox state
+		inlineEditor.bboxes.ocr_needed_flags[inlineEditor.currentBoxIndex] = inlineOcrNeededCheckbox.checked;
+
+		// Also update the checkbox in the advanced editor if it's open
+		const advancedOcrNeededCheckbox = document.getElementById('bbox-ocr-needed-checkbox');
+		if (advancedOcrNeededCheckbox) {
+			advancedOcrNeededCheckbox.checked = inlineOcrNeededCheckbox.checked;
+			debug(`Synced advanced ocr_needed checkbox to: ${inlineOcrNeededCheckbox.checked}`);
+		}
+
+		// Immediately redraw the canvas to show the updated box color
+		if (inlineEditor.editor) {
+			inlineEditor.editor.redrawCanvas();
+			debug(`Redrawing canvas after ocr_needed checkbox change to ${inlineOcrNeededCheckbox.checked}`);
+		}
+
+		// Update hidden form field
+		updateHiddenBboxesField();
+
+		debug(`Updated ocr_needed flag for box ${inlineEditor.currentBoxIndex} to: ${inlineOcrNeededCheckbox.checked}`);
+	}
+
+	function updateOcrNeededCheckbox(boxIndex) {
+		if (inlineOcrNeededCheckbox && inlineEditor.bboxes.ocr_needed_flags) {
+			inlineOcrNeededCheckbox.checked = inlineEditor.bboxes.ocr_needed_flags[boxIndex];
+			debug(`Set ocr_needed checkbox to: ${inlineOcrNeededCheckbox.checked}`);
+
+			// Also update the advanced editor's checkbox if it exists
+			const advancedOcrNeededCheckbox = document.getElementById('bbox-ocr-needed-checkbox');
+			if (advancedOcrNeededCheckbox) {
+				advancedOcrNeededCheckbox.checked = inlineEditor.bboxes.ocr_needed_flags[boxIndex];
+				debug(`Synced advanced ocr_needed checkbox to: ${inlineEditor.bboxes.ocr_needed_flags[boxIndex]}`);
 			}
 		}
 	}
@@ -1959,7 +2034,9 @@ document.addEventListener('DOMContentLoaded', function() {
 			let bboxData = {
 				coordinates: box,
 				crowd_flag: inlineEditor.bboxes.crowd_flags && inlineEditor.bboxes.crowd_flags[i],
-				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i]
+				reflected_flag: inlineEditor.bboxes.reflected_flags && inlineEditor.bboxes.reflected_flags[i],
+				rendition_flag: inlineEditor.bboxes.rendition_flags && inlineEditor.bboxes.rendition_flags[i],
+				ocr_needed_flag: inlineEditor.bboxes.ocr_needed_flags && inlineEditor.bboxes.ocr_needed_flags[i]
 			};
 
 			if (isUncertain) {
@@ -2385,6 +2462,15 @@ document.addEventListener('DOMContentLoaded', function() {
 						}
 					}
 
+					if (!inlineEditor.bboxes.ocr_needed_flags) {
+						inlineEditor.bboxes.ocr_needed_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
+					} else if (inlineEditor.bboxes.ocr_needed_flags.length < inlineEditor.bboxes.boxes.length) {
+						// Extend existing array if needed
+						while (inlineEditor.bboxes.ocr_needed_flags.length < inlineEditor.bboxes.boxes.length) {
+							inlineEditor.bboxes.ocr_needed_flags.push(false);
+						}
+					}
+
 					if (!inlineEditor.bboxes.uncertain_flags) {
 						inlineEditor.bboxes.uncertain_flags = new Array(inlineEditor.bboxes.boxes.length).fill(false);
 					} else if (inlineEditor.bboxes.uncertain_flags.length < inlineEditor.bboxes.boxes.length) {
@@ -2405,10 +2491,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					}
 
 					if (!inlineEditor.bboxes.labels) {
-						inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length).fill(0);
-					} else if (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length) {
-						// Extend existing array if needed
-						while (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length) {
+						inlineEditor.bboxes.labels = new Array(inlineEditor.bboxes.boxes.length - 1).fill(0);
+					} else if (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length - 1) {
+						// Extend existing array if needed, but don't fill the new spot yet
+						while (inlineEditor.bboxes.labels.length < inlineEditor.bboxes.boxes.length - 1) {
 							inlineEditor.bboxes.labels.push(0);
 						}
 					}
@@ -2420,6 +2506,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						inlineEditor.bboxes.crowd_flags.push(false);
 						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.rendition_flags.push(false);
+						inlineEditor.bboxes.ocr_needed_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags[newBoxIndex] = true;
 
 						// Get selected classes for uncertainty
@@ -2464,19 +2551,28 @@ document.addEventListener('DOMContentLoaded', function() {
 						inlineEditor.bboxes.crowd_flags.push(false);
 						inlineEditor.bboxes.reflected_flags.push(false);
 						inlineEditor.bboxes.rendition_flags.push(false);
+						inlineEditor.bboxes.ocr_needed_flags.push(false);
 						inlineEditor.bboxes.uncertain_flags.push(false);
 						inlineEditor.bboxes.possible_labels.push([]);
 
-						// Get class ID for the new box
-						let classId = 0;
+						// Get class ID for the new box - use helper function first
+						let classId;
 						if (typeof window.getClassForNewBBox === 'function') {
 							classId = window.getClassForNewBBox();
+							console.log(`Inline editor: Using getClassForNewBBox helper, got class: ${classId}`);
 						} else if (window.lastSelectedClassId !== undefined && window.lastSelectedClassId !== null) {
 							classId = parseInt(window.lastSelectedClassId);
+							console.log(`Inline editor: Using global lastSelectedClassId: ${classId}`);
 						} else if (window.groundTruthClassId !== undefined && window.groundTruthClassId !== null) {
 							classId = parseInt(window.groundTruthClassId);
+							console.log(`Inline editor: Using global groundTruthClassId: ${classId}`);
 						} else if (inlineEditor.lastSelectedClassId !== null) {
 							classId = parseInt(inlineEditor.lastSelectedClassId);
+							console.log(`Inline editor: Using inlineEditor lastSelectedClassId: ${classId}`);
+						} else {
+							// Default to 0 only if no other option is available
+							classId = 0;
+							console.log(`Inline editor: Using default class 0`);
 						}
 
 						// Push the class ID as the label
@@ -2508,7 +2604,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					updateCrowdCheckbox(newBoxIndex);
                     updateReflectedCheckbox(newBoxIndex);
                     updateRenditionCheckbox(newBoxIndex);
-					updateRenditionCheckbox(newBoxIndex);
+                    updateOcrNeededCheckbox(newBoxIndex);
 
 					// Select the box to update UI elements properly
 					selectBox(newBoxIndex);

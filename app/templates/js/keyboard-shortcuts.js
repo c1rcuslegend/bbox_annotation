@@ -11,6 +11,7 @@ const DETAIL_VIEW_SHORTCUTS = {
     'Ctrl+G': 'Toggle Crowd of Instances flag for selected bbox',
     'Ctrl+R': 'Toggle Reflected Object flag for selected bbox', 
     'Ctrl+V': 'Toggle Rendition flag for selected bbox',
+    'Ctrl+B': 'Toggle Text based flag for selected bbox',
     'Ctrl+X': 'Delete currently selected bounding box',
     'Shift+C': 'Copy and paste selected bounding box',
     'Ctrl+A': 'Create whole image bounding box',

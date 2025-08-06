@@ -191,6 +191,94 @@ function addUncertainBoxStyles() {
             font-weight: bold;
         }
         
+        /* OCR Needed box styles */
+        .bbox.ocr-needed-box {
+            border: 2px solid #C0C0C0 !important; /* Silver border for ocr_needed boxes */
+        }
+        
+        .bbox-label.ocr-needed-label {
+            background-color: rgba(192, 192, 192, 0.85) !important; /* Silver background */
+            color: black !important; /* Black text for better contrast on silver */
+            font-weight: bold;
+        }
+        
+        /* Crowd OCR Needed box styles */
+        .bbox.crowd-ocr-needed-box {
+            border: 2px solid #D1C4E9 !important; /* Light purple border */
+        }
+        
+        .bbox-label.crowd-ocr-needed-label {
+            background-color: rgba(209, 196, 233, 0.85) !important; /* Light purple background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Reflected OCR Needed box styles */
+        .bbox.reflected-ocr-needed-box {
+            border: 2px solid #B0BEC5 !important; /* Blue-grey border */
+        }
+        
+        .bbox-label.reflected-ocr-needed-label {
+            background-color: rgba(176, 190, 197, 0.85) !important; /* Blue-grey background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Rendition OCR Needed box styles */
+        .bbox.rendition-ocr-needed-box {
+            border: 2px solid #FFAB91 !important; /* Light orange border */
+        }
+        
+        .bbox-label.rendition-ocr-needed-label {
+            background-color: rgba(255, 171, 145, 0.85) !important; /* Light orange background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Crowd Reflected OCR Needed box styles */
+        .bbox.crowd-reflected-ocr-needed-box {
+            border: 2px solid #E1BEE7 !important; /* Light lavender border */
+        }
+        
+        .bbox-label.crowd-reflected-ocr-needed-label {
+            background-color: rgba(225, 190, 231, 0.85) !important; /* Light lavender background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Crowd Rendition OCR Needed box styles */
+        .bbox.crowd-rendition-ocr-needed-box {
+            border: 2px solid #FFE0B2 !important; /* Light peach border */
+        }
+        
+        .bbox-label.crowd-rendition-ocr-needed-label {
+            background-color: rgba(255, 224, 178, 0.85) !important; /* Light peach background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Reflected Rendition OCR Needed box styles */
+        .bbox.reflected-rendition-ocr-needed-box {
+            border: 2px solid #F8BBD9 !important; /* Light pink border */
+        }
+        
+        .bbox-label.reflected-rendition-ocr-needed-label {
+            background-color: rgba(248, 187, 217, 0.85) !important; /* Light pink background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
+        /* Crowd Reflected Rendition OCR Needed box styles */
+        .bbox.crowd-reflected-rendition-ocr-needed-box {
+            border: 2px solid #F0F4C3 !important; /* Light lime border */
+        }
+        
+        .bbox-label.crowd-reflected-rendition-ocr-needed-label {
+            background-color: rgba(240, 244, 195, 0.85) !important; /* Light lime background */
+            color: black !important;
+            font-weight: bold;
+        }
+        
     `;
     document.head.appendChild(style);
 }
@@ -317,15 +405,34 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
             // Check if this box is a rendition box
             const isRendition = bboxData.rendition_flags && bboxData.rendition_flags[index];
 
-            // Apply appropriate classes
-            if (isCrowd && isReflected && isRendition) {
+            // Check if this box is an ocr_needed box
+            const isOcrNeeded = bboxData.ocr_needed_flags && bboxData.ocr_needed_flags[index];
+
+            // Apply appropriate classes (order matters for specificity)
+            if (isCrowd && isReflected && isRendition && isOcrNeeded) {
+                bboxDiv.classList.add('crowd-reflected-rendition-ocr-needed-box');
+            } else if (isReflected && isRendition && isOcrNeeded) {
+                bboxDiv.classList.add('reflected-rendition-ocr-needed-box');
+            } else if (isCrowd && isRendition && isOcrNeeded) {
+                bboxDiv.classList.add('crowd-rendition-ocr-needed-box');
+            } else if (isCrowd && isReflected && isOcrNeeded) {
+                bboxDiv.classList.add('crowd-reflected-ocr-needed-box');
+            } else if (isCrowd && isReflected && isRendition) {
                 bboxDiv.classList.add('crowd-reflected-rendition-box');
+            } else if (isRendition && isOcrNeeded) {
+                bboxDiv.classList.add('rendition-ocr-needed-box');
+            } else if (isReflected && isOcrNeeded) {
+                bboxDiv.classList.add('reflected-ocr-needed-box');
+            } else if (isCrowd && isOcrNeeded) {
+                bboxDiv.classList.add('crowd-ocr-needed-box');
             } else if (isReflected && isRendition) {
                 bboxDiv.classList.add('reflected-rendition-box');
             } else if (isCrowd && isRendition) {
                 bboxDiv.classList.add('crowd-rendition-box');
             } else if (isCrowd && isReflected) {
                 bboxDiv.classList.add('crowd-reflected-box');
+            } else if (isOcrNeeded) {
+                bboxDiv.classList.add('ocr-needed-box');
             } else if (isRendition) {
                 bboxDiv.classList.add('rendition-box');
             } else if (isReflected) {
@@ -374,14 +481,31 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                 // Add crowd-label class if it's a crowd box
                 // Add reflected-label class if it's a reflected box
                 // Add rendition-label class if it's a rendition box
-                if (isCrowd && isReflected && isRendition) {
+                // Add ocr-needed-label class if it's an ocr_needed box
+                if (isCrowd && isReflected && isRendition && isOcrNeeded) {
+                    labelDiv.classList.add('crowd-reflected-rendition-ocr-needed-label');
+                } else if (isReflected && isRendition && isOcrNeeded) {
+                    labelDiv.classList.add('reflected-rendition-ocr-needed-label');
+                } else if (isCrowd && isRendition && isOcrNeeded) {
+                    labelDiv.classList.add('crowd-rendition-ocr-needed-label');
+                } else if (isCrowd && isReflected && isOcrNeeded) {
+                    labelDiv.classList.add('crowd-reflected-ocr-needed-label');
+                } else if (isCrowd && isReflected && isRendition) {
                     labelDiv.classList.add('crowd-reflected-rendition-label');
+                } else if (isRendition && isOcrNeeded) {
+                    labelDiv.classList.add('rendition-ocr-needed-label');
+                } else if (isReflected && isOcrNeeded) {
+                    labelDiv.classList.add('reflected-ocr-needed-label');
+                } else if (isCrowd && isOcrNeeded) {
+                    labelDiv.classList.add('crowd-ocr-needed-label');
                 } else if (isReflected && isRendition) {
                     labelDiv.classList.add('reflected-rendition-label');
                 } else if (isCrowd && isRendition) {
                     labelDiv.classList.add('crowd-rendition-label');
                 } else if (isCrowd && isReflected) {
                     labelDiv.classList.add('crowd-reflected-label');
+                } else if (isOcrNeeded) {
+                    labelDiv.classList.add('ocr-needed-label');
                 } else if (isRendition) {
                     labelDiv.classList.add('rendition-label');
                 } else if (isReflected) {

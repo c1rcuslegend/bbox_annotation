@@ -108,6 +108,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to get the current class ID for a new bounding box
     // Exposed globally so it can be called from other scripts
     window.getClassForNewBBox = function() {
+        debug(`getClassForNewBBox called - checking selection state...`);
+        debug(`window.lastSelectedClassId: ${window.lastSelectedClassId}`);
+        debug(`window.groundTruthClassId: ${window.groundTruthClassId}`);
+        
         // Priority: 1. Radio button selection, 2. Ground truth
         if (window.lastSelectedClassId !== null && window.lastSelectedClassId !== undefined) {
             debug(`Using selected radio button class: ${window.lastSelectedClassId}`);
@@ -116,6 +120,15 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (window.groundTruthClassId !== null && window.groundTruthClassId !== undefined) {
             debug(`Using ground truth class as default: ${window.groundTruthClassId}`);
             return parseInt(window.groundTruthClassId);
+        }
+        else {
+            // Try to extract ground truth class ID again in case it wasn't available during page load
+            debug('Ground truth class ID not available, trying to extract it now...');
+            const gtClassId = extractGroundTruthClassId();
+            if (gtClassId !== null && gtClassId !== undefined) {
+                debug(`Successfully extracted ground truth class ID: ${gtClassId}`);
+                return parseInt(gtClassId);
+            }
         }
 
         // Default to 0 if nothing else is available

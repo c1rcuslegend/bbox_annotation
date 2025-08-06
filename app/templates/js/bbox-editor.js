@@ -44,6 +44,53 @@ class BBoxEditor {
         this.img.style.display = 'none';
     }
 
+    // Define getBoxStyle as a class method so it can be used by both redrawCanvas and forceRedraw
+    getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) {
+        const styles = {
+            normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
+            uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
+            crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
+            reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+            rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
+            ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
+            crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+            crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+            crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
+            reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+            reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
+            renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
+            crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
+            crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
+            crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
+            reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
+            crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
+            selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
+        };
+
+        // Check for four-flag combination first
+        if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
+        // Then three-flag combinations
+        if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
+        if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
+        if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
+        if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
+        // Then two-flag combinations
+        if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
+        if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
+        if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
+        if (isCrowd && isReflected) return styles.crowdReflected;
+        if (isCrowd && isRendition) return styles.crowdRendition;
+        if (isReflected && isRendition) return styles.reflectedRendition;
+        // Then single flags
+        if (isOcrNeeded) return styles.ocrNeeded;
+        if (isRendition) return styles.rendition;
+        if (isReflected) return styles.reflected;
+        if (isCrowd) return styles.crowd;
+        if (isUncertain) return styles.uncertain;
+        if (isSelected) return styles.selected;
+        return styles.normal;
+    }
+
     // Modify the redrawCanvas method in BBoxEditor class
     redrawCanvas() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -62,28 +109,49 @@ class BBoxEditor {
             console.log("BBoxEditor: Initializing missing rendition_flags array");
             this.bboxes.rendition_flags = new Array(this.bboxes.boxes.length).fill(false);
         }
+        if (this.bboxes?.boxes && !this.bboxes.ocr_needed_flags) {
+            console.log("BBoxEditor: Initializing missing ocr_needed_flags array");
+            this.bboxes.ocr_needed_flags = new Array(this.bboxes.boxes.length).fill(false);
+        }
 
-        const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
+        const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) => {
             const styles = {
                 normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
                 uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
                 crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
                 reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
                 rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
+                ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
                 crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
                 crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+                crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
                 reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+                reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
+                renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
                 crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
+                crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
+                crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
+                reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
+                crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
                 selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
             };
 
-            // Check for three-flag combination first
+            // Check for four-flag combination first
+            if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
+            // Then three-flag combinations
+            if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
+            if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
+            if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
             if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
             // Then two-flag combinations
+            if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
+            if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
+            if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
             if (isCrowd && isReflected) return styles.crowdReflected;
             if (isCrowd && isRendition) return styles.crowdRendition;
             if (isReflected && isRendition) return styles.reflectedRendition;
             // Then single flags
+            if (isOcrNeeded) return styles.ocrNeeded;
             if (isRendition) return styles.rendition;
             if (isReflected) return styles.reflected;
             if (isCrowd) return styles.crowd;
@@ -142,12 +210,13 @@ class BBoxEditor {
             const isCrowd = this.bboxes.crowd_flags?.[index];
             const isReflected = this.bboxes.reflected_flags?.[index];
             const isRendition = this.bboxes.rendition_flags?.[index];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags?.[index];
             const isSelected = index === this.selectedBboxIndex;
 
             // Skip selected box for now
             if (isSelected) return;
 
-            const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, false);
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false);
             const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
             
@@ -177,8 +246,9 @@ class BBoxEditor {
             const isCrowd = this.bboxes.crowd_flags?.[this.selectedBboxIndex];
             const isReflected = this.bboxes.reflected_flags?.[this.selectedBboxIndex];
             const isRendition = this.bboxes.rendition_flags?.[this.selectedBboxIndex];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags?.[this.selectedBboxIndex];
 
-            const style = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, true);
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, true);
             const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
             
@@ -250,13 +320,23 @@ class BBoxEditor {
         // Draw only the boxes that still exist and meet the threshold
         if (this.bboxes && this.bboxes.boxes) {
             this.bboxes.boxes.forEach((box, index) => {
-                // Use different color for selected box
-                this.ctx.strokeStyle = this.selectedBboxIndex === index ? '#2196F3' : '#e74c3c';
+                // Get flag states for proper styling
+                const isUncertain = this.bboxes.uncertain_flags?.[index] || this.bboxes.labels?.[index] === -1;
+                const isCrowd = this.bboxes.crowd_flags?.[index];
+                const isReflected = this.bboxes.reflected_flags?.[index];
+                const isRendition = this.bboxes.rendition_flags?.[index];
+                const isOcrNeeded = this.bboxes.ocr_needed_flags?.[index];
+                const isSelected = this.selectedBboxIndex === index;
+
+                // Use the same styling function as redrawCanvas
+                const style = this.getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
+                
+                // Draw box with proper styling
+                this.ctx.strokeStyle = style.stroke;
                 this.ctx.lineWidth = 3;
                 this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
 
                 // Show label info for each box with enhanced readability
-                const isSelected = this.selectedBboxIndex === index;
 
                 // Check if box is at top edge or is a whole-image box
                 const isAtTopEdge = box[1] <= 5; // within 5px of top edge
@@ -305,7 +385,7 @@ class BBoxEditor {
                 const textWidth = textMetrics.width;
 
                 // Background for better visibility
-                this.ctx.fillStyle = isSelected ? 'rgba(33, 150, 243, 0.85)' : 'rgba(231, 76, 60, 0.85)';
+                this.ctx.fillStyle = style.fill;
 
                 // Draw rounded rectangle background
                 const cornerRadius = 2; // Smaller radius for smaller font
@@ -323,12 +403,12 @@ class BBoxEditor {
                 this.ctx.fill();
 
                 // Add a subtle border
-                this.ctx.strokeStyle = isSelected ? '#1565C0' : '#c0392b';
+                this.ctx.strokeStyle = style.stroke;
                 this.ctx.lineWidth = 1;
                 this.ctx.stroke();
 
                 // Draw text with shadow for depth
-                this.ctx.fillStyle = 'white';
+                this.ctx.fillStyle = style.text;
                 this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; // Slightly reduced shadow opacity
                 this.ctx.shadowBlur = 1; // Reduced shadow blur for smaller text
                 this.ctx.shadowOffsetX = 0.5; // Smaller shadow offset

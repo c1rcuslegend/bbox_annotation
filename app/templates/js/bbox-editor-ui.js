@@ -60,6 +60,7 @@ class BBoxEditorUI {
         this.updateCrowdCheckbox(boxIndex);
         this.updateReflectedCheckbox(boxIndex);
         this.updateRenditionCheckbox(boxIndex);
+        this.updateOcrNeededCheckbox(boxIndex);
         this.updateClassNumbersCheckbox();
 
         // Add event listener to handle modal close event
@@ -332,6 +333,11 @@ class BBoxEditorUI {
                     if (bboxes.rendition_flags) {
                         bboxes.rendition_flags.splice(deletedIndex, 1);
                     }
+
+                    // Remove ocr_needed flag if it exists
+                    if (bboxes.ocr_needed_flags) {
+                        bboxes.ocr_needed_flags.splice(deletedIndex, 1);
+                    }
                     
                     // Remove uncertain flag and possible_labels if they exist
                     if (bboxes.uncertain_flags) {
@@ -416,6 +422,7 @@ class BBoxEditorUI {
                 if (bboxes.crowd_flags) bboxes.crowd_flags = [];
                 if (bboxes.reflected_flags) bboxes.reflected_flags = [];
                 if (bboxes.rendition_flags) bboxes.rendition_flags = [];
+                if (bboxes.ocr_needed_flags) bboxes.ocr_needed_flags = [];
                 if (bboxes.uncertain_flags) bboxes.uncertain_flags = [];
 
                 // Also clear gt field if it exists
@@ -509,6 +516,27 @@ class BBoxEditorUI {
                 if (inlineRenditionCheckbox) {
                     inlineRenditionCheckbox.checked = renditionCheckbox.checked;
                     console.log(`Synced inline rendition checkbox to: ${renditionCheckbox.checked}`);
+                }
+
+                // Redraw the advanced editor canvas
+                this.updatePreviewCanvas();
+            };
+        }
+
+        // OCR needed checkbox
+        const ocrNeededCheckbox = document.getElementById('bbox-ocr-needed-checkbox');
+        if (ocrNeededCheckbox) {
+            ocrNeededCheckbox.onchange = () => {
+                if (this.currentBoxIndex < 0) return;
+                // Update the ocr_needed_flags array based on the checkbox state
+                editor.bboxes.ocr_needed_flags[this.currentBoxIndex] = ocrNeededCheckbox.checked;
+                console.log(`Updated ocr_needed flag for box ${this.currentBoxIndex} to: ${ocrNeededCheckbox.checked}`);
+
+                // Also sync with inline editor's checkbox if it exists
+                const inlineOcrNeededCheckbox = document.getElementById('inline-ocr-needed-checkbox');
+                if (inlineOcrNeededCheckbox) {
+                    inlineOcrNeededCheckbox.checked = ocrNeededCheckbox.checked;
+                    console.log(`Synced inline ocr_needed checkbox to: ${ocrNeededCheckbox.checked}`);
                 }
 
                 // Redraw the advanced editor canvas
@@ -626,6 +654,11 @@ class BBoxEditorUI {
         // Ensure rendition flags exists in bboxes
         if (!bboxes.rendition_flags) {
             bboxes.rendition_flags = Array(bboxes.boxes.length).fill(false);
+        }
+
+        // Ensure ocr_needed flags exists in bboxes
+        if (!bboxes.ocr_needed_flags) {
+            bboxes.ocr_needed_flags = Array(bboxes.boxes.length).fill(false);
         }
 
         // Ensure uncertain_flags array exists in bboxes
@@ -1000,6 +1033,15 @@ class BBoxEditorUI {
         }
     }
 
+    // Update the checkbox based on ocr_needed flag
+    static updateOcrNeededCheckbox(boxIndex) {
+        const ocrNeededCheckbox = document.getElementById('bbox-ocr-needed-checkbox');
+        if (ocrNeededCheckbox && this.bboxes.ocr_needed_flags) {
+            ocrNeededCheckbox.checked = this.bboxes.ocr_needed_flags[boxIndex];
+            console.log(`Set ocr_needed checkbox to: ${ocrNeededCheckbox.checked}`);
+        }
+    }
+
     // Update the checkbox based on class numbers only flag
     static updateClassNumbersCheckbox() {
         const classNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
@@ -1103,6 +1145,9 @@ class BBoxEditorUI {
 
                     // Update the rendition checkbox
                     this.updateRenditionCheckbox(this.currentBoxIndex);
+
+                    // Update the ocr_needed checkbox
+                    this.updateOcrNeededCheckbox(this.currentBoxIndex);
 
                     // Update editor selection
                     editor.selectedBboxIndex = selectedIndex;
@@ -1348,27 +1393,44 @@ class BBoxEditorUI {
         if (!this.previewCtx || !this.img) return;
 
         // Helper function to determine box styles
-		const getBoxStyle = (isCrowd, isReflected, isRendition, isUncertain, isSelected) => {
+		const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) => {
 			const styles = {
 				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
 				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
 				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
 				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
 				rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
+				ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
 				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
 				crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+				crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
 				reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+				reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
+				renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
 				crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
+				crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
+				crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
+				reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
+				crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
 				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
 			};
 
-			// Check for three-flag combination first
+			// Check for four-flag combination first
+			if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
+			// Then three-flag combinations
+			if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
+			if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
+			if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
 			if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
 			// Then two-flag combinations
+			if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
+			if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
+			if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
 			if (isCrowd && isReflected) return styles.crowdReflected;
 			if (isCrowd && isRendition) return styles.crowdRendition;
 			if (isReflected && isRendition) return styles.reflectedRendition;
 			// Then single flags
+			if (isOcrNeeded) return styles.ocrNeeded;
 			if (isRendition) return styles.rendition;
 			if (isReflected) return styles.reflected;
 			if (isCrowd) return styles.crowd;
@@ -1439,9 +1501,10 @@ class BBoxEditorUI {
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
             const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[i];
             const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[i];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags && this.bboxes.ocr_needed_flags[i];
             const isSelected = false;
 
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
+            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
 
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;
@@ -1485,9 +1548,10 @@ class BBoxEditorUI {
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedIndex];
             const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[this.selectedIndex];
             const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[this.selectedIndex];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags && this.bboxes.ocr_needed_flags[this.selectedIndex];
             const isSelected = true;
 
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isUncertain, isSelected);
+            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
 
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;
@@ -1535,7 +1599,7 @@ class BBoxEditorUI {
         // Draw temporary box if needed
         if (showTempBox && this.tempBox) {
             this.checkNotSureMode();
-            const tempBoxStyle = getBoxStyle(false, false, this.notSureMode, false);
+            const tempBoxStyle = getBoxStyle(false, false, false, false, this.notSureMode, false);
 
             ctx.strokeStyle = tempBoxStyle.stroke;
             ctx.lineWidth = 2;
@@ -1703,6 +1767,9 @@ class BBoxEditorUI {
                 // Update the rendition checkbox
                 this.updateRenditionCheckbox(this.selectedIndex);
 
+                // Update the ocr_needed checkbox
+                this.updateOcrNeededCheckbox(this.selectedIndex);
+
                 // Update UI
                 this.updateBoxValues(this.bboxes.boxes[clickedBoxIndex]);
 
@@ -1853,6 +1920,9 @@ class BBoxEditorUI {
                 // Update the rendition checkbox
                 this.updateRenditionCheckbox(this.selectedIndex);
 
+                // Update the ocr_needed checkbox
+                this.updateOcrNeededCheckbox(this.selectedIndex);
+
                 // Update input fields
                 this.updateBoxValues(box);
                 this.updatePreviewCanvas();
@@ -1890,6 +1960,9 @@ class BBoxEditorUI {
 
                 // Update the rendition checkbox
                 this.updateRenditionCheckbox(this.selectedIndex);
+
+                // Update the ocr_needed checkbox
+                this.updateOcrNeededCheckbox(this.selectedIndex);
 
                 // Update input fields
                 this.updateBoxValues(box);
@@ -1994,6 +2067,16 @@ class BBoxEditorUI {
                     }
                     this.bboxes.reflected_flags.push(false);
 
+                    if (!this.bboxes.rendition_flags) {
+                        this.bboxes.rendition_flags = new Array(newIndex).fill(false);
+                    }
+                    this.bboxes.rendition_flags.push(false);
+
+                    if (!this.bboxes.ocr_needed_flags) {
+                        this.bboxes.ocr_needed_flags = new Array(newIndex).fill(false);
+                    }
+                    this.bboxes.ocr_needed_flags.push(false);
+
                     if (!this.bboxes.uncertain_flags) {
                         this.bboxes.uncertain_flags = new Array(newIndex).fill(false);
                     }
@@ -2036,9 +2119,7 @@ class BBoxEditorUI {
                         // Turn off Not Sure mode after drawing one Not Sure box
                         this.turnOffNotSureMode();
                     } else {
-                        // For regular boxes
-                        classId = 0;
-
+                        // For regular boxes - use the helper function to determine class
                         if (typeof window.getClassForNewBBox === 'function') {
                             classId = window.getClassForNewBBox();
                             console.log(`Advanced editor: Using getClassForNewBBox helper, got class: ${classId}`);
@@ -2053,6 +2134,10 @@ class BBoxEditorUI {
                             if (classSelector && classSelector.value !== "-1") {
                                 classId = parseInt(classSelector.value) || 0;
                                 console.log(`Advanced editor: Using class selector value: ${classId}`);
+                            } else {
+                                // Default to 0 only if no other option is available
+                                classId = 0;
+                                console.log(`Advanced editor: Using default class 0`);
                             }
                         }
 
@@ -2086,6 +2171,7 @@ class BBoxEditorUI {
                     this.updateCrowdCheckbox(newIndex);
                     this.updateReflectedCheckbox(newIndex);
                     this.updateRenditionCheckbox(newIndex);
+                    this.updateOcrNeededCheckbox(newIndex);
 
                     // Update bbox selector dropdown
                     this.updateBboxSelector(this.bboxes, newIndex, this.editor ? this.editor.classLabels : {});

@@ -228,6 +228,15 @@
                         </label>
                     </div>
 
+                    <!-- Text based checkbox container -->
+                    <div class="ocr-needed-container">
+                        <label for="inline-ocr-needed-checkbox">Text based</label>
+                        <label class="container">
+                            <input type="checkbox" id="inline-ocr-needed-checkbox" name="inline-ocr-needed-checkbox">
+                            <div class="checkmark checkmark-ocr-needed"></div>
+                        </label>
+                    </div>
+
                     <!-- Show Class Numbers Only checkbox container -->
                     <div class="reflected-container">
                         <label for="inline-class-numbers-checkbox">Simplified Labels</label>
@@ -404,6 +413,14 @@
                         </label>
                     </div>
 
+                    <div class="bbox-ocr-needed-container">
+                        <label for="bbox-ocr-needed-checkbox">Text based</label>
+                        <label class="container">
+                            <input type="checkbox" id="bbox-ocr-needed-checkbox" name="bbox-ocr-needed-checkbox">
+                            <div class="checkmark checkmark-ocr-needed"></div>
+                        </label>
+                    </div>
+
                     <div class="bbox-reflected-container">
                         <label for="bbox-class-numbers-checkbox">Simplified Labels</label>
                         <label class="container">
@@ -480,6 +497,10 @@
                         case 'v': // Ctrl+V - Toggle Rendition flag
                             event.preventDefault();
                             toggleRenditionFlag();
+                            break;
+                        case 'b': // Ctrl+B - Toggle Text based flag
+                            event.preventDefault();
+                            toggleOcrNeededFlag();
                             break;
                         case 'x': // Ctrl+X - Delete current bbox
                             event.preventDefault();
@@ -649,6 +670,34 @@
             }
         }
 
+        function toggleOcrNeededFlag() {
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode
+                const ocrNeededCheckbox = document.getElementById('bbox-ocr-needed-checkbox');
+                if (ocrNeededCheckbox) {
+                    ocrNeededCheckbox.checked = !ocrNeededCheckbox.checked;
+                    ocrNeededCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled ocr_needed flag in advanced mode:', ocrNeededCheckbox.checked);
+                } else {
+                    console.error('OCR needed checkbox not found in advanced editor mode');
+                }
+            } else {
+                // Inline editor mode
+                const ocrNeededCheckbox = document.getElementById('inline-ocr-needed-checkbox');
+                if (ocrNeededCheckbox) {
+                    ocrNeededCheckbox.checked = !ocrNeededCheckbox.checked;
+                    ocrNeededCheckbox.dispatchEvent(new Event('change'));
+                    console.log('Toggled ocr_needed flag in inline mode:', ocrNeededCheckbox.checked);
+                } else {
+                    console.error('OCR needed checkbox not found in inline editor mode');
+                }
+            }
+        }
+
         function deleteCurrentBbox() {
             // Check if we're in advanced editor mode
             const advancedModal = document.getElementById('bbox-modal-container');
@@ -744,6 +793,7 @@
             const currentCrowdFlag = bboxes.crowd_flags && bboxes.crowd_flags[currentBboxIndex] !== undefined ? bboxes.crowd_flags[currentBboxIndex] : false;
             const currentReflectedFlag = bboxes.reflected_flags && bboxes.reflected_flags[currentBboxIndex] !== undefined ? bboxes.reflected_flags[currentBboxIndex] : false;
             const currentRenditionFlag = bboxes.rendition_flags && bboxes.rendition_flags[currentBboxIndex] !== undefined ? bboxes.rendition_flags[currentBboxIndex] : false;
+            const currentOcrNeededFlag = bboxes.ocr_needed_flags && bboxes.ocr_needed_flags[currentBboxIndex] !== undefined ? bboxes.ocr_needed_flags[currentBboxIndex] : false;
             const currentUncertainFlag = bboxes.uncertain_flags && bboxes.uncertain_flags[currentBboxIndex] !== undefined ? bboxes.uncertain_flags[currentBboxIndex] : false;
             const currentPossibleLabels = bboxes.possible_labels && bboxes.possible_labels[currentBboxIndex] ? bboxes.possible_labels[currentBboxIndex] : [];
 
@@ -754,6 +804,7 @@
             if (!bboxes.crowd_flags) bboxes.crowd_flags = [];
             if (!bboxes.reflected_flags) bboxes.reflected_flags = [];
             if (!bboxes.rendition_flags) bboxes.rendition_flags = [];
+            if (!bboxes.ocr_needed_flags) bboxes.ocr_needed_flags = [];
             if (!bboxes.uncertain_flags) bboxes.uncertain_flags = [];
             if (!bboxes.possible_labels) bboxes.possible_labels = [];
 
@@ -767,6 +818,9 @@
             }
             while (bboxes.rendition_flags.length < currentLength) {
                 bboxes.rendition_flags.push(false);
+            }
+            while (bboxes.ocr_needed_flags.length < currentLength) {
+                bboxes.ocr_needed_flags.push(false);
             }
             while (bboxes.uncertain_flags.length < currentLength) {
                 bboxes.uncertain_flags.push(false);
@@ -788,6 +842,7 @@
             bboxes.crowd_flags.push(currentCrowdFlag);
             bboxes.reflected_flags.push(currentReflectedFlag);
             bboxes.rendition_flags.push(currentRenditionFlag);
+            bboxes.ocr_needed_flags.push(currentOcrNeededFlag);
             bboxes.uncertain_flags.push(currentUncertainFlag);
             bboxes.possible_labels.push([...currentPossibleLabels]); // Copy possible labels
 
@@ -826,6 +881,7 @@
                     window.BBoxEditorUI.updateCrowdCheckbox(newBoxIndex);
                     window.BBoxEditorUI.updateReflectedCheckbox(newBoxIndex);
                     window.BBoxEditorUI.updateRenditionCheckbox(newBoxIndex);
+                    window.BBoxEditorUI.updateOcrNeededCheckbox(newBoxIndex);
                     
                     // Update the preview canvas
                     window.BBoxEditorUI.updatePreviewCanvas();
@@ -920,7 +976,8 @@
                         coordinates: box,
                         crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i],
                         reflected_flag: bboxes.reflected_flags && bboxes.reflected_flags[i],
-                        rendition_flag: bboxes.rendition_flags && bboxes.rendition_flags[i]
+                        rendition_flag: bboxes.rendition_flags && bboxes.rendition_flags[i],
+                        ocr_needed_flag: bboxes.ocr_needed_flags && bboxes.ocr_needed_flags[i]
                     };
 
                     if (isUncertain) {
@@ -1040,6 +1097,12 @@
         toggleRenditionFlag = function() {
             originalToggleRenditionFlag();
             showKeyboardShortcutFeedback('Rendition Flag Toggled (Ctrl+V)');
+        };
+
+        const originalToggleOcrNeededFlag = toggleOcrNeededFlag;
+        toggleOcrNeededFlag = function() {
+            originalToggleOcrNeededFlag();
+            showKeyboardShortcutFeedback('Text based Flag Toggled (Ctrl+B)');
         };
 
         const originalDeleteCurrentBbox = deleteCurrentBbox;
