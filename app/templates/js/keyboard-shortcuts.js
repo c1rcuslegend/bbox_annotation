@@ -13,6 +13,7 @@ const DETAIL_VIEW_SHORTCUTS = {
     'Ctrl+V': 'Toggle Rendition flag for selected bbox',
     'Ctrl+B': 'Toggle Text based flag for selected bbox',
     'Ctrl+X': 'Delete currently selected bounding box',
+    'Ctrl+Alt': 'Open class selection dropdown for selected bbox',
     'Shift+C': 'Copy and paste selected bounding box',
     'Ctrl+A': 'Create whole image bounding box',
     'Ctrl+Z': 'Activate "Not Sure" mode',

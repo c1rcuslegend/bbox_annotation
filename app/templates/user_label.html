@@ -484,7 +484,7 @@
                 // This ensures shortcuts work after clicking on the image
 
                 // Handle Ctrl key combinations first
-                if (event.ctrlKey) {
+                if (event.ctrlKey && !event.altKey) {
                     switch(event.key.toLowerCase()) {
                         case 'g': // Ctrl+G - Toggle Crowd of Instances
                             event.preventDefault();
@@ -525,6 +525,14 @@
                             break;
                     }
                     return; // Don't process other keys when Ctrl is pressed
+                }
+                
+                // Handle Ctrl+Alt combinations
+                if (event.ctrlKey && event.altKey) {
+                    // Ctrl+Alt - Open class selection dropdown for selected bbox
+                    event.preventDefault();
+                    openClassSelectionDropdown();
+                    return;
                 }
                 
                 // Handle Shift key combinations
@@ -1036,6 +1044,71 @@
             const noneProposedBtn = document.getElementById('none-proposed-btn');
             if (noneProposedBtn) {
                 noneProposedBtn.click();
+            }
+        }
+
+        function openClassSelectionDropdown() {
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode - try to open the dropdown
+                const classSearchInput = document.getElementById('class-search-input');
+                if (classSearchInput && !classSearchInput.disabled) {
+                    // Focus the input field first
+                    classSearchInput.focus();
+                    classSearchInput.select();
+                    
+                    // Try to trigger the dropdown by simulating a click
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    classSearchInput.dispatchEvent(clickEvent);
+                    
+                    console.log('Opened class selection dropdown in advanced mode');
+                    showKeyboardShortcutFeedback('Class dropdown opened (Ctrl+Alt)');
+                } else {
+                    console.log('Class selection input not available in advanced mode (may be disabled for Not Sure box)');
+                    showKeyboardShortcutFeedback('No bbox selected or Not Sure mode active');
+                }
+            } else {
+                // Inline editor mode - focus and activate the class search dropdown
+                const inlineClassSearch = document.getElementById('inline-class-search');
+                if (inlineClassSearch) {
+                    // Check if a bbox is selected first
+                    const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+                    if (!inlineBboxSelector || inlineBboxSelector.value === '' || inlineBboxSelector.value === '-1') {
+                        console.log('No bbox selected for class dropdown');
+                        showKeyboardShortcutFeedback('Please select a bounding box first');
+                        return;
+                    }
+                    
+                    if (!inlineClassSearch.disabled) {
+                        // Focus the input field and select its contents
+                        inlineClassSearch.focus();
+                        inlineClassSearch.select();
+                        
+                        // Try to trigger the dropdown by simulating a click
+                        const clickEvent = new MouseEvent('click', {
+                            view: window,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        inlineClassSearch.dispatchEvent(clickEvent);
+                        
+                        console.log('Opened class selection dropdown in inline mode');
+                        showKeyboardShortcutFeedback('Class dropdown opened (Ctrl+Alt)');
+                    } else {
+                        console.log('Class selection input disabled (may be Not Sure mode)');
+                        showKeyboardShortcutFeedback('Not Sure mode active - cannot change class');
+                    }
+                } else {
+                    console.error('Inline class search input not found');
+                    showKeyboardShortcutFeedback('Class selector not available');
+                }
             }
         }
 

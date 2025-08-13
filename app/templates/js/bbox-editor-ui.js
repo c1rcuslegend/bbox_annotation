@@ -832,9 +832,16 @@ class BBoxEditorUI {
         });
 
         // Filter dropdown items on input
+        let preventDropdownOpen = false;
         inputField.addEventListener('input', (e) => {
             // Only handle input events for non-Not Sure boxes
             if (inputField.disabled) return;
+
+            // Don't reopen dropdown if we just closed it after a selection
+            if (preventDropdownOpen) {
+                preventDropdownOpen = false;
+                return;
+            }
 
             const searchTerm = e.target.value.toLowerCase();
             const items = dropdownContent.querySelectorAll('.dropdown-item');
@@ -898,6 +905,9 @@ class BBoxEditorUI {
                 const selectedValue = item.dataset.value;
                 const selectedText = item.textContent;
 
+                // Set flag to prevent dropdown from reopening due to input event
+                preventDropdownOpen = true;
+
                 // Update input field with selected text
                 inputField.value = selectedText;
 
@@ -906,6 +916,9 @@ class BBoxEditorUI {
 
                 // Hide dropdown
                 dropdownContent.style.display = 'none';
+
+                // Blur the input field to deactivate it
+                inputField.blur();
 
                 // Update the bbox class if one is selected
                 if (this.currentBoxIndex >= 0 && this.currentBoxIndex < bboxes.labels.length) {
@@ -993,10 +1006,21 @@ class BBoxEditorUI {
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (selectedItem) {
+                        // Set flag to prevent dropdown from reopening due to input event
+                        preventDropdownOpen = true;
                         selectedItem.click();
+                        // Ensure dropdown is closed after selection
+                        dropdownContent.style.display = 'none';
+                        // Blur the input field to deactivate it
+                        inputField.blur();
                     } else if (items.length === 1) {
                         // If only one item visible, select it
+                        preventDropdownOpen = true;
                         items[0].click();
+                        // Ensure dropdown is closed after selection
+                        dropdownContent.style.display = 'none';
+                        // Blur the input field to deactivate it
+                        inputField.blur();
                     }
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
