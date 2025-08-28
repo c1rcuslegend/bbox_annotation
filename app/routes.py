@@ -31,7 +31,8 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 'rendition_flags': [],
                 'ocr_needed_flags': [],
                 'uncertain_flags': [],
-                'possible_labels': []
+                'possible_labels': [],
+                'group': []
             }
 
             for i in range(len(bboxes_unprocessed['boxes'])):
@@ -49,6 +50,7 @@ def convert_bboxes_to_serializable(bboxes_unprocessed, threshold):
                 result['ocr_needed_flags'].append(bboxes_unprocessed['ocr_needed_flags'][i] if 'ocr_needed_flags' in bboxes_unprocessed else False)
                 result['uncertain_flags'].append(bboxes_unprocessed['uncertain_flags'][i] if 'uncertain_flags' in bboxes_unprocessed else False)
                 result['possible_labels'].append(bboxes_unprocessed['possible_labels'][i] if 'possible_labels' in bboxes_unprocessed else [])
+                result['group'].append(bboxes_unprocessed['group'][i] if 'group' in bboxes_unprocessed else None)
 
             return result
 
@@ -353,7 +355,7 @@ def register_routes(app):
                 image_basename = os.path.basename(image_path)
 
                 # Process bounding box data for this image
-                bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': []}
+                bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': [], 'group': []}
                 if image_basename in checkbox_data:
                     data = checkbox_data[image_basename]
                     if data.get('label_type') == 'ood':
@@ -401,6 +403,10 @@ def register_routes(app):
                                     bboxes['ocr_needed_flags'].append(bbox['ocr_needed_flag'])
                                 else:
                                     bboxes['ocr_needed_flags'].append(False)
+                                if 'group' in bbox:
+                                    bboxes['group'].append(bbox['group'])
+                                else:
+                                    bboxes['group'].append(None)
 
                 bbox_data[-1][selected_index] = convert_bboxes_to_serializable(bboxes, 0)
 
@@ -504,7 +510,7 @@ def register_routes(app):
                 borders[selected_index] = 'border-poss-m'
 
             # Process bounding box data for this image
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': [], 'group': []}
             if image_basename in man_annotated_bboxes_dict:
                 checked_labels.add(image_basename)
 
@@ -554,6 +560,10 @@ def register_routes(app):
                                 bboxes['ocr_needed_flags'].append(bbox['ocr_needed_flag'])
                             else:
                                 bboxes['ocr_needed_flags'].append(False)
+                            if 'group' in bbox:
+                                bboxes['group'].append(bbox['group'])
+                            else:
+                                bboxes['group'].append(None)
             else:
                 # print ("we go for open clip data")
                 data = app.load_bbox_openclip_data(username)[image_basename]
@@ -566,6 +576,7 @@ def register_routes(app):
                     bboxes['reflected_flags'].append(False)
                     bboxes['rendition_flags'].append(False)
                     bboxes['ocr_needed_flags'].append(False)
+                    bboxes['group'].append(None)
                 # Ensure at least one bbox is displayed
                 bboxes = ensure_at_least_one_bbox(bboxes, threshold)
 
@@ -752,6 +763,7 @@ def register_routes(app):
                     ocr_needed_flags = []
                     uncertain_flags = []
                     possible_labels = []
+                    group = []
 
                     # Track unique labels for checked categories
                     checked_labels = set()
@@ -767,11 +779,10 @@ def register_routes(app):
                         ocr_needed_flags.append(bbox.get('ocr_needed_flag', False))
                         uncertain_flags.append(bbox.get('uncertain_flag', False))
                         possible_labels.append(bbox.get('possible_label', []))
+                        group.append(bbox.get('group', None))
 
                         # Track unique labels
-                        checked_labels.add(str(label))
-
-                    # Always use bbox labels for checked categories (unless uncertain mode)
+                        checked_labels.add(str(label))                    # Always use bbox labels for checked categories (unless uncertain mode)
                     if label_type == "basic" and checked_labels:
                         checked_categories = [label_id for label_id in checked_labels if
                                               label_id in label_indices_to_label_names]
@@ -784,7 +795,8 @@ def register_routes(app):
                               'rendition_flags': rendition_flags,
                               'ocr_needed_flags': ocr_needed_flags,
                               'uncertain_flags': uncertain_flags,
-                              'possible_labels': possible_labels
+                              'possible_labels': possible_labels,
+                              'group': group
                               }
                     bboxes_source = 'checkbox_selections_new_format'
                     print(f"Found {len(boxes)} bboxes in checkbox_selections")
@@ -803,6 +815,7 @@ def register_routes(app):
                 ocr_needed_flags = []
                 uncertain_flags = []
                 possible_labels = []
+                group = []
                 checked_labels = set()
 
                 for bbox in data:
@@ -816,6 +829,7 @@ def register_routes(app):
                     ocr_needed_flags.append(bbox.get('ocr_needed_flag', False))
                     uncertain_flags.append(bbox.get('uncertain_flag', False))
                     possible_labels.append(bbox.get('possible_label', []))
+                    group.append(bbox.get('group', None))
 
                     # Track unique labels for checked categories
                     checked_labels.add(str(label))
@@ -832,7 +846,8 @@ def register_routes(app):
                           'rendition_flags': rendition_flags,
                           'ocr_needed_flags': ocr_needed_flags,
                           'uncertain_flags': uncertain_flags,
-                          'possible_labels': possible_labels
+                          'possible_labels': possible_labels,
+                          'group': group
                           }
                 bboxes_source = 'checkbox_selections_legacy'
                 print(f"Found {len(boxes)} bboxes in annotator format")
@@ -855,11 +870,12 @@ def register_routes(app):
                 bboxes['rendition_flags'] = [False for i in range(len(bboxes['boxes']))]
                 bboxes['ocr_needed_flags'] = [False for i in range(len(bboxes['boxes']))]
                 bboxes['labels'] = [str(gt) for gt in bboxes['gt']]
+                bboxes['group'] = [None for i in range(len(bboxes['boxes']))]
                 bboxes_source = 'general_bboxes'
 
         # If still no bboxes, create empty structure
         if bboxes is None:
-            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': [], 'uncertain_flags': [], 'possible_labels': []}
+            bboxes = {'boxes': [], 'scores': [], 'labels': [], 'crowd_flags': [], 'reflected_flags': [], 'rendition_flags': [], 'ocr_needed_flags': [], 'uncertain_flags': [], 'possible_labels': [], 'group': []}
             bboxes_source = 'empty'
             print(f"No bboxes found for {current_image}")
 

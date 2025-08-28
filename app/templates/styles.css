@@ -707,10 +707,6 @@ body {
     padding-bottom: 8px;
 }
 
-.control-group {
-    margin-bottom: 15px;
-}
-
 .control-group label {
     display: block;
     margin-bottom: 5px;
@@ -789,6 +785,7 @@ body {
 
 #inline-class-search {
     width: 100%;
+    margin-bottom: 5px;
 }
 
 /* Responsive fixes */
@@ -1121,6 +1118,8 @@ body {
 .select-option {
     padding: 8px 10px;
     cursor: pointer;
+    font-weight: 500;
+    color: #555;
 }
 
 .select-option:hover {
@@ -1232,7 +1231,7 @@ body {
     margin-bottom: 10px;
 }
 
-.crowd-container, .reflected-container, .rendition-container, .ocr-needed-container {
+.crowd-container, .reflected-container, .rendition-container, .ocr-needed-container, .multi-label-container {
     display: flex;
     width: 100%;
     margin-top: 15px;
@@ -1241,19 +1240,19 @@ body {
     align-items: center;
 }
 
-.crowd-container label, .reflected-container label, .rendition-container label, .ocr-needed-container label {
+.crowd-container label, .reflected-container label, .rendition-container label, .ocr-needed-container label, .multi-label-container label {
     font-weight: 600;
     color: #555;
     font-size: medium;
 }
 
-.bbox-crowd-container, .bbox-reflected-container, .bbox-rendition-container, .bbox-ocr-needed-container {
+.bbox-crowd-container, .bbox-reflected-container, .bbox-rendition-container, .bbox-ocr-needed-container, .bbox-multi-label-container {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
-.bbox-crowd-container label, .bbox-reflected-container label, .bbox-rendition-container label, .bbox-ocr-needed-container label {
+.bbox-crowd-container label, .bbox-reflected-container label, .bbox-rendition-container label, .bbox-ocr-needed-container label, .bbox-multi-label-container label {
     margin-bottom: 8px;
     color: #2c3e50;
     font-weight: 600;
@@ -1566,6 +1565,47 @@ body {
     display: none;
 }
 
+/* Multi-label dropdown wrapper styles - identical to custom-class-selector */
+.multi-label-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.multi-label-dropdown-options {
+    display: none;
+    position: absolute;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 10;
+    font-size: medium;
+}
+
+.multi-label-dropdown-options.show {
+    display: block;
+}
+
+.multi-label-dropdown-option {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.multi-label-dropdown-option:hover {
+    background-color: #f0f0f0;
+}
+
+.multi-label-search {
+    width: 100%;
+    padding: 8px 30px 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
 /* Enhanced Refresh Button Styles */
 .refresh-examples {
     cursor: pointer;
@@ -1736,6 +1776,9 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
     text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    color: #555;
 }
 
 .dropdown-item:hover {
@@ -2268,4 +2311,59 @@ body {
 
 .container input:checked ~ .checkmark-ocr-needed {
     background-image: linear-gradient(45deg, #C0C0C0, #A8A8A8);
+}
+
+.multi-label-selection-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #f9f9f9;
+}
+
+/* NO LABELS styling */
+.bbox-label:contains("NO LABELS") {
+    font-style: italic;
+    color: #888;
+    background-color: rgba(136, 136, 136, 0.7) !important;
+}
+
+/* Grid view NO LABELS styling */
+.bbox-label.multilabel-label:contains("NO LABELS") {
+    font-style: italic;
+    color: #333;
+    background-color: rgba(136, 136, 136, 0.85) !important;
+}
+
+.multi-label-selection-container h3 {
+    margin-top: 0;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.multi-label-checkbox-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.multi-label-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 2px 0;
+}
+
+.multi-label-checkbox-item input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.multi-label-checkbox-item label {
+    font-size: 13px;
+    cursor: pointer;
+}
+
+input.multi-label-search.input-width-100 {
+    width: 100%;
 }

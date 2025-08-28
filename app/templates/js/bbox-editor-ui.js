@@ -4,6 +4,9 @@
  */
 class BBoxEditorUI {
     static openModal(box, boxIndex, bboxes, editor) {
+        // Store the class in window for cross-script access
+        window.BBoxEditorUI = BBoxEditorUI;
+        
         const modal = document.getElementById('bbox-modal-container');
         const previewCanvas = document.getElementById('bbox-preview-canvas');
         if (!modal || !previewCanvas) {
@@ -58,10 +61,22 @@ class BBoxEditorUI {
         
         // Update checkboxes to match current state
         this.updateCrowdCheckbox(boxIndex);
+        
+        // Check if this is a multi-label box and update checkbox
+        this.updateMultiLabelCheckbox(boxIndex);
         this.updateReflectedCheckbox(boxIndex);
         this.updateRenditionCheckbox(boxIndex);
         this.updateOcrNeededCheckbox(boxIndex);
         this.updateClassNumbersCheckbox();
+        // When switching selected box, update multi-label checkbox state
+        const bboxSelector = document.getElementById('bbox-selector');
+        if (bboxSelector) {
+            bboxSelector.onchange = () => {
+                const idx = parseInt(bboxSelector.value, 10);
+                this.currentBoxIndex = idx;
+                this.updateMultiLabelCheckbox(idx);
+            };
+        }
 
         // Add event listener to handle modal close event
         document.addEventListener('bbox-modal-closed', function handleModalClose(e) {
@@ -220,6 +235,11 @@ class BBoxEditorUI {
                     window.inlineEditor.bboxes = bboxes;
                     if (window.inlineEditor.editor) {
                         window.inlineEditor.editor.bboxes = bboxes;
+                        
+                        // Clear the selection in inline editor to prevent orphaned selection
+                        window.inlineEditor.currentBoxIndex = -1;
+                        window.inlineEditor.editor.selectedBboxIndex = -1;
+                        
                         window.inlineEditor.editor.redrawCanvas();
                     }
                     
@@ -260,6 +280,11 @@ class BBoxEditorUI {
                     window.inlineEditor.bboxes = bboxes;
                     if (window.inlineEditor.editor) {
                         window.inlineEditor.editor.bboxes = bboxes;
+                        
+                        // Clear the selection in inline editor to prevent orphaned selection
+                        window.inlineEditor.currentBoxIndex = -1;
+                        window.inlineEditor.editor.selectedBboxIndex = -1;
+                        
                         window.inlineEditor.editor.redrawCanvas();
                     }
                     
@@ -308,53 +333,133 @@ class BBoxEditorUI {
                 }
                 
                 if (boxIndexToDelete >= 0 && boxIndexToDelete < bboxes.boxes.length) {
-                    // IMPORTANT: Ensure we only delete the correct index
-                    const deletedIndex = boxIndexToDelete;
+                    // Check if this is a multi-label box
+                    const isMultiLabel = bboxes.group && 
+                                       bboxes.group[boxIndexToDelete] !== null && 
+                                       bboxes.group[boxIndexToDelete] !== undefined;
                     
-                    // Remove box, score, label, and flags using splice (same as inline editor)
-                    bboxes.boxes.splice(deletedIndex, 1);
-                    bboxes.scores.splice(deletedIndex, 1);
-                    
-                    if (bboxes.labels) {
-                        bboxes.labels.splice(deletedIndex, 1);
-                    }
-                    
-                    // Remove crowd flag if it exists
-                    if (bboxes.crowd_flags) {
-                        bboxes.crowd_flags.splice(deletedIndex, 1);
-                    }
-                    
-                    // Remove reflected flag if it exists
-                    if (bboxes.reflected_flags) {
-                        bboxes.reflected_flags.splice(deletedIndex, 1);
-                    }
-                    
-                    // Remove rendition flag if it exists
-                    if (bboxes.rendition_flags) {
-                        bboxes.rendition_flags.splice(deletedIndex, 1);
-                    }
+                    if (isMultiLabel) {
+                        // For multi-label boxes, delete all boxes in the same group
+                        const groupId = bboxes.group[boxIndexToDelete];
+                        
+                        // Find all boxes in the same group
+                        const boxesToDelete = [];
+                        for (let i = 0; i < bboxes.group.length; i++) {
+                            if (bboxes.group[i] === groupId) {
+                                boxesToDelete.push(i);
+                            }
+                        }
+                        
+                        console.log(`Deleting multi-label group ${groupId}: boxes [${boxesToDelete.join(', ')}]`);
+                        
+                        // Sort in descending order to delete from end to beginning (preserves indices)
+                        boxesToDelete.sort((a, b) => b - a);
+                        
+                        // Delete all boxes in the group
+                        boxesToDelete.forEach(deletedIndex => {
+                            bboxes.boxes.splice(deletedIndex, 1);
+                            bboxes.scores.splice(deletedIndex, 1);
+                            
+                            if (bboxes.labels) {
+                                bboxes.labels.splice(deletedIndex, 1);
+                            }
+                            
+                            // Remove crowd flag if it exists
+                            if (bboxes.crowd_flags) {
+                                bboxes.crowd_flags.splice(deletedIndex, 1);
+                            }
+                            
+                            // Remove reflected flag if it exists
+                            if (bboxes.reflected_flags) {
+                                bboxes.reflected_flags.splice(deletedIndex, 1);
+                            }
+                            
+                            // Remove rendition flag if it exists
+                            if (bboxes.rendition_flags) {
+                                bboxes.rendition_flags.splice(deletedIndex, 1);
+                            }
 
-                    // Remove ocr_needed flag if it exists
-                    if (bboxes.ocr_needed_flags) {
-                        bboxes.ocr_needed_flags.splice(deletedIndex, 1);
+                            // Remove ocr_needed flag if it exists
+                            if (bboxes.ocr_needed_flags) {
+                                bboxes.ocr_needed_flags.splice(deletedIndex, 1);
+                            }
+                            
+                            // Remove uncertain flag and possible_labels if they exist
+                            if (bboxes.uncertain_flags) {
+                                bboxes.uncertain_flags.splice(deletedIndex, 1);
+                            }
+                            
+                            if (bboxes.possible_labels) {
+                                bboxes.possible_labels.splice(deletedIndex, 1);
+                            }
+                            
+                            // Also remove from gt if it exists
+                            if (bboxes.gt) {
+                                bboxes.gt.splice(deletedIndex, 1);
+                            }
+                            
+                            // Also remove from group if it exists
+                            if (bboxes.group) {
+                                bboxes.group.splice(deletedIndex, 1);
+                            }
+                        });
+                        
+                        console.log(`Deleted multi-label group with ${boxesToDelete.length} boxes`);
+                    } else {
+                        // For single boxes, delete normally
+                        const deletedIndex = boxIndexToDelete;
+                        
+                        // Remove box, score, label, and flags using splice (same as inline editor)
+                        bboxes.boxes.splice(deletedIndex, 1);
+                        bboxes.scores.splice(deletedIndex, 1);
+                        
+                        if (bboxes.labels) {
+                            bboxes.labels.splice(deletedIndex, 1);
+                        }
+                        
+                        // Remove crowd flag if it exists
+                        if (bboxes.crowd_flags) {
+                            bboxes.crowd_flags.splice(deletedIndex, 1);
+                        }
+                        
+                        // Remove reflected flag if it exists
+                        if (bboxes.reflected_flags) {
+                            bboxes.reflected_flags.splice(deletedIndex, 1);
+                        }
+                        
+                        // Remove rendition flag if it exists
+                        if (bboxes.rendition_flags) {
+                            bboxes.rendition_flags.splice(deletedIndex, 1);
+                        }
+
+                        // Remove ocr_needed flag if it exists
+                        if (bboxes.ocr_needed_flags) {
+                            bboxes.ocr_needed_flags.splice(deletedIndex, 1);
+                        }
+                        
+                        // Remove uncertain flag and possible_labels if they exist
+                        if (bboxes.uncertain_flags) {
+                            bboxes.uncertain_flags.splice(deletedIndex, 1);
+                        }
+                        
+                        if (bboxes.possible_labels) {
+                            bboxes.possible_labels.splice(deletedIndex, 1);
+                        }
+                        
+                        // Also remove from gt if it exists
+                        if (bboxes.gt) {
+                            bboxes.gt.splice(deletedIndex, 1);
+                            console.log(`BBoxEditorUI: Removed box ${deletedIndex} from gt array`);
+                        }
+                        
+                        // Also remove from group if it exists
+                        if (bboxes.group) {
+                            bboxes.group.splice(deletedIndex, 1);
+                        }
+                        
+                        console.log(`Deleted single box ${deletedIndex}`);
                     }
                     
-                    // Remove uncertain flag and possible_labels if they exist
-                    if (bboxes.uncertain_flags) {
-                        bboxes.uncertain_flags.splice(deletedIndex, 1);
-                    }
-                    
-                    if (bboxes.possible_labels) {
-                        bboxes.possible_labels.splice(deletedIndex, 1);
-                    }
-                    
-                    // Also remove from gt if it exists
-                    if (bboxes.gt) {
-                        bboxes.gt.splice(deletedIndex, 1);
-                        console.log(`BBoxEditorUI: Removed box ${deletedIndex} from gt array`);
-                    }
-                    
-                    console.log(`Remaining boxes after deletion: ${bboxes.boxes.length}`);
                     
                     // Log all boxes after deletion
                     console.log('Boxes after deletion:');
@@ -543,6 +648,135 @@ class BBoxEditorUI {
                 this.updatePreviewCanvas();
             };
         }
+        
+        // Multi-Label Mode checkbox
+        const multiLabelCheckbox = document.getElementById('bbox-multi-label-checkbox');
+        if (multiLabelCheckbox) {
+            multiLabelCheckbox.onchange = () => {
+                // Show/hide advanced multi-select dropdown
+                const singleCont = document.getElementById('bbox-single-label-container');
+                const multiCont = document.getElementById('bbox-multi-label-container');
+                const multiSelect = document.getElementById('bbox-multi-label-selector');
+                // Toggle single vs multi selector
+                document.getElementById('bbox-single-label-container').style.display = multiLabelCheckbox.checked ? 'none' : 'block';
+                // Always show multi-label dropdown - KEEP IT VISIBLE EVEN WHEN UNCHECKED
+                document.getElementById('multi-label-selection-container').style.display = 'block';
+                // Refresh canvas when multi-label selection changes
+                const mlSelector = document.getElementById('bbox-multi-label-selector');
+                if (mlSelector) {
+                    mlSelector.onchange = () => this.updatePreviewCanvas();
+                }
+                if (this.currentBoxIndex < 0) return;
+                
+                // Initialize group array if it doesn't exist
+                if (!editor.bboxes.group) {
+                    editor.bboxes.group = new Array(editor.bboxes.boxes.length).fill(null);
+                }
+                
+                // Update group ID based on checkbox state
+                if (multiLabelCheckbox.checked) {
+                    // Create a new group ID for this box using sequential numbering
+                    let maxGroupId = 0;
+                    if (editor.bboxes.group) {
+                        editor.bboxes.group.forEach(groupId => {
+                            if (groupId !== null && groupId !== undefined && groupId > maxGroupId) {
+                                maxGroupId = groupId;
+                            }
+                        });
+                    }
+                    const groupId = maxGroupId + 1; // Start from 1, increment sequentially
+                    editor.bboxes.group[this.currentBoxIndex] = groupId;
+                    console.log(`Created new group ${groupId} for box ${this.currentBoxIndex}`);
+                } else {
+                    // Get the current group ID
+                    const currentGroupId = editor.bboxes.group[this.currentBoxIndex];
+                    
+                    // If part of a group, find the box with the lowest label to keep
+                    if (currentGroupId !== null && currentGroupId !== undefined) {
+                        // Find all boxes in the same group with their labels
+                        const groupBoxes = [];
+                        for (let i = 0; i < editor.bboxes.group.length; i++) {
+                            if (editor.bboxes.group[i] === currentGroupId) {
+                                groupBoxes.push({
+                                    index: i,
+                                    label: editor.bboxes.labels ? editor.bboxes.labels[i] : 0
+                                });
+                            }
+                        }
+
+                        if (groupBoxes.length > 1) {
+                            // Sort by label to find the box with the first/lowest label
+                            groupBoxes.sort((a, b) => a.label - b.label);
+                            const boxToKeep = groupBoxes[0]; // Keep the one with the lowest label
+                            
+                            console.log(`Converting multi-label group ${currentGroupId} to single-label. Keeping box ${boxToKeep.index} with label ${boxToKeep.label}`);
+                            
+                            // Find boxes to remove (all except the one to keep)
+                            const boxesToRemove = groupBoxes
+                                .filter(box => box.index !== boxToKeep.index)
+                                .map(box => box.index)
+                                .sort((a, b) => b - a); // Sort in descending order for safe removal
+
+                            // Remove other boxes in the group
+                            boxesToRemove.forEach(idx => {
+                                this.removeBoxFromGroup(idx);
+                            });
+
+                            // After removing boxes, find the new index of the box we kept
+                            // (indices shift when we remove boxes before the kept one)
+                            let newKeptBoxIndex = boxToKeep.index;
+                            boxesToRemove.forEach(removedIdx => {
+                                if (removedIdx < boxToKeep.index) {
+                                    newKeptBoxIndex--;
+                                }
+                            });
+
+                            // Clear group ID for the kept box
+                            if (newKeptBoxIndex < editor.bboxes.group.length) {
+                                editor.bboxes.group[newKeptBoxIndex] = null;
+                            }
+
+                            // Update current selection to the kept box
+                            this.currentBoxIndex = newKeptBoxIndex;
+                            
+                            console.log(`Kept box is now at index ${newKeptBoxIndex}, selection updated`);
+                        } else {
+                            // Only one box in group, just clear its group ID
+                            editor.bboxes.group[this.currentBoxIndex] = null;
+                            console.log(`Cleared group ID for single box ${this.currentBoxIndex}`);
+                        }
+                    }
+                }
+                
+                // Also sync with inline editor's checkbox if it exists
+                const inlineMultiLabelCheckbox = document.getElementById('inline-multi-label-checkbox');
+                if (inlineMultiLabelCheckbox) {
+                    inlineMultiLabelCheckbox.checked = multiLabelCheckbox.checked;
+                    console.log(`Synced inline multi-label checkbox to: ${multiLabelCheckbox.checked}`);
+                }
+                
+                // Update bbox selector to reflect any changes in selection
+                this.updateBboxSelector(this.bboxes, this.currentBoxIndex, this.editor.classLabels);
+                
+                // Always populate the multi-label classes regardless of checkbox state
+                // This keeps the dropdown visible but updates its contents based on the current box state
+                if (multiLabelCheckbox.checked) {
+                    this.populateMultiLabelClasses(this.currentBoxIndex);
+                } else {
+                    // Clear the dropdown content but keep it visible
+                    const multiLabelContainer = document.getElementById('multi-label-selection-container');
+                    if (multiLabelContainer) {
+                        multiLabelContainer.innerHTML = '';
+                    }
+                }
+                
+                // Redraw the canvas
+                this.updatePreviewCanvas();
+                
+                // Update the hidden field to save changes
+                this.updateHiddenBboxesField(this.bboxes);
+            };
+        }
 
         // Class Numbers Only checkbox
         const classNumbersCheckbox = document.getElementById('bbox-class-numbers-checkbox');
@@ -576,9 +810,16 @@ class BBoxEditorUI {
             const x2 = parseInt(document.getElementById('bbox-x2').value) || 0;
             const y2 = parseInt(document.getElementById('bbox-y2').value) || 0;
 
-            // Get selected class
+            // Check if this is a multi-label box BEFORE updating labels
+            const isCurrentBoxMultiLabel = bboxes.group && 
+                               bboxes.group[this.currentBoxIndex] !== null && 
+                               bboxes.group[this.currentBoxIndex] !== undefined;
+
+            // Get selected class - but only update labels for single-label boxes
             const classSelector = document.getElementById('bbox-class-selector');
-            if (classSelector) {
+            if (classSelector && !isCurrentBoxMultiLabel) {
+                // Only update single-label boxes through the class selector
+                // Multi-label boxes are managed exclusively through the multi-label interface
                 const newClassId = parseInt(classSelector.value);
                 bboxes.labels[this.currentBoxIndex] = newClassId;
 
@@ -592,15 +833,32 @@ class BBoxEditorUI {
                 if (bboxes.gt && this.currentBoxIndex < bboxes.gt.length) {
                     bboxes.gt[this.currentBoxIndex] = newClassId;
                 }
+            } else if (isCurrentBoxMultiLabel) {
+                // For multi-label boxes, preserve the existing labels
+                console.log(`BBoxEditorUI: Preserving multi-label box labels for group ${bboxes.group[this.currentBoxIndex]}`);
             }
 
             // Update coordinates
-            bboxes.boxes[this.currentBoxIndex] = [
+            const newBox = [
                 Math.min(x1, x2),
                 Math.min(y1, y2),
                 Math.max(x1, x2),
                 Math.max(y1, y2)
             ];
+            
+            bboxes.boxes[this.currentBoxIndex] = newBox;
+            
+            // If this is a multi-label box, update ALL boxes in the same group
+            if (isCurrentBoxMultiLabel) {
+                const groupId = bboxes.group[this.currentBoxIndex];
+                // Update all boxes in the same group to have the same coordinates
+                bboxes.group.forEach((g, i) => {
+                    if (g === groupId && i !== this.currentBoxIndex) {
+                        bboxes.boxes[i] = [...newBox]; // Copy the new coordinates
+                    }
+                });
+                console.log(`BBoxEditorUI: Updated coordinates for multi-label group ${groupId}`);
+            }
 
             // Ensure the inline editor and main editor are using the same shared bboxes
             if (window.inlineEditor) {
@@ -777,45 +1035,64 @@ class BBoxEditorUI {
         if (boxIndex >= 0 && boxIndex < bboxes.labels.length) {
             const labelId = bboxes.labels[boxIndex];
 
-            // Check if this is an uncertain box
-            const isUncertain = labelId === -1 ||
-                                (bboxes.uncertain_flags && bboxes.uncertain_flags[boxIndex]);
+            // Check if this is a multi-label box first
+            const isMultiLabel = bboxes.group && 
+                               bboxes.group[boxIndex] !== null && 
+                               bboxes.group[boxIndex] !== undefined;
 
-            if (isUncertain) {
-                // For uncertain boxes, show "Not Sure" and disable class selection
-                hiddenSelect.value = "-1";
-                inputField.value = "Not Sure";
+            if (isMultiLabel) {
+                // For multi-label boxes, disable the single-label class selector and show a message
+                hiddenSelect.value = labelId.toString(); // Keep the original value but don't use it
+                inputField.value = "Multi-label box (use multi-label controls)";
                 inputField.disabled = true;
-
-                // Make sure the box is properly marked as uncertain
-                bboxes.labels[boxIndex] = -1;
-                if (!bboxes.uncertain_flags) {
-                    bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
-                }
-                bboxes.uncertain_flags[boxIndex] = true;
+                //inputField.style.fontStyle = "italic";
+                //inputField.style.color = "#666";
+                console.log(`BBoxEditorUI: Disabled single-label selector for multi-label box in group ${bboxes.group[boxIndex]}`);
             } else {
-                // For regular boxes
-                hiddenSelect.value = labelId.toString();
-                inputField.disabled = false;
+                // Check if this is an uncertain box
+                const isUncertain = labelId === -1 ||
+                                    (bboxes.uncertain_flags && bboxes.uncertain_flags[boxIndex]);
 
-                if (classLabels && classLabels[labelId]) {
-                    inputField.value = `${labelId} - ${classLabels[labelId]}`;
+                if (isUncertain) {
+                    // For uncertain boxes, show "Not Sure" and disable class selection
+                    hiddenSelect.value = "-1";
+                    inputField.value = "Not Sure";
+                    inputField.disabled = true;
+                    inputField.style.fontStyle = "normal";
+                    inputField.style.color = "";
+
+                    // Make sure the box is properly marked as uncertain
+                    bboxes.labels[boxIndex] = -1;
+                    if (!bboxes.uncertain_flags) {
+                        bboxes.uncertain_flags = new Array(bboxes.boxes.length).fill(false);
+                    }
+                    bboxes.uncertain_flags[boxIndex] = true;
                 } else {
-                    inputField.value = `Class ${labelId}`;
+                    // For regular single-label boxes
+                    hiddenSelect.value = labelId.toString();
+                    inputField.disabled = false;
+                    inputField.style.fontStyle = "normal";
+                    inputField.style.color = "";
+
+                    if (classLabels && classLabels[labelId]) {
+                        inputField.value = `${labelId} - ${classLabels[labelId]}`;
+                    } else {
+                        inputField.value = `Class ${labelId}`;
+                    }
                 }
             }
         }
 
         // Show/hide dropdown when input field is clicked or dropdown icon is clicked
         inputField.addEventListener('click', () => {
-            // Don't show dropdown for Not Sure boxes
+            // Don't show dropdown for Not Sure boxes or multi-label boxes
             if (inputField.disabled) return;
 
             dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
         });
 
         dropdownIcon.addEventListener('click', () => {
-            // Don't show dropdown for Not Sure boxes
+            // Don't show dropdown for Not Sure boxes or multi-label boxes
             if (inputField.disabled) return;
 
             dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
@@ -834,7 +1111,7 @@ class BBoxEditorUI {
         // Filter dropdown items on input
         let preventDropdownOpen = false;
         inputField.addEventListener('input', (e) => {
-            // Only handle input events for non-Not Sure boxes
+            // Only handle input events for single-label boxes (not Not Sure or multi-label boxes)
             if (inputField.disabled) return;
 
             // Don't reopen dropdown if we just closed it after a selection
@@ -1039,6 +1316,57 @@ class BBoxEditorUI {
         }
     }
 
+    // Update the checkbox based on multi-label status
+    static updateMultiLabelCheckbox(boxIndex) {
+        const multiLabelCheckbox = document.getElementById('bbox-multi-label-checkbox');
+        
+        // Validate boxIndex
+        if (boxIndex < 0 || !this.bboxes || !this.bboxes.group || boxIndex >= this.bboxes.group.length) {
+            if (multiLabelCheckbox) {
+                multiLabelCheckbox.checked = false;
+            }
+            // Clear the multi-label container
+            const multiLabelContainer = document.getElementById('multi-label-selection-container');
+            if (multiLabelContainer) {
+                multiLabelContainer.innerHTML = '';
+                multiLabelContainer.style.display = 'block';
+            }
+            // Show single-label container
+            const singleLabelContainer = document.getElementById('bbox-single-label-container');
+            if (singleLabelContainer) {
+                singleLabelContainer.style.display = 'block';
+            }
+            return;
+        }
+        
+        if (multiLabelCheckbox && this.bboxes.group) {
+            // Check if this box is part of a multi-label group
+            const isMultiLabel = this.bboxes.group[boxIndex] !== null && this.bboxes.group[boxIndex] !== undefined;
+            multiLabelCheckbox.checked = isMultiLabel;
+            console.log(`Set multi-label checkbox to: ${multiLabelCheckbox.checked}`);
+            
+            // Always keep the multi-label dropdown visible but update its content
+            const multiLabelContainer = document.getElementById('multi-label-selection-container');
+            if (multiLabelContainer) {
+                multiLabelContainer.style.display = 'block';
+                
+                if (isMultiLabel) {
+                    // Populate with actual classes for multi-label box
+                    this.populateMultiLabelClasses(boxIndex);
+                } else {
+                    // Show disabled state but keep visible
+                    multiLabelContainer.innerHTML = '';
+                }
+            }
+            
+            // Toggle single-label visibility based on multi-label state
+            const singleLabelContainer = document.getElementById('bbox-single-label-container');
+            if (singleLabelContainer) {
+                singleLabelContainer.style.display = isMultiLabel ? 'none' : 'block';
+            }
+        }
+    }
+    
     // Update the checkbox based on reflected flag
     static updateReflectedCheckbox(boxIndex) {
         const reflectedCheckbox = document.getElementById('bbox-reflected-checkbox');
@@ -1078,6 +1406,443 @@ class BBoxEditorUI {
             if (inlineClassNumbersCheckbox) {
                 inlineClassNumbersCheckbox.checked = classNumbersCheckbox.checked;
             }
+        }
+    }
+    
+    // Toggle the multi-label interface based on the checkbox state
+    static toggleMultiLabelInterface(isMultiLabel, boxIndex) {
+        // Get both containers
+        const multiLabelContainer = document.getElementById('multi-label-selection-container');
+        const singleLabelContainer = document.getElementById('bbox-single-label-container');
+        
+        if (!multiLabelContainer || !singleLabelContainer) {
+            console.log("Warning: Could not find multi-label or single-label container");
+            return; // If containers don't exist, exit early
+        }
+        
+        // Show or hide the appropriate interface
+        if (isMultiLabel) {
+            // Hide single-label and show multi-label
+            singleLabelContainer.style.display = 'none';
+            multiLabelContainer.style.display = 'block';
+            multiLabelContainer.style.position = 'relative';
+            // Populate the multi-label interface with available classes
+            this.populateMultiLabelClasses(boxIndex);
+            console.log("Showing multi-label interface, hiding single-label");
+        } else {
+            // Show single-label and hide multi-label
+            singleLabelContainer.style.display = 'block';
+            multiLabelContainer.style.display = 'none';
+            console.log("Showing single-label interface, hiding multi-label");
+        }
+    }
+    
+    // Populate the multi-label interface with available classes (rewritten to match inline editor approach)
+    static populateMultiLabelClasses(boxIndex, preserveDropdownState = false) {
+        const multiLabelContainer = document.getElementById('multi-label-selection-container');
+        if (!multiLabelContainer || !this.bboxes || !this.editor || !this.editor.classLabels) {
+            console.error('Cannot populate multi-label classes: missing required elements');
+            return;
+        }
+        
+        // Validate boxIndex
+        if (boxIndex < 0 || boxIndex >= this.bboxes.boxes.length) {
+            console.error(`Invalid boxIndex ${boxIndex} for populateMultiLabelClasses`);
+            multiLabelContainer.innerHTML = '<label for="bbox-class-selector">Classes:</label>';
+            return;
+        }
+        
+        // If preserveDropdownState is true, check if dropdown exists and preserve its state
+        let wasDropdownOpen = false;
+        const existingDropdownOptions = multiLabelContainer.querySelector('.multi-label-dropdown-options');
+        if (preserveDropdownState && existingDropdownOptions) {
+            wasDropdownOpen = existingDropdownOptions.style.display === 'block';
+        }
+        
+        // Remove old document click handler to avoid stale handlers hiding new dropdown
+        const oldWrapper = multiLabelContainer.querySelector('.multi-label-dropdown-wrapper');
+        if (oldWrapper && oldWrapper._closeHandler) {
+            document.removeEventListener('click', oldWrapper._closeHandler);
+        }
+        // Clear existing content
+        multiLabelContainer.innerHTML = '<label for="bbox-class-selector">Classes:</label>';
+        
+        // Create wrapper with unified input/dropdown pattern (similar to inline editor)
+        const dropdownWrapper = document.createElement('div');
+        dropdownWrapper.className = 'multi-label-dropdown-wrapper';
+        dropdownWrapper.style.cssText = `
+            position: relative;
+            width: 100%;
+        `;
+        
+        // Create search input
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'multi-label-search input-width-100';
+        searchInput.placeholder = 'Search or click to select classes...';
+        searchInput.autocomplete = 'off';
+        searchInput.style.cssText = `
+            cursor: pointer;
+        `;
+        
+        // Create dropdown options container
+        const dropdownOptions = document.createElement('div');
+        dropdownOptions.className = 'multi-label-dropdown-options';
+        // Apply styling for visibility and scrolling - STARTS HIDDEN
+        dropdownOptions.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 0 0 4px 4px;
+        `;
+        
+        // Get the group ID for the current box
+        const groupId = this.bboxes.group[boxIndex];
+        
+        // Find all boxes with the same group ID (part of the same multi-label group)
+        const groupBoxIndices = groupId !== null && groupId !== undefined ? 
+            this.bboxes.group.map((g, i) => g === groupId ? i : -1).filter(i => i !== -1) : 
+            [boxIndex];
+        
+        // Get selected labels for this group (as numbers for comparison)
+        const selectedLabels = groupBoxIndices.map(idx => parseInt(this.bboxes.labels[idx]));
+        console.log(`Multi-label box ${boxIndex} has labels: ${selectedLabels.join(',')}`);
+        
+        // Store all class options for filtering
+        let allClassOptions = [];
+        
+        // Clear any previous checkboxes state by re-populating completely
+        console.log(`Refreshing dropdown for box ${boxIndex}, clearing previous state`);
+        
+        // Show dropdown when clicking on search input and prevent it from closing
+        searchInput.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdownOptions.style.display = 'block';
+        });
+        
+        // Add search filtering functionality
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            // Filter dropdown options based on search term
+            allClassOptions.forEach(optionDiv => {
+                const label = optionDiv.querySelector('label');
+                if (label) {
+                    const labelText = label.textContent.toLowerCase();
+                    const matches = labelText.includes(searchTerm);
+                    optionDiv.style.display = matches ? 'flex' : 'none';
+                }
+            });
+        });
+        
+        // Prevent clicks inside options from closing dropdown
+        dropdownOptions.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        // Create checkboxes for each class
+        Object.entries(this.editor.classLabels).forEach(([classId, className]) => {
+            const numericClassId = parseInt(classId);
+
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'multi-label-dropdown-option';
+            optionDiv.style.cssText = `
+                padding: 6px 8px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                border-bottom: 1px solid #eee;
+                font-size: 14px;
+            `;
+
+            // Create checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `multi-label-class-${classId}`;
+            checkbox.value = classId;
+            checkbox.checked = selectedLabels.includes(numericClassId);
+            checkbox.style.marginRight = '6px';
+            checkbox.style.cssText = `
+                height: 17px;
+            `;
+
+            // Create label
+            const label = document.createElement('label');
+            label.htmlFor = `multi-label-class-${classId}`;
+            label.textContent = `${classId} - ${className}`;
+            label.style.cursor = 'pointer';
+            label.style.flex = '1';
+            label.style.fontSize = '14px';
+
+            // Add hover effect
+            optionDiv.addEventListener('mouseenter', () => {
+                optionDiv.style.backgroundColor = '#f5f5f5';
+            });
+            optionDiv.addEventListener('mouseleave', () => {
+                optionDiv.style.backgroundColor = 'white';
+            });
+
+            // Handle clicks - unified approach to avoid double-triggering
+            optionDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // If clicking on the label or div (but not checkbox), toggle the checkbox
+                if (e.target === label || e.target === optionDiv) {
+                    checkbox.checked = !checkbox.checked;
+                    this.handleMultiLabelClassSelection(boxIndex, numericClassId, checkbox.checked);
+                }
+                // If clicking on checkbox, let the browser handle the toggle, then process
+                // Note: we don't call handleMultiLabelClassSelection here to avoid double-call
+            });
+            
+            // Handle direct checkbox clicks
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                // Checkbox state is already updated by the browser, just handle the selection
+                this.handleMultiLabelClassSelection(boxIndex, numericClassId, checkbox.checked);
+            });
+
+            optionDiv.appendChild(checkbox);
+            optionDiv.appendChild(label);
+            dropdownOptions.appendChild(optionDiv);
+            allClassOptions.push(optionDiv);
+        });
+        
+        // Close dropdown when clicking outside
+        const closeHandler = (e) => {
+            if (!dropdownWrapper.contains(e.target)) {
+                dropdownOptions.style.display = 'none';
+            }
+        };
+        document.addEventListener('click', closeHandler);
+        dropdownWrapper._closeHandler = closeHandler;
+        
+        dropdownWrapper.appendChild(searchInput);
+        dropdownWrapper.appendChild(dropdownOptions);
+        multiLabelContainer.appendChild(dropdownWrapper);
+        
+        // Restore dropdown state if it was previously open
+        if (preserveDropdownState && wasDropdownOpen) {
+            const newDropdownOptions = multiLabelContainer.querySelector('.multi-label-dropdown-options');
+            if (newDropdownOptions) {
+                newDropdownOptions.style.display = 'block';
+            }
+        }
+        
+        console.log(`Advanced editor multi-label dropdown populated with ${Object.keys(this.editor.classLabels).length} classes for box ${boxIndex}`);
+    }
+    
+    // Handle multi-label class selection (rewritten to match inline editor approach)
+    static handleMultiLabelClassSelection(boxIndex, classIndex, isSelected) {
+        if (!this.bboxes || !this.bboxes.group) {
+            return;
+        }
+        
+        // Get the current group ID
+        let groupId = this.bboxes.group[boxIndex];
+        
+        // If no group exists and we're selecting a new class, create a new group ID
+        if ((groupId === null || groupId === undefined) && isSelected) {
+            groupId = Date.now(); // Use timestamp as a simple unique ID
+            this.bboxes.group[boxIndex] = groupId;
+        }
+        
+        if (isSelected) {
+            // If this class is already selected for this group, don't add it again
+            const existingBoxWithClass = this.findBoxInGroup(groupId, classIndex);
+            if (existingBoxWithClass !== -1) {
+                return; // Class already exists in this group
+            }
+            
+            // Clone the current box and add it with the new class
+            this.addBoxToGroup(boxIndex, groupId, classIndex);
+        } else {
+            // Remove the box with this class from the group
+            const boxToRemove = this.findBoxInGroup(groupId, classIndex);
+            if (boxToRemove !== -1) {
+                // Check if we're removing the currently selected box
+                const isRemovingCurrentBox = boxToRemove === this.currentBoxIndex;
+                
+                // Find another box in the same group to select if we're removing current box
+                let newSelectedBox = -1;
+                for (let i = 0; i < this.bboxes.group.length; i++) {
+                    if (this.bboxes.group[i] === groupId && i !== boxToRemove) {
+                        newSelectedBox = i;
+                        break;
+                    }
+                }
+                
+                // Calculate the adjusted index for the replacement box after removal
+                let adjustedNewSelectedBox = newSelectedBox;
+                if (newSelectedBox !== -1 && newSelectedBox > boxToRemove) {
+                    adjustedNewSelectedBox = newSelectedBox - 1;
+                }
+                
+                
+                console.log(`Removing box ${boxToRemove} with class ${classIndex} from group ${groupId}`);
+                console.log(`Original current box: ${this.currentBoxIndex}, replacement: ${newSelectedBox}, adjusted: ${adjustedNewSelectedBox}`);
+                
+                // Preserve dropdown state when updating selection
+                const dropdownOptions = document.querySelector('#multi-label-selection-container .multi-label-dropdown-options');
+                const wasDropdownOpen = dropdownOptions && dropdownOptions.style.display === 'block';
+                
+                // Sync with inline editor BEFORE removal if removing current box
+                if (window.inlineEditor && isRemovingCurrentBox && adjustedNewSelectedBox !== -1) {
+                    window.inlineEditor.currentBoxIndex = adjustedNewSelectedBox;
+                    console.log(`Pre-removal: Synced inline editor currentBoxIndex to ${adjustedNewSelectedBox}`);
+                }
+                
+                // Remove the selected label box from group
+                this.removeBoxFromGroup(boxToRemove);
+                console.log(`Removed class ${classIndex} from group ${groupId}`);
+                
+                // Always maintain selection within the same group
+                if (adjustedNewSelectedBox !== -1) {
+                    // Update current box index to the replacement
+                    this.currentBoxIndex = adjustedNewSelectedBox;
+                    this.selectedIndex = adjustedNewSelectedBox;
+                    
+                    // Update the editor's selectedBboxIndex if it exists
+                    if (this.editor) {
+                        this.editor.selectedBboxIndex = adjustedNewSelectedBox;
+                    }
+                    
+                    // CRITICAL: Sync the inline editor's currentBoxIndex after removal
+                    if (window.inlineEditor) {
+                        window.inlineEditor.currentBoxIndex = adjustedNewSelectedBox;
+                        console.log(`Post-removal: Synced inline editor currentBoxIndex to ${adjustedNewSelectedBox}`);
+                    }
+                    
+                    // Update the bbox selector to reflect the new selection
+                    this.updateBboxSelector(this.bboxes, adjustedNewSelectedBox, this.editor ? this.editor.classLabels : {});
+                    
+                    // Update form fields for the new selection
+                    const newBox = this.bboxes.boxes[adjustedNewSelectedBox];
+                    this.updateBoxValues(newBox);
+                    
+                    // Update all the checkbox states for the new box
+                    this.updateCrowdCheckbox(adjustedNewSelectedBox);
+                    this.updateReflectedCheckbox(adjustedNewSelectedBox);
+                    this.updateRenditionCheckbox(adjustedNewSelectedBox);
+                    this.updateOcrNeededCheckbox(adjustedNewSelectedBox);
+                    
+                    // Re-populate the dropdown with preserved state
+                    this.populateMultiLabelClasses(adjustedNewSelectedBox, true);
+                    
+                    console.log(`Selection maintained in same group at adjusted box ${adjustedNewSelectedBox}`);
+                    
+                    // Restore dropdown state after selection update
+                    if (wasDropdownOpen) {
+                        setTimeout(() => {
+                            const newDropdownOptions = document.querySelector('#multi-label-selection-container .multi-label-dropdown-options');
+                            if (newDropdownOptions) {
+                                newDropdownOptions.style.display = 'block';
+                                newDropdownOptions.classList.add('show');
+                            }
+                        }, 10); // Small delay to ensure DOM updates
+                    }
+                } else {
+                    // No boxes left in group, clear selection in both editors
+                    this.currentBoxIndex = -1;
+                    if (this.editor) {
+                        this.editor.selectedBboxIndex = -1;
+                    }
+                    if (window.inlineEditor) {
+                        window.inlineEditor.currentBoxIndex = -1;
+                        console.log(`Post-removal: Cleared inline editor selection`);
+                    }
+                    this.updateBboxSelector(this.bboxes, -1, this.editor.classLabels);
+                    // Refresh the canvas to show selection cleared
+                    this.updatePreviewCanvas();
+                    console.log(`No other boxes in group, cleared selection`);
+                }
+            } else {
+                console.log(`Box with class ${classIndex} not found in group ${groupId}`);
+            }
+        }
+        
+        // Redraw the canvas to show updated bbox labels
+        this.updatePreviewCanvas();
+        
+        // Update the box selector to reflect changes (for additions)
+        if (isSelected) {
+            this.updateBboxSelector(this.bboxes, boxIndex, this.editor.classLabels);
+        }
+        
+        // Update the hidden field
+        this.updateHiddenBboxesField(this.bboxes);
+        
+        // Re-populate dropdown to reflect current state (only if not already done in removal case)
+        if (isSelected || (this.currentBoxIndex === boxIndex)) {
+            this.populateMultiLabelClasses(this.currentBoxIndex, true);
+        }
+    }
+
+    // Find a box in a group with a specific class
+    static findBoxInGroup(groupId, classIndex) {
+        if (!this.bboxes || !this.bboxes.group || !this.bboxes.labels) {
+            return -1;
+        }
+        
+        return this.bboxes.group.findIndex((g, i) => 
+            g === groupId && this.bboxes.labels[i] === classIndex);
+    }
+    
+    // Add a box to a group with a new class
+    static addBoxToGroup(sourceBoxIndex, groupId, newClassIndex) {
+        // Clone the box attributes
+        const box = [...this.bboxes.boxes[sourceBoxIndex]];
+        const score = this.bboxes.scores[sourceBoxIndex];
+        
+        // Create a new box entry with the same coordinates but different class
+        this.bboxes.boxes.push(box);
+        this.bboxes.scores.push(score);
+        this.bboxes.labels.push(newClassIndex);
+        this.bboxes.group.push(groupId);
+        
+        // Add other flags as well
+        if (this.bboxes.crowd_flags) {
+            this.bboxes.crowd_flags.push(this.bboxes.crowd_flags[sourceBoxIndex]);
+        }
+        if (this.bboxes.reflected_flags) {
+            this.bboxes.reflected_flags.push(this.bboxes.reflected_flags[sourceBoxIndex]);
+        }
+        if (this.bboxes.rendition_flags) {
+            this.bboxes.rendition_flags.push(this.bboxes.rendition_flags[sourceBoxIndex]);
+        }
+        if (this.bboxes.ocr_needed_flags) {
+            this.bboxes.ocr_needed_flags.push(this.bboxes.ocr_needed_flags[sourceBoxIndex]);
+        }
+    }
+    
+    // Remove a box from a group
+    static removeBoxFromGroup(boxIndex) {
+        // Remove the box entry
+        this.bboxes.boxes.splice(boxIndex, 1);
+        this.bboxes.scores.splice(boxIndex, 1);
+        this.bboxes.labels.splice(boxIndex, 1);
+        this.bboxes.group.splice(boxIndex, 1);
+        
+        // Remove other flags as well
+        if (this.bboxes.crowd_flags) {
+            this.bboxes.crowd_flags.splice(boxIndex, 1);
+        }
+        if (this.bboxes.reflected_flags) {
+            this.bboxes.reflected_flags.splice(boxIndex, 1);
+        }
+        if (this.bboxes.rendition_flags) {
+            this.bboxes.rendition_flags.splice(boxIndex, 1);
+        }
+        if (this.bboxes.ocr_needed_flags) {
+            this.bboxes.ocr_needed_flags.splice(boxIndex, 1);
         }
     }
 
@@ -1128,7 +1893,24 @@ class BBoxEditorUI {
                 const validX2 = Math.max(x1, x2);
                 const validY2 = Math.max(y1, y2);
 
-                bboxes.boxes[this.currentBoxIndex] = [validX1, validY1, validX2, validY2];
+                const newBox = [validX1, validY1, validX2, validY2];
+                bboxes.boxes[this.currentBoxIndex] = newBox;
+                
+                // If this is a multi-label box, update ALL boxes in the same group
+                const isMultiLabel = bboxes.group && 
+                                   bboxes.group[this.currentBoxIndex] !== null && 
+                                   bboxes.group[this.currentBoxIndex] !== undefined;
+                
+                if (isMultiLabel) {
+                    const groupId = bboxes.group[this.currentBoxIndex];
+                    // Update all boxes in the same group to have the same coordinates
+                    bboxes.group.forEach((g, i) => {
+                        if (g === groupId && i !== this.currentBoxIndex) {
+                            bboxes.boxes[i] = [...newBox]; // Copy the new coordinates
+                        }
+                    });
+                    console.log(`BBoxEditorUI: Updated coordinates for multi-label group ${groupId} via input fields`);
+                }
 
                 // Update the inputs to show the validated values
                 x1Input.value = validX1;
@@ -1287,6 +2069,8 @@ class BBoxEditorUI {
         defaultOption.text = "-- Select a box --";
         bboxSelector.appendChild(defaultOption);
 
+        // Only one entry per multi-label group
+        const seenGroups = new Set();
         bboxes.boxes.forEach((_, i) => {
             const option = document.createElement('option');
             option.value = i;
@@ -1294,6 +2078,20 @@ class BBoxEditorUI {
             // Check if this is an uncertain box - by flag or by label value of -1
             const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
                                (bboxes.labels && bboxes.labels[i] === -1);
+
+            // Check if this is a multi-label box
+            const isMultiLabel = bboxes.group && 
+                              bboxes.group[i] !== null && 
+                              bboxes.group[i] !== undefined;
+            
+            // Skip duplicate group entries - only show one box per multi-label group
+            if (isMultiLabel) {
+                const groupId = bboxes.group[i];
+                if (seenGroups.has(groupId)) {
+                    return; // Skip this box as we've already seen this group
+                }
+                seenGroups.add(groupId);
+            }
 
             // Make sure uncertain_flags is set if label is -1
             if (bboxes.labels && bboxes.labels[i] === -1) {
@@ -1308,6 +2106,18 @@ class BBoxEditorUI {
             if (isUncertain) {
                 // For uncertain boxes, just show "Not Sure"
                 labelText += ` (Not Sure)`;
+            } else if (isMultiLabel) {
+                // For multi-label boxes, show comma-separated class IDs only (no class names)
+                const groupId = bboxes.group[i];
+                const groupBoxIndices = bboxes.group.map((g, idx) => 
+                    g === groupId ? idx : -1).filter(idx => idx !== -1);
+                
+                // Get all labels in this group
+                const labelIds = groupBoxIndices.map(idx => bboxes.labels[idx]);
+                
+                // Format: "Box #: comma,separated,ids" with no class names
+                labelText = `Box ${i + 1}: ${labelIds.join(',')}`;
+                console.log(`Box ${i + 1} is multi-label with IDs: ${labelIds.join(',')}`);
             } else {
                 // For regular boxes, show the class name if available
                 let labelId;
@@ -1329,7 +2139,10 @@ class BBoxEditorUI {
             }
 
             option.text = labelText;
+            
+            // Select the exact box that matches the selectedIndex
             option.selected = i === selectedIndex;
+            
             bboxSelector.appendChild(option);
         });
     }
@@ -1416,52 +2229,53 @@ class BBoxEditorUI {
     static updatePreviewCanvas(showTempBox = false) {
         if (!this.previewCtx || !this.img) return;
 
-        // Helper function to determine box styles
-		const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) => {
-			const styles = {
-				normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
-				uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
-				crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
-				reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
-				rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
-				ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
-				crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
-				crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
-				crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
-				reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
-				reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
-				renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
-				crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
-				crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
-				crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
-				reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
-				crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
-				selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
-			};
-
-			// Check for four-flag combination first
-			if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
-			// Then three-flag combinations
-			if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
-			if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
-			if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
-			if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
-			// Then two-flag combinations
-			if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
-			if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
-			if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
-			if (isCrowd && isReflected) return styles.crowdReflected;
-			if (isCrowd && isRendition) return styles.crowdRendition;
-			if (isReflected && isRendition) return styles.reflectedRendition;
-			// Then single flags
-			if (isOcrNeeded) return styles.ocrNeeded;
-			if (isRendition) return styles.rendition;
-			if (isReflected) return styles.reflected;
-			if (isCrowd) return styles.crowd;
-			if (isUncertain) return styles.uncertain;
-			if (isSelected) return styles.selected;
-			return styles.normal;
-		};
+        // Helper function to determine box styles, now supporting multi-label color
+        const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected, isMultiLabel = false) => {
+            const styles = {
+                normal:            { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
+                uncertain:         { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
+                crowd:             { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
+                reflected:         { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
+                rendition:         { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
+                ocrNeeded:         { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
+                crowdReflected:    { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
+                crowdRendition:    { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
+                crowdOcrNeeded:    { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
+                reflectedRendition:{ stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
+                reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
+                renditionOcrNeeded:{ stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
+                crowdReflectedRendition:     { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
+                crowdReflectedOcrNeeded:     { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
+                crowdRenditionOcrNeeded:     { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
+                reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
+                crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
+                selected:          { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
+                multiLabel:        { stroke: "#4CAF50", fill: "rgba(76, 175, 80, 0.85)", text: "white" },
+            };
+            // Multi-label boxes always remain green regardless of flags or selection state
+            if (isMultiLabel && !isUncertain) {
+                return styles.multiLabel;
+            }
+            // Flag combinations
+            if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
+            if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
+            if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
+            if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
+            if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
+            if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
+            if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
+            if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
+            if (isCrowd && isReflected) return styles.crowdReflected;
+            if (isCrowd && isRendition) return styles.crowdRendition;
+            if (isReflected && isRendition) return styles.reflectedRendition;
+            if (isOcrNeeded) return styles.ocrNeeded;
+            if (isRendition) return styles.rendition;
+            if (isReflected) return styles.reflected;
+            if (isCrowd) return styles.crowd;
+            if (isUncertain) return styles.uncertain;
+            if (isSelected) return styles.selected;
+            return styles.normal;
+        };
 
         const ctx = this.previewCtx;
         const canvas = ctx.canvas;
@@ -1516,20 +2330,107 @@ class BBoxEditorUI {
             ctx.shadowColor = 'transparent'; // Reset shadow
         };
 
-        // Draw boxes
+        // Determine selected group to skip rendering group boxes before drawing selection
+        const selectedGroupId = (this.selectedIndex >= 0 ? this.bboxes.group?.[this.selectedIndex] : null);
+        // Group multi-label boxes and draw single boxes (matching inline editor behavior)
+        const processedGroups = new Set();
+        const singleBoxes = [];
+        
         this.bboxes.boxes.forEach((box, i) => {
             if (i === this.selectedIndex) return;
+            // Determine group ID for this box
+            const groupId = this.bboxes.group?.[i];
+            // Skip drawing boxes from the selected multi-label group
+            if (selectedGroupId != null && groupId === selectedGroupId) return;
+            
+            // If this is part of a multi-label group and it's not already processed
+        if (groupId !== null && groupId !== undefined) {
+                // If we haven't processed this group yet
+                if (!processedGroups.has(groupId)) {
+                    processedGroups.add(groupId);
+                    
+                    // Find all boxes with this group ID
+                    const groupBoxIndices = this.bboxes.group.map((g, idx) => 
+                        g === groupId ? idx : -1).filter(idx => idx !== -1);
+                    
+                    // Get attributes from the first box in the group
+                    const firstIndex = groupBoxIndices[0];
+                    const isUncertain = this.bboxes.uncertain_flags?.[firstIndex] || this.bboxes.labels?.[firstIndex] === -1;
+                    const isCrowd = this.bboxes.crowd_flags?.[firstIndex];
+                    const isReflected = this.bboxes.reflected_flags?.[firstIndex];
+                    const isRendition = this.bboxes.rendition_flags?.[firstIndex];
+                    const isOcrNeeded = this.bboxes.ocr_needed_flags?.[firstIndex];
+                    
+                    // Style will be from the first box in the group
+                    // Multi-label style
+                    const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false, true);
+                    
+                    // Combine labels from all boxes in the group
+                    const labelIds = groupBoxIndices.map(idx => this.bboxes.labels?.[idx] ?? this.bboxes.gt?.[idx] ?? 0);
+                    
+                    let labelText;
+                    if (isUncertain) {
+                        labelText = "Not Sure";
+                    } else {
+                        // Always show comma-separated IDs for multi-label
+                        labelText = labelIds.join(", ");
+                    }
+                    
+                    // Limit label text to prevent excessive length
+                    if (labelText.length > 50) {
+                        labelText = labelText.substring(0, 47) + '...';
+                    }
+                    
+                    // Draw box
+                    ctx.strokeStyle = boxStyle.stroke;
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(
+                        box[0] * this.scale + this.offsetX,
+                        box[1] * this.scale + this.offsetY,
+                        (box[2] - box[0]) * this.scale,
+                        (box[3] - box[1]) * this.scale
+                    );
 
+                    // Determine label position
+                    const isAtTopEdge = box[1] <= 5;
+                    const labelX = box[0] * this.scale + this.offsetX + 5;
+                    const labelY = isAtTopEdge
+                        ? (box[1] * this.scale + this.offsetY + 20)
+                        : (box[1] * this.scale + this.offsetY - 8);
+
+                    // Draw label
+                    drawLabel(ctx, labelText, labelX, labelY, boxStyle);
+                }
+                // If this group was already processed, skip this box
+            } else {
+                // This is a single-label box, process normally
+                singleBoxes.push(i);
+            }
+        });
+        
+        // Draw all single boxes (non-grouped boxes)
+        singleBoxes.forEach(i => {
+            const box = this.bboxes.boxes[i];
             const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[i]) ||
                                 (this.bboxes.labels && this.bboxes.labels[i] === -1);
             const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[i];
             const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[i];
             const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[i];
             const isOcrNeeded = this.bboxes.ocr_needed_flags && this.bboxes.ocr_needed_flags[i];
-            const isSelected = false;
-
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
-
+            
+            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false);
+            const labelId = this.bboxes.labels?.[i] ?? this.bboxes.gt?.[i] ?? 0;
+            const labelName = this.editor?.classLabels?.[labelId] || `Class ${labelId}`;
+            
+            let labelText;
+            if (isUncertain) {
+                labelText = "Not Sure";
+            } else if (this.editor && this.editor.getShowClassNumbersOnly()) {
+                labelText = `${labelId}`;
+            } else {
+                labelText = `${labelId} - ${labelName}`;
+            }
+            
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;
             ctx.lineWidth = 3;
@@ -1546,19 +2447,6 @@ class BBoxEditorUI {
             const labelY = isAtTopEdge
                 ? (box[1] * this.scale + this.offsetY + 20)
                 : (box[1] * this.scale + this.offsetY - 8);
-
-            // Prepare label text
-            const labelId = this.bboxes.labels?.[i] ?? this.bboxes.gt?.[i] ?? 0;
-            const labelName = this.editor?.classLabels?.[labelId] ?? `Class ${labelId}`;
-            
-            let labelText;
-            if (isUncertain) {
-                labelText = "Not Sure";
-            } else if (this.editor && this.editor.getShowClassNumbersOnly()) {
-                labelText = `${labelId}`;
-            } else {
-                labelText = `${labelId} - ${labelName}`;
-            }
 
             // Draw label
             drawLabel(ctx, labelText, labelX, labelY, boxStyle);
@@ -1566,57 +2454,63 @@ class BBoxEditorUI {
 
         // Draw selected box
         if (this.selectedIndex >= 0 && this.selectedIndex < this.bboxes.boxes.length) {
-            const box = this.bboxes.boxes[this.selectedIndex];
-            const isUncertain = (this.bboxes.uncertain_flags && this.bboxes.uncertain_flags[this.selectedIndex]) ||
-                                (this.bboxes.labels && this.bboxes.labels[this.selectedIndex] === -1);
-            const isCrowd = this.bboxes.crowd_flags && this.bboxes.crowd_flags[this.selectedIndex];
-            const isReflected = this.bboxes.reflected_flags && this.bboxes.reflected_flags[this.selectedIndex];
-            const isRendition = this.bboxes.rendition_flags && this.bboxes.rendition_flags[this.selectedIndex];
-            const isOcrNeeded = this.bboxes.ocr_needed_flags && this.bboxes.ocr_needed_flags[this.selectedIndex];
+            // Determine if selected is part of multi-label group
+            const selIdx = this.selectedIndex;
+            const selGroup = this.bboxes.group?.[selIdx];
+            const isMulti = selGroup !== null && selGroup !== undefined;
+            // Representative index for multi-label
+            const repIdx = isMulti
+                ? (this.bboxes.group.map((g,i) => g===selGroup? i:-1).filter(i=>i!==-1)[0] || selIdx)
+                : selIdx;
+            const box = this.bboxes.boxes[repIdx];
+            // Flags from selected box
+            const isUncertain = this.bboxes.uncertain_flags?.[selIdx] || this.bboxes.labels?.[selIdx]===-1;
+            const isCrowd = this.bboxes.crowd_flags?.[selIdx];
+            const isReflected = this.bboxes.reflected_flags?.[selIdx];
+            const isRendition = this.bboxes.rendition_flags?.[selIdx];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags?.[selIdx];
             const isSelected = true;
-
-            const boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
-
+            // Determine style: green border for multi-label selected, blue for single selection
+            let boxStyle;
+            if (isMulti) {
+                // Multi-label selected: use green style (treat as non-selected multi-label)
+                boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false, true);
+            } else {
+                // Single-label selected: use selected (blue)
+                boxStyle = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected, false);
+            }
             // Draw box
             ctx.strokeStyle = boxStyle.stroke;
             ctx.lineWidth = 3;
             ctx.strokeRect(
-                box[0] * this.scale + this.offsetX,
-                box[1] * this.scale + this.offsetY,
-                (box[2] - box[0]) * this.scale,
-                (box[3] - box[1]) * this.scale
+                box[0]*this.scale+this.offsetX,
+                box[1]*this.scale+this.offsetY,
+                (box[2]-box[0])*this.scale,
+                (box[3]-box[1])*this.scale
             );
-
-            // Determine label position
-            const isAtTopEdge = box[1] <= 5;
-            const labelX = box[0] * this.scale + this.offsetX + 5;
-            const labelY = isAtTopEdge
-                ? (box[1] * this.scale + this.offsetY + 20)
-                : (box[1] * this.scale + this.offsetY - 8);
-
-            // Prepare label text
-            const labelId = this.bboxes.labels?.[this.selectedIndex] ?? this.bboxes.gt?.[this.selectedIndex] ?? 0;
-            const labelName = this.editor?.classLabels?.[labelId] ?? `Class ${labelId}`;
-            
+            // Determine label text
             let labelText;
-            if (isUncertain) {
-                labelText = "Not Sure";
-            } else if (this.editor && this.editor.getShowClassNumbersOnly()) {
-                labelText = `${labelId}`;
+            if (isMulti) {
+                const groupIndices = this.bboxes.group.map((g,i)=>g===selGroup?i:-1).filter(i=>i!==-1);
+                const ids = groupIndices.map(i=>this.bboxes.labels?.[i]??this.bboxes.gt?.[i]??0);
+                labelText = isUncertain?"Not Sure":ids.join(", ");
             } else {
-                labelText = `${labelId} - ${labelName}`;
+                const labelId = this.bboxes.labels?.[selIdx] ?? this.bboxes.gt?.[selIdx] ?? 0;
+                labelText = isUncertain?"Not Sure":(
+                    this.editor&&this.editor.getShowClassNumbersOnly()?`${labelId}`:`${labelId} - ${this.editor?.classLabels?.[labelId]||`Class ${labelId}`}`
+                );
             }
-
-            // Draw label
-            drawLabel(ctx, labelText, labelX, labelY, boxStyle);
-
-            // Draw handles for selected box
+            // Draw label and handles
+            const isAtTopEdge = box[1]<=5;
+            const lx = box[0]*this.scale+this.offsetX+5;
+            const ly = isAtTopEdge?box[1]*this.scale+this.offsetY+20:box[1]*this.scale+this.offsetY-8;
+            drawLabel(ctx,labelText,lx,ly,boxStyle);
             this.drawHandles(
                 ctx,
-                box[0] * this.scale + this.offsetX,
-                box[1] * this.scale + this.offsetY,
-                (box[2] - box[0]) * this.scale,
-                (box[3] - box[1]) * this.scale
+                box[0]*this.scale+this.offsetX,
+                box[1]*this.scale+this.offsetY,
+                (box[2]-box[0])*this.scale,
+                (box[3]-box[1])*this.scale
             );
         }
 
@@ -1848,7 +2742,20 @@ class BBoxEditorUI {
                 // Update bbox selector dropdown
                 const bboxSelector = document.getElementById('bbox-selector');
                 if (bboxSelector) {
-                    bboxSelector.value = clickedBoxIndex;
+                    // For multi-label boxes, find the representative option (first box in group)
+                    const isClickedMultiLabel = this.bboxes.group && 
+                                               this.bboxes.group[clickedBoxIndex] !== null && 
+                                               this.bboxes.group[clickedBoxIndex] !== undefined;
+                    
+                    if (isClickedMultiLabel) {
+                        const clickedGroupId = this.bboxes.group[clickedBoxIndex];
+                        // Find the first box in this group (which should be the option we created)
+                        const groupBoxIndices = this.bboxes.group.map((g, idx) => g === clickedGroupId ? idx : -1).filter(idx => idx !== -1);
+                        const firstBoxInGroup = Math.min(...groupBoxIndices);
+                        bboxSelector.value = firstBoxInGroup;
+                    } else {
+                        bboxSelector.value = clickedBoxIndex;
+                    }
                 }
 
                 // Redraw canvas
@@ -1935,6 +2842,22 @@ class BBoxEditorUI {
                         break;
                 }
 
+                // If this is a multi-label box, update ALL boxes in the same group
+                const isMultiLabel = this.bboxes.group && 
+                                   this.bboxes.group[this.selectedIndex] !== null && 
+                                   this.bboxes.group[this.selectedIndex] !== undefined;
+                
+                if (isMultiLabel) {
+                    const groupId = this.bboxes.group[this.selectedIndex];
+                    // Update all boxes in the same group to have the same coordinates
+                    this.bboxes.group.forEach((g, i) => {
+                        if (g === groupId && i !== this.selectedIndex) {
+                            this.bboxes.boxes[i] = [...box]; // Copy the new coordinates
+                        }
+                    });
+                    console.log(`BBoxEditorUI: Updated coordinates for multi-label group ${groupId} during resizing`);
+                }
+
                 // Update the crowd checkbox
                 this.updateCrowdCheckbox(this.selectedIndex);
 
@@ -1967,10 +2890,26 @@ class BBoxEditorUI {
                 let newX1 = Math.max(0, Math.min(this.img.naturalWidth - width, box[0] + dx));
                 let newY1 = Math.max(0, Math.min(this.img.naturalHeight - height, box[1] + dy));
 
-                box[0] = newX1;
-                box[1] = newY1;
-                box[2] = newX1 + width;
-                box[3] = newY1 + height;
+                const newBox = [newX1, newY1, newX1 + width, newY1 + height];
+                
+                // Update the current box
+                this.bboxes.boxes[this.selectedIndex] = newBox;
+                
+                // If this is a multi-label box, update ALL boxes in the same group
+                const isMultiLabel = this.bboxes.group && 
+                                   this.bboxes.group[this.selectedIndex] !== null && 
+                                   this.bboxes.group[this.selectedIndex] !== undefined;
+                
+                if (isMultiLabel) {
+                    const groupId = this.bboxes.group[this.selectedIndex];
+                    // Update all boxes in the same group to have the same coordinates
+                    this.bboxes.group.forEach((g, i) => {
+                        if (g === groupId && i !== this.selectedIndex) {
+                            this.bboxes.boxes[i] = [...newBox]; // Copy the new coordinates
+                        }
+                    });
+                    console.log(`BBoxEditorUI: Updated coordinates for multi-label group ${groupId} during dragging`);
+                }
 
                 // Update start position for next move
                 startX = x;
@@ -2110,6 +3049,16 @@ class BBoxEditorUI {
                         this.bboxes.possible_labels.push([]);
                     } else {
                         this.bboxes.possible_labels.push([]);
+                    }
+
+                    // Initialize and extend group array for new boxes
+                    if (!this.bboxes.group) {
+                        this.bboxes.group = new Array(this.bboxes.boxes.length).fill(null);
+                    } else if (this.bboxes.group.length < this.bboxes.boxes.length) {
+                        // Extend existing array if needed - new boxes start as single-label (null group)
+                        while (this.bboxes.group.length < this.bboxes.boxes.length) {
+                            this.bboxes.group.push(null);
+                        }
                     }
 
                     // Set class based on Not Sure mode

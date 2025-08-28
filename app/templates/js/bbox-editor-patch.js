@@ -27,14 +27,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // PATCH: Don't auto-select any box, only check for border clicks
         // PATCH: Don't select first box if no box was clicked
-        this.selectedBboxIndex = this.findBoxByBorderOnly(actualX, actualY);
+        const clickedBoxIndex = this.findBoxByBorderOnly(actualX, actualY);
+        // Determine selection index: use representative index for multi-label groups
+        let selIndex = clickedBoxIndex;
+        if (selIndex >= 0 && Array.isArray(this.bboxes.group)) {
+            const groupId = this.bboxes.group[selIndex];
+            if (groupId !== null && groupId !== undefined) {
+                // Find all indices in the same group and pick the first as representative
+                const groupIndices = this.bboxes.group
+                    .map((g, i) => g === groupId ? i : -1)
+                    .filter(i => i !== -1);
+                if (groupIndices.length > 0) {
+                    selIndex = Math.min(...groupIndices);
+                    debug(`Multi-label group click: using representative box ${selIndex} for group ${groupId}`);
+                }
+            }
+        }
+        this.selectedBboxIndex = selIndex;
 
         // Store original state before showing editor
         this.originalBboxes = JSON.parse(JSON.stringify(this.bboxes));
 
-        // PATCH: Don't require a valid box to open the editor
-        // Just open the editor without any box selected
-        this.showBboxEditor(null, -1);
+        // Open the editor with the selected box (including multi-label group representative)
+        if (this.selectedBboxIndex >= 0) {
+            const selectedBox = this.bboxes.boxes[this.selectedBboxIndex];
+            this.showBboxEditor(selectedBox, this.selectedBboxIndex);
+        } else {
+            this.showBboxEditor(null, -1);
+        }
         this.redrawCanvas();
 
         event.stopPropagation();
@@ -60,23 +80,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (clickedBoxIndex !== -1) {
                     debug(`Box ${clickedBoxIndex} clicked in preview canvas`);
 
-                    // Apply the last selected class if available
-                    if (window.lastSelectedClassId !== null) {
-                        debug(`Applying class ${window.lastSelectedClassId} to box ${clickedBoxIndex}`);
+                    // Use the actual clicked box index, no group representative logic
+                    const targetBoxIndex = clickedBoxIndex;
 
-                        // Update the class in the bboxes object
+                    // Set the bbox selector to the target box
+                    const bboxSelector = document.getElementById('bbox-selector');
+                    if (bboxSelector) {
+                        bboxSelector.value = targetBoxIndex.toString();
+                        bboxSelector.dispatchEvent(new Event('change', { bubbles: true }));
+                        debug(`Updated bbox selector to ${targetBoxIndex}`);
+                    }
+
+                    // Apply the last selected class if available
+                    if (window.lastSelectedClassId != null) {
+                        debug(`Applying class ${window.lastSelectedClassId} to box ${targetBoxIndex}`);
+                        // Ensure labels array
                         if (!BBoxEditorUI.bboxes.labels) {
                             BBoxEditorUI.bboxes.labels = Array(BBoxEditorUI.bboxes.boxes.length).fill(0);
                         }
-
-                        // Set the new class ID
-                        const newClassId = parseInt(window.lastSelectedClassId);
-                        BBoxEditorUI.bboxes.labels[clickedBoxIndex] = newClassId;
+                        // Set the new class ID on representative
+                        const newClassId = parseInt(window.lastSelectedClassId, 10);
+                        BBoxEditorUI.bboxes.labels[targetBoxIndex] = newClassId;
 
                         // Also update gt field if it exists
-                        if (BBoxEditorUI.bboxes.gt && clickedBoxIndex < BBoxEditorUI.bboxes.gt.length) {
-                            BBoxEditorUI.bboxes.gt[clickedBoxIndex] = newClassId;
-                            debug(`Updated gt[${clickedBoxIndex}] to class ${newClassId}`);
+                        if (BBoxEditorUI.bboxes.gt && targetBoxIndex < BBoxEditorUI.bboxes.gt.length) {
+                            BBoxEditorUI.bboxes.gt[targetBoxIndex] = newClassId;
+                            debug(`Updated gt[${targetBoxIndex}] to class ${newClassId}`);
                         }
 
                         // Update the class selector UI

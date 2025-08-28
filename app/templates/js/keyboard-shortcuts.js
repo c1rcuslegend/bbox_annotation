@@ -12,6 +12,7 @@ const DETAIL_VIEW_SHORTCUTS = {
     'Ctrl+R': 'Toggle Reflected Object flag for selected bbox', 
     'Ctrl+V': 'Toggle Rendition flag for selected bbox',
     'Ctrl+B': 'Toggle Text based flag for selected bbox',
+    'Ctrl+Y': 'Toggle Multi-label mode for selected bbox',
     'Ctrl+X': 'Delete currently selected bounding box',
     'Ctrl+Alt': 'Open class selection dropdown for selected bbox',
     'Shift+C': 'Copy and paste selected bounding box',

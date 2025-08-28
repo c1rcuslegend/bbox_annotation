@@ -45,7 +45,7 @@ class BBoxEditor {
     }
 
     // Define getBoxStyle as a class method so it can be used by both redrawCanvas and forceRedraw
-    getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) {
+    getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected, isMultiLabel = false) {
         const styles = {
             normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
             uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
@@ -65,8 +65,14 @@ class BBoxEditor {
             reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
             crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
             selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
+            multiLabel: { stroke: "#4CAF50", fill: "rgba(76, 175, 80, 0.85)", text: "white" },
         };
 
+        // Multi-label boxes get green color unless they have other specific states
+        if (isMultiLabel && !isUncertain && !isSelected) {
+            return styles.multiLabel;
+        }
+        
         // Check for four-flag combination first
         if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
         // Then three-flag combinations
@@ -96,7 +102,7 @@ class BBoxEditor {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.drawImage(this.img, 0, 0);
 
-        // Ensure crowd_flags and reflected_flags arrays exist
+        // Ensure all necessary arrays exist
         if (this.bboxes?.boxes && !this.bboxes.crowd_flags) {
             console.log("BBoxEditor: Initializing missing crowd_flags array");
             this.bboxes.crowd_flags = new Array(this.bboxes.boxes.length).fill(false);
@@ -113,57 +119,19 @@ class BBoxEditor {
             console.log("BBoxEditor: Initializing missing ocr_needed_flags array");
             this.bboxes.ocr_needed_flags = new Array(this.bboxes.boxes.length).fill(false);
         }
+        if (this.bboxes?.boxes && !this.bboxes.group) {
+            console.log("BBoxEditor: Initializing missing group array for multi-label support");
+            this.bboxes.group = new Array(this.bboxes.boxes.length).fill(null);
+        }
 
-        const getBoxStyle = (isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected) => {
-            const styles = {
-                normal: { stroke: "#e74c3c", fill: "rgba(231, 76, 60, 0.85)", text: "white" },
-                uncertain: { stroke: "#FFCC00", fill: "rgba(255, 204, 0, 0.85)", text: "black" },
-                crowd: { stroke: "#9C27B0", fill: "rgba(156, 39, 176, 0.85)", text: "white" },
-                reflected: { stroke: "#20B2AA", fill: "rgba(32, 178, 170, 0.85)", text: "white" },
-                rendition: { stroke: "#FF7043", fill: "rgba(255, 112, 67, 0.85)", text: "white" },
-                ocrNeeded: { stroke: "#C0C0C0", fill: "rgba(192, 192, 192, 0.85)", text: "black" },
-                crowdReflected: { stroke: "#5E6DAD", fill: "rgba(94, 109, 173, 0.85)", text: "white" },
-                crowdRendition: { stroke: "#B39DDB", fill: "rgba(179, 157, 219, 0.85)", text: "white" },
-                crowdOcrNeeded: { stroke: "#D1C4E9", fill: "rgba(209, 196, 233, 0.85)", text: "black" },
-                reflectedRendition: { stroke: "#FF8A65", fill: "rgba(255, 138, 101, 0.85)", text: "white" },
-                reflectedOcrNeeded: { stroke: "#B0BEC5", fill: "rgba(176, 190, 197, 0.85)", text: "black" },
-                renditionOcrNeeded: { stroke: "#FFAB91", fill: "rgba(255, 171, 145, 0.85)", text: "black" },
-                crowdReflectedRendition: { stroke: "#81C784", fill: "rgba(129, 199, 132, 0.85)", text: "white" },
-                crowdReflectedOcrNeeded: { stroke: "#E1BEE7", fill: "rgba(225, 190, 231, 0.85)", text: "black" },
-                crowdRenditionOcrNeeded: { stroke: "#FFE0B2", fill: "rgba(255, 224, 178, 0.85)", text: "black" },
-                reflectedRenditionOcrNeeded: { stroke: "#F8BBD9", fill: "rgba(248, 187, 217, 0.85)", text: "black" },
-                crowdReflectedRenditionOcrNeeded: { stroke: "#F0F4C3", fill: "rgba(240, 244, 195, 0.85)", text: "black" },
-                selected: { stroke: "#2196F3", fill: "rgba(33, 150, 243, 0.85)", text: "white" },
-            };
+        // Use the class method for styling
+        const getBoxStyle = this.getBoxStyle.bind(this);
 
-            // Check for four-flag combination first
-            if (isCrowd && isReflected && isRendition && isOcrNeeded) return styles.crowdReflectedRenditionOcrNeeded;
-            // Then three-flag combinations
-            if (isReflected && isRendition && isOcrNeeded) return styles.reflectedRenditionOcrNeeded;
-            if (isCrowd && isRendition && isOcrNeeded) return styles.crowdRenditionOcrNeeded;
-            if (isCrowd && isReflected && isOcrNeeded) return styles.crowdReflectedOcrNeeded;
-            if (isCrowd && isReflected && isRendition) return styles.crowdReflectedRendition;
-            // Then two-flag combinations
-            if (isRendition && isOcrNeeded) return styles.renditionOcrNeeded;
-            if (isReflected && isOcrNeeded) return styles.reflectedOcrNeeded;
-            if (isCrowd && isOcrNeeded) return styles.crowdOcrNeeded;
-            if (isCrowd && isReflected) return styles.crowdReflected;
-            if (isCrowd && isRendition) return styles.crowdRendition;
-            if (isReflected && isRendition) return styles.reflectedRendition;
-            // Then single flags
-            if (isOcrNeeded) return styles.ocrNeeded;
-            if (isRendition) return styles.rendition;
-            if (isReflected) return styles.reflected;
-            if (isCrowd) return styles.crowd;
-            if (isUncertain) return styles.uncertain;
-            if (isSelected) return styles.selected;
-            return styles.normal;
-        };
-
-        const drawBox = (box, style, labelText, isAtTopEdge) => {
+        const drawBox = (box, style, labelText, isAtTopEdge, thickness = 3) => {
             // Draw box
             this.ctx.strokeStyle = style.stroke;
-            this.ctx.lineWidth = 3;
+            // Apply border thickness
+            this.ctx.lineWidth = thickness;
             this.ctx.strokeRect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
 
             // Position label
@@ -204,19 +172,85 @@ class BBoxEditor {
             this.ctx.restore();
         };
 
-        // Draw all boxes
+        // Process boxes to identify multi-label groups
+        // Determine if there's a selected multi-label group to avoid duplicate drawing
+        const selectedGroupId = (this.selectedBboxIndex >= 0 ? this.bboxes.group?.[this.selectedBboxIndex] : null);
+        const processedGroups = new Set();
+        const singleBoxes = [];
+        
+        // First pass: identify boxes that need to be drawn and group multi-label boxes
         this.bboxes.boxes.forEach((box, index) => {
+            const isSelected = index === this.selectedBboxIndex;
+            
+            // Skip selected box for first pass, we'll draw it last
+            if (isSelected) return;
+            // Get group ID for this box
+            const groupId = this.bboxes.group?.[index];
+            // Skip drawing any boxes belonging to the selected multi-label group to avoid duplicate overlay
+            if (selectedGroupId != null && groupId === selectedGroupId) return;
+            
+            // If this is part of a non-selected multi-label group and it's not already processed
+            if (groupId !== null && groupId !== undefined) {
+                // If we haven't processed this group yet
+                if (!processedGroups.has(groupId)) {
+                    processedGroups.add(groupId);
+                    
+                    // Find all boxes with this group ID
+                    const groupBoxIndices = this.bboxes.group.map((g, i) => 
+                        g === groupId ? i : -1).filter(i => i !== -1);
+                    
+                    // Get attributes from the first box in the group
+                    const firstIndex = groupBoxIndices[0];
+                    const isUncertain = this.bboxes.uncertain_flags?.[firstIndex] || this.bboxes.labels?.[firstIndex] === -1;
+                    const isCrowd = this.bboxes.crowd_flags?.[firstIndex];
+                    const isReflected = this.bboxes.reflected_flags?.[firstIndex];
+                    const isRendition = this.bboxes.rendition_flags?.[firstIndex];
+                    const isOcrNeeded = this.bboxes.ocr_needed_flags?.[firstIndex];
+                    
+                    // Style will be from the first box in the group
+                    const isMultiLabel = true;
+                    const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false, isMultiLabel);
+                    
+                    // Combine labels from all boxes in the group
+                    const labelIds = groupBoxIndices.map(idx => this.bboxes.labels?.[idx] ?? this.bboxes.gt?.[idx] ?? 0);
+                    
+                    let labelText;
+                    if (isUncertain) {
+                        labelText = "Not Sure";
+                    } else if (this.showClassNumbersOnly) {
+                        labelText = labelIds.join(", ");
+                    } else {
+                        // For multi-label boxes, always show only class IDs
+                        labelText = labelIds.join(", ");
+                    }
+                    
+                    // Limit label text to prevent excessive length
+                    if (labelText.length > 50) {
+                        labelText = labelText.substring(0, 47) + '...';
+                    }
+                    
+                    const isAtTopEdge = box[1] <= 5;  // within 5px of top edge
+                    
+                    // Draw the box with multi-label information
+                    drawBox(box, style, labelText, isAtTopEdge);
+                }
+                // If this group was already processed, skip this box
+            } else {
+                // This is a single-label box, process normally
+                singleBoxes.push(index);
+            }
+        });
+        
+        // Draw all single boxes (non-grouped boxes)
+        singleBoxes.forEach(index => {
+            const box = this.bboxes.boxes[index];
             const isUncertain = this.bboxes.uncertain_flags?.[index] || this.bboxes.labels?.[index] === -1;
             const isCrowd = this.bboxes.crowd_flags?.[index];
             const isReflected = this.bboxes.reflected_flags?.[index];
             const isRendition = this.bboxes.rendition_flags?.[index];
             const isOcrNeeded = this.bboxes.ocr_needed_flags?.[index];
-            const isSelected = index === this.selectedBboxIndex;
-
-            // Skip selected box for now
-            if (isSelected) return;
-
-            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false);
+            
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, false, false);
             const labelId = this.bboxes.labels?.[index] ?? this.bboxes.gt?.[index] ?? 0;
             const labelName = this.classLabels[labelId] || `Class ${labelId}`;
             
@@ -235,39 +269,46 @@ class BBoxEditor {
             }
             
             const isAtTopEdge = box[1] <= 5;  // within 5px of top edge
-
+            
             drawBox(box, style, labelText, isAtTopEdge);
         });
 
         // Draw the selected box (if any) last
         if (this.selectedBboxIndex >= 0 && this.selectedBboxIndex < this.bboxes.boxes.length) {
-            const box = this.bboxes.boxes[this.selectedBboxIndex];
-            const isUncertain = this.bboxes.uncertain_flags?.[this.selectedBboxIndex] || this.bboxes.labels?.[this.selectedBboxIndex] === -1;
-            const isCrowd = this.bboxes.crowd_flags?.[this.selectedBboxIndex];
-            const isReflected = this.bboxes.reflected_flags?.[this.selectedBboxIndex];
-            const isRendition = this.bboxes.rendition_flags?.[this.selectedBboxIndex];
-            const isOcrNeeded = this.bboxes.ocr_needed_flags?.[this.selectedBboxIndex];
+            const selIdx = this.selectedBboxIndex;
+            const selGroup = this.bboxes.group?.[selIdx];
+            const isMulti = selGroup !== null && selGroup !== undefined;
+            const isUncertain = this.bboxes.uncertain_flags?.[selIdx] || this.bboxes.labels?.[selIdx] === -1;
+            const isCrowd = this.bboxes.crowd_flags?.[selIdx];
+            const isReflected = this.bboxes.reflected_flags?.[selIdx];
+            const isRendition = this.bboxes.rendition_flags?.[selIdx];
+            const isOcrNeeded = this.bboxes.ocr_needed_flags?.[selIdx];
+            let box, labelText;
 
-            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, true);
-            const labelId = this.bboxes.labels?.[this.selectedBboxIndex] ?? this.bboxes.gt?.[this.selectedBboxIndex] ?? 0;
-            const labelName = this.classLabels[labelId] || `Class ${labelId}`;
-            
-            let labelText;
-            if (isUncertain) {
-                labelText = "Not Sure";
-            } else if (this.showClassNumbersOnly) {
-                labelText = `${labelId}`;
+            if (isMulti) {
+                // Representative box for multi-label group selection
+                const groupIndices = this.bboxes.group.map((g, i) => g === selGroup ? i : -1).filter(i => i !== -1);
+                const repIdx = Math.min(...groupIndices);
+                box = this.bboxes.boxes[repIdx];
+                const labelIds = groupIndices.map(i => this.bboxes.labels?.[i] ?? this.bboxes.gt?.[i] ?? 0);
+                labelText = isUncertain ? "Not Sure" : labelIds.join(", ");
             } else {
-                labelText = `${labelId} - ${labelName}`;
+                // Single box selection
+                box = this.bboxes.boxes[selIdx];
+                const labelId = this.bboxes.labels?.[selIdx] ?? this.bboxes.gt?.[selIdx] ?? 0;
+                if (isUncertain) {
+                    labelText = "Not Sure";
+                } else if (this.showClassNumbersOnly) {
+                    labelText = `${labelId}`;
+                } else {
+                    const name = this.classLabels[labelId] || `Class ${labelId}`;
+                    labelText = `${labelId} - ${name}`;
+                }
+                if (labelText.length > 30) labelText = labelText.substring(0, 27) + '...';
             }
-            
-            // Limit label text to 30 characters
-            if (labelText.length > 30) {
-                labelText = labelText.substring(0, 27) + '...';
-            }
-            
-            const isAtTopEdge = box[1] <= 5;
 
+            const style = getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, true, isMulti);
+            const isAtTopEdge = box[1] <= 5;
             drawBox(box, style, labelText, isAtTopEdge);
         }
     }
@@ -327,9 +368,11 @@ class BBoxEditor {
                 const isRendition = this.bboxes.rendition_flags?.[index];
                 const isOcrNeeded = this.bboxes.ocr_needed_flags?.[index];
                 const isSelected = this.selectedBboxIndex === index;
+                const groupId = this.bboxes.group?.[index];
+                const isMultiLabel = groupId !== null && groupId !== undefined;
 
                 // Use the same styling function as redrawCanvas
-                const style = this.getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected);
+                const style = this.getBoxStyle(isCrowd, isReflected, isRendition, isOcrNeeded, isUncertain, isSelected, isMultiLabel);
                 
                 // Draw box with proper styling
                 this.ctx.strokeStyle = style.stroke;
@@ -360,13 +403,22 @@ class BBoxEditor {
                     labelId = 0; // Default fallback
                 }
 
-                // Prepare label text
-                const labelName = this.classLabels[labelId] || `Class ${labelId}`;
+                // Prepare label text  
                 let labelText;
-                if (this.showClassNumbersOnly) {
-                    labelText = `${labelId}`;
+                if (isMultiLabel) {
+                    // For multi-label boxes, show only comma-separated class IDs
+                    const groupBoxIndices = this.bboxes.group.map((g, i) => 
+                        g === groupId ? i : -1).filter(i => i !== -1);
+                    const labelIds = groupBoxIndices.map(idx => this.bboxes.labels?.[idx] ?? this.bboxes.gt?.[idx] ?? 0);
+                    labelText = labelIds.join(", ");
                 } else {
-                    labelText = `${labelId} - ${labelName}`;
+                    // For regular boxes, follow normal logic
+                    const labelName = this.classLabels[labelId] || `Class ${labelId}`;
+                    if (this.showClassNumbersOnly) {
+                        labelText = `${labelId}`;
+                    } else {
+                        labelText = `${labelId} - ${labelName}`;
+                    }
                 }
                 
                 // Limit label text to 30 characters
@@ -475,7 +527,10 @@ class BBoxEditor {
         const actualY = y * scaleY;
 
         // Select a box by border click
-        this.selectedBboxIndex = this.findBoxByBorderOnly(actualX, actualY);
+        const clickedBoxIndex = this.findBoxByBorderOnly(actualX, actualY);
+        
+        // Select the actual clicked box, no group representative logic
+        this.selectedBboxIndex = clickedBoxIndex;
 
         // Store original state before showing editor
         this.originalBboxes = JSON.parse(JSON.stringify(this.bboxes));

@@ -193,12 +193,19 @@
                         <select id="inline-bbox-selector" class="editor-selector"></select>
                     </div>
 
-                    <!-- Class selector with search -->
-                    <div class="control-group">
+                    <!-- Class selector with search (shown in single-label mode) -->
+                    <div class="control-group" id="single-label-selector-container">
                         <label for="inline-class-search">Class:</label>
                         <input type="text" id="inline-class-search" placeholder="Search for class..."
                                class="editor-selector">
                         <select id="inline-class-selector" class="editor-selector"></select>
+                    </div>
+                    
+                    <!-- Multi-Label selection interface (shown in multi-label mode) -->
+                    <div class="control-group" id="inline-multi-label-selection-container" style="display: none;">
+                        <div class="multi-label-checkboxes" style="display: flex; flex-direction: column; gap: 5px;">
+                            <!-- Content will be dynamically added by JavaScript -->
+                        </div>
                     </div>
 
                     <!-- Crowd of instances checkbox -->
@@ -237,6 +244,15 @@
                         </label>
                     </div>
 
+                    <!-- Multi-Label Mode checkbox container -->
+                    <div class="multi-label-container">
+                        <label for="inline-multi-label-checkbox">Multi-Label Mode</label>
+                        <label class="container">
+                            <input type="checkbox" id="inline-multi-label-checkbox" name="inline-multi-label-checkbox">
+                            <div class="checkmark checkmark-multi-label"></div>
+                        </label>
+                    </div>
+                    
                     <!-- Show Class Numbers Only checkbox container -->
                     <div class="reflected-container">
                         <label for="inline-class-numbers-checkbox">Simplified Labels</label>
@@ -381,12 +397,19 @@
                     <h3>Edit Bounding Box</h3>
                     <select id="bbox-selector" class="bbox-editor-selector"></select>
 
-                    <!-- Add class selector dropdown -->
-                    <div class="bbox-editor-input-group">
+                    <!-- Add class selector dropdown (shown in single-label mode) -->
+                    <div class="bbox-editor-input-group" id="bbox-single-label-container">
                         <label for="bbox-class-selector">Class:</label>
                         <select id="bbox-class-selector" class="bbox-editor-selector">
                             <!-- Here will be 1000 class options (0-999) -->
                         </select>
+                    </div>
+                    <!-- Multi-label class selector, initially hidden, styled same as single-label -->
+                    <div class="bbox-editor-input-group" id="multi-label-selection-container" style="display: none;">
+                        <label>Classes:</label>
+                        <div class="multi-label-checkboxes">
+                            <!-- Dynamically populated checkboxes for multi-label mode -->
+                        </div>
                     </div>
 
                     <div class="bbox-crowd-container">
@@ -420,6 +443,15 @@
                             <div class="checkmark checkmark-ocr-needed"></div>
                         </label>
                     </div>
+                    
+                    <div class="bbox-multi-label-container">
+                        <label for="bbox-multi-label-checkbox">Multi-Label Mode</label>
+                        <label class="container">
+                            <input type="checkbox" id="bbox-multi-label-checkbox" name="bbox-multi-label-checkbox">
+                            <div class="checkmark checkmark-multi-label"></div>
+                        </label>
+                    </div>
+                    
 
                     <div class="bbox-reflected-container">
                         <label for="bbox-class-numbers-checkbox">Simplified Labels</label>
@@ -522,6 +554,11 @@
                             if (!isAdvancedMode) {
                                 activateNotSureMode();
                             }
+                            break;
+                        case 'y': // Ctrl+Y - Toggle multi-label mode
+                            event.preventDefault();
+                            console.log('Ctrl+Y detected - calling toggleMultiLabelMode');
+                            toggleMultiLabelMode();
                             break;
                     }
                     return; // Don't process other keys when Ctrl is pressed
@@ -703,6 +740,35 @@
                 } else {
                     console.error('OCR needed checkbox not found in inline editor mode');
                 }
+            }
+        }
+
+        function toggleMultiLabelMode() {
+            console.log('toggleMultiLabelMode called');
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            console.log('Advanced mode:', isAdvancedMode);
+            
+            if (isAdvancedMode) {
+                // Advanced editor mode - use checkbox event
+                const multiLabelCheckbox = document.getElementById('bbox-multi-label-checkbox');
+                if (multiLabelCheckbox) {
+                    // Emulate a user click to trigger all checkbox handlers
+                    console.log('Clicking advanced mode multi-label checkbox');
+                    multiLabelCheckbox.click();
+                } else {
+                    console.error('Multi-label checkbox not found in advanced editor mode');
+                }
+            } else {
+            // Inline editor mode - emulate a click on the inline checkbox
+            const inlineCheckbox = document.getElementById('inline-multi-label-checkbox');
+            if (inlineCheckbox) {
+                console.log('Clicking inline multi-label checkbox');
+                inlineCheckbox.click();
+            } else {
+                console.error('Multi-label checkbox not found in inline editor mode');
+            }
             }
         }
 
@@ -1053,61 +1119,139 @@
             const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
             
             if (isAdvancedMode) {
-                // Advanced editor mode - try to open the dropdown
-                const classSearchInput = document.getElementById('class-search-input');
-                if (classSearchInput && !classSearchInput.disabled) {
-                    // Focus the input field first
-                    classSearchInput.focus();
-                    classSearchInput.select();
-                    
-                    // Try to trigger the dropdown by simulating a click
-                    const clickEvent = new MouseEvent('click', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    classSearchInput.dispatchEvent(clickEvent);
-                    
-                    console.log('Opened class selection dropdown in advanced mode');
-                    showKeyboardShortcutFeedback('Class dropdown opened (Ctrl+Alt)');
-                } else {
-                    console.log('Class selection input not available in advanced mode (may be disabled for Not Sure box)');
-                    showKeyboardShortcutFeedback('No bbox selected or Not Sure mode active');
-                }
-            } else {
-                // Inline editor mode - focus and activate the class search dropdown
-                const inlineClassSearch = document.getElementById('inline-class-search');
-                if (inlineClassSearch) {
-                    // Check if a bbox is selected first
-                    const inlineBboxSelector = document.getElementById('inline-bbox-selector');
-                    if (!inlineBboxSelector || inlineBboxSelector.value === '' || inlineBboxSelector.value === '-1') {
-                        console.log('No bbox selected for class dropdown');
-                        showKeyboardShortcutFeedback('Please select a bounding box first');
-                        return;
-                    }
-                    
-                    if (!inlineClassSearch.disabled) {
-                        // Focus the input field and select its contents
-                        inlineClassSearch.focus();
-                        inlineClassSearch.select();
+                // Advanced editor mode
+                // Check if we're in multi-label mode first
+                const multiLabelCheckbox = document.getElementById('bbox-multi-label-checkbox');
+                const isMultiLabelMode = multiLabelCheckbox && multiLabelCheckbox.checked;
+                
+                if (isMultiLabelMode) {
+                    // Try to open the multi-label dropdown
+                    const multiDropdownOptions = document.querySelector('#multi-label-selection-container .multi-label-dropdown-options');
+                    if (multiDropdownOptions) {
+                        multiDropdownOptions.style.display = 'block';
+                        multiDropdownOptions.classList.add('show');
                         
-                        // Try to trigger the dropdown by simulating a click
+                        // Try to focus on the search input within the multi-label dropdown
+                        const searchInput = multiDropdownOptions.parentElement.querySelector('input[type="text"]');
+                        if (searchInput) {
+                            setTimeout(() => {
+                                searchInput.focus();
+                                searchInput.select();
+                            }, 100);
+                        }
+                        
+                        console.log('Opened multi-label dropdown in advanced mode');
+                        showKeyboardShortcutFeedback('Multi-label dropdown opened (Ctrl+Alt)');
+                    } else {
+                        console.log('Multi-label dropdown not available in advanced mode');
+                        showKeyboardShortcutFeedback('Multi-label dropdown not available');
+                    }
+                } else {
+                    // Single-label mode - try to open the class search dropdown
+                    const classSearchInput = document.getElementById('class-search-input');
+                    if (classSearchInput && !classSearchInput.disabled) {
+                        // Focus the input field first
+                        classSearchInput.focus();
+                        classSearchInput.select();
+                        
+                        // Clear any existing content to make typing easier
+                        classSearchInput.value = '';
+                        
+                        // Try to trigger the dropdown by simulating a click and input
                         const clickEvent = new MouseEvent('click', {
                             view: window,
                             bubbles: true,
                             cancelable: true
                         });
-                        inlineClassSearch.dispatchEvent(clickEvent);
+                        classSearchInput.dispatchEvent(clickEvent);
                         
-                        console.log('Opened class selection dropdown in inline mode');
+                        // Also trigger an input event to show all options
+                        const inputEvent = new Event('input', {
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        classSearchInput.dispatchEvent(inputEvent);
+                        
+                        console.log('Opened class selection dropdown in advanced mode with cursor ready');
                         showKeyboardShortcutFeedback('Class dropdown opened (Ctrl+Alt)');
                     } else {
-                        console.log('Class selection input disabled (may be Not Sure mode)');
-                        showKeyboardShortcutFeedback('Not Sure mode active - cannot change class');
+                        console.log('Class selection input not available in advanced mode (may be disabled for Not Sure box)');
+                        showKeyboardShortcutFeedback('No bbox selected or Not Sure mode active');
+                    }
+                }
+            } else {
+                // Inline editor mode
+                // Check if a bbox is selected first
+                const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+                if (!inlineBboxSelector || inlineBboxSelector.value === '' || inlineBboxSelector.value === '-1') {
+                    console.log('No bbox selected for class dropdown');
+                    showKeyboardShortcutFeedback('Please select a bounding box first');
+                    return;
+                }
+                
+                // Check if we're in multi-label mode
+                const multiLabelCheckbox = document.getElementById('inline-multi-label-checkbox');
+                const isMultiLabelMode = multiLabelCheckbox && multiLabelCheckbox.checked;
+                
+                if (isMultiLabelMode) {
+                    // Try to open the multi-label dropdown in inline mode
+                    const multiDropdownOptions = document.querySelector('#inline-multi-label-selection-container .multi-label-dropdown-options');
+                    if (multiDropdownOptions) {
+                        multiDropdownOptions.style.display = 'block';
+                        multiDropdownOptions.classList.add('show');
+                        
+                        // Try to focus on the search input within the multi-label dropdown
+                        const searchInput = multiDropdownOptions.parentElement.querySelector('input[type="text"]');
+                        if (searchInput) {
+                            setTimeout(() => {
+                                searchInput.focus();
+                                searchInput.select();
+                            }, 100);
+                        }
+                        
+                        console.log('Opened multi-label dropdown in inline mode');
+                        showKeyboardShortcutFeedback('Multi-label dropdown opened (Ctrl+Alt)');
+                    } else {
+                        console.log('Multi-label dropdown not available in inline mode');
+                        showKeyboardShortcutFeedback('Multi-label dropdown not available');
                     }
                 } else {
-                    console.error('Inline class search input not found');
-                    showKeyboardShortcutFeedback('Class selector not available');
+                    // Single-label mode - focus and activate the class search dropdown
+                    const inlineClassSearch = document.getElementById('inline-class-search');
+                    if (inlineClassSearch) {
+                        if (!inlineClassSearch.disabled) {
+                            // Focus the input field and select its contents
+                            inlineClassSearch.focus();
+                            inlineClassSearch.select();
+                            
+                            // Clear any existing content to make typing easier
+                            inlineClassSearch.value = '';
+                            
+                            // Try to trigger the dropdown by simulating a click and input
+                            const clickEvent = new MouseEvent('click', {
+                                view: window,
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            inlineClassSearch.dispatchEvent(clickEvent);
+                            
+                            // Also trigger an input event to show all options
+                            const inputEvent = new Event('input', {
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            inlineClassSearch.dispatchEvent(inputEvent);
+                            
+                            console.log('Opened class selection dropdown in inline mode with cursor ready');
+                            showKeyboardShortcutFeedback('Class dropdown opened (Ctrl+Alt)');
+                        } else {
+                            console.log('Class selection input disabled (may be Not Sure mode)');
+                            showKeyboardShortcutFeedback('Not Sure mode active - cannot change class');
+                        }
+                    } else {
+                        console.error('Inline class search input not found');
+                        showKeyboardShortcutFeedback('Class selector not available');
+                    }
                 }
             }
         }
@@ -1176,6 +1320,12 @@
         toggleOcrNeededFlag = function() {
             originalToggleOcrNeededFlag();
             showKeyboardShortcutFeedback('Text based Flag Toggled (Ctrl+B)');
+        };
+
+        const originalToggleMultiLabelMode = toggleMultiLabelMode;
+        toggleMultiLabelMode = function() {
+            originalToggleMultiLabelMode();
+            showKeyboardShortcutFeedback('Multi-label Mode Toggled (Ctrl+Y)');
         };
 
         const originalDeleteCurrentBbox = deleteCurrentBbox;

@@ -202,6 +202,17 @@ function addUncertainBoxStyles() {
             font-weight: bold;
         }
         
+        /* Multi-label box styles */
+        .bbox.multilabel-box {
+            border: 2px solid #4CAF50 !important; /* Green border for multi-label boxes */
+        }
+        
+        .bbox-label.multilabel-label {
+            background-color: rgba(76, 175, 80, 0.85) !important; /* Green background */
+            color: white !important; /* White text for better contrast on green */
+            font-weight: bold;
+        }
+        
         /* Crowd OCR Needed box styles */
         .bbox.crowd-ocr-needed-box {
             border: 2px solid #D1C4E9 !important; /* Light purple border */
@@ -281,6 +292,83 @@ function addUncertainBoxStyles() {
         
     `;
     document.head.appendChild(style);
+}
+
+// Function to process multi-label bboxes properly
+function processMultiLabelBboxes(bboxData) {
+    if (!bboxData || !bboxData.boxes || !Array.isArray(bboxData.boxes)) {
+        return { processedBoxes: [], groupInfo: new Map() };
+    }
+
+    const groupedBboxes = new Map();
+    const processedBoxes = [];
+    
+    // First pass: identify and group multi-label boxes
+    bboxData.boxes.forEach((box, index) => {
+        const groupId = bboxData.group && bboxData.group[index];
+        const isMultiLabel = groupId !== null && groupId !== undefined;
+        
+        if (isMultiLabel) {
+            if (!groupedBboxes.has(groupId)) {
+                groupedBboxes.set(groupId, {
+                    coordinates: box,
+                    labels: [],
+                    indices: [],
+                    flags: {
+                        crowd: false,
+                        reflected: false,
+                        rendition: false,
+                        ocrNeeded: false,
+                        uncertain: false
+                    }
+                });
+            }
+            
+            // Collect all labels and flags for this group
+            const group = groupedBboxes.get(groupId);
+            const label = bboxData.labels && bboxData.labels[index] !== undefined ? 
+                         bboxData.labels[index] : 
+                         (bboxData.gt && bboxData.gt[index] !== undefined ? bboxData.gt[index] : null);
+            
+            if (label !== null && label !== undefined) {
+                group.labels.push(label);
+                if (label === "-1" || label === -1) {
+                    group.flags.uncertain = true;
+                }
+            }
+            
+            group.indices.push(index);
+            
+            // Aggregate flags (if any box in group has flag, group has flag)
+            if (bboxData.crowd_flags && bboxData.crowd_flags[index]) group.flags.crowd = true;
+            if (bboxData.reflected_flags && bboxData.reflected_flags[index]) group.flags.reflected = true;
+            if (bboxData.rendition_flags && bboxData.rendition_flags[index]) group.flags.rendition = true;
+            if (bboxData.ocr_needed_flags && bboxData.ocr_needed_flags[index]) group.flags.ocrNeeded = true;
+        } else {
+            // Single-label box
+            processedBoxes.push({
+                index: index,
+                coordinates: box,
+                isMultiLabel: false,
+                originalIndex: index
+            });
+        }
+    });
+    
+    // Second pass: add grouped boxes to processed list
+    for (const [groupId, group] of groupedBboxes) {
+        processedBoxes.push({
+            index: Math.min(...group.indices), // Use first box index for reference
+            coordinates: group.coordinates,
+            labels: group.labels,
+            isMultiLabel: true,
+            groupId: groupId,
+            flags: group.flags,
+            originalIndices: group.indices
+        });
+    }
+    
+    return { processedBoxes, groupInfo: groupedBboxes };
 }
 
 // Function to render bounding boxes for all images
@@ -367,23 +455,39 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
         return;
     }
 
-    // Draw each box
-    bboxData.boxes.forEach((box, index) => {
-        if (box && box.length === 4) {
-            // Original coordinates [x1, y1, x2, y2]
-            const [x1, y1, x2, y2] = box;
+    // Use the new multi-label processing function
+    const { processedBoxes } = processMultiLabelBboxes(bboxData);
 
-            // Calculate box position and size
-            const boxLeft = imgLeft + (x1 * scaleX);
-            const boxTop = imgTop + (y1 * scaleY);
-            const boxWidth = (x2 - x1) * scaleX;
-            const boxHeight = (y2 - y1) * scaleY;
+    // Draw each processed box
+    processedBoxes.forEach((processedBox) => {
+        const { coordinates, isMultiLabel, flags } = processedBox;
+        
+        if (!coordinates || coordinates.length !== 4) return;
 
-            // Create bbox div - border only
-            const bboxDiv = document.createElement('div');
-            bboxDiv.className = 'bbox';
+        // Original coordinates [x1, y1, x2, y2]
+        const [x1, y1, x2, y2] = coordinates;
 
-            // Get label ID - check labels first, then gt field as fallback
+        // Calculate box position and size
+        const boxLeft = imgLeft + (x1 * scaleX);
+        const boxTop = imgTop + (y1 * scaleY);
+        const boxWidth = (x2 - x1) * scaleX;
+        const boxHeight = (y2 - y1) * scaleY;
+
+        // Create bbox div - border only
+        const bboxDiv = document.createElement('div');
+        bboxDiv.className = 'bbox';
+
+        // Get label information
+        let labelIds = [];
+        let isUncertain = false;
+        
+        if (isMultiLabel) {
+            // For multi-label groups, use the collected labels
+            labelIds = processedBox.labels || [];
+            isUncertain = flags && flags.uncertain;
+        } else {
+            // Single label
+            const index = processedBox.originalIndex !== undefined ? processedBox.originalIndex : processedBox.index;
             let labelId;
             if (bboxData.labels && bboxData.labels[index] !== undefined) {
                 labelId = bboxData.labels[index];
@@ -392,21 +496,27 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
             } else {
                 labelId = 0; // Default if no label found
             }
+            labelIds = [labelId];
+            isUncertain = labelId === "-1" || labelId === -1;
+        }
 
-            // Check if this box is uncertain (label = -1)
-            const isUncertain = labelId === "-1" || labelId === -1;
-
-            // Check if this box is a crowd box
-            const isCrowd = bboxData.crowd_flags && bboxData.crowd_flags[index];
-
-            // Check if this box is a reflected box
-            const isReflected = bboxData.reflected_flags && bboxData.reflected_flags[index];
-
-            // Check if this box is a rendition box
-            const isRendition = bboxData.rendition_flags && bboxData.rendition_flags[index];
-
-            // Check if this box is an ocr_needed box
-            const isOcrNeeded = bboxData.ocr_needed_flags && bboxData.ocr_needed_flags[index];
+        // Get flags for styling
+        let isCrowd, isReflected, isRendition, isOcrNeeded;
+        
+        if (isMultiLabel && flags) {
+            // Use aggregated flags from the group
+            isCrowd = flags.crowd;
+            isReflected = flags.reflected;
+            isRendition = flags.rendition;
+            isOcrNeeded = flags.ocrNeeded;
+        } else {
+            // Use flags from the individual box
+            const index = processedBox.originalIndex !== undefined ? processedBox.originalIndex : processedBox.index;
+            isCrowd = bboxData.crowd_flags && bboxData.crowd_flags[index];
+            isReflected = bboxData.reflected_flags && bboxData.reflected_flags[index];
+            isRendition = bboxData.rendition_flags && bboxData.rendition_flags[index];
+            isOcrNeeded = bboxData.ocr_needed_flags && bboxData.ocr_needed_flags[index];
+        }
 
             // Apply appropriate classes (order matters for specificity)
             if (isCrowd && isReflected && isRendition && isOcrNeeded) {
@@ -441,6 +551,8 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                 bboxDiv.classList.add('crowd-box');
             } else if (isUncertain) {
                 bboxDiv.classList.add('uncertain-box');
+            } else if (isMultiLabel) {
+                bboxDiv.classList.add('multilabel-box');
             }
 
             bboxDiv.style.left = `${boxLeft}px`;
@@ -451,11 +563,49 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
             // Add the box to the overlay
             overlay.appendChild(bboxDiv);
 
-            // Add the label - either "Not Sure" or the class name
+            // Add the label - handle multi-label, uncertain, or regular boxes
             if (isUncertain) {
                 const labelDiv = document.createElement('div');
                 labelDiv.className = 'bbox-label uncertain-label';
                 labelDiv.textContent = "Not Sure";
+
+                // Position the label
+                const labelHeight = 22;
+                const buffer = 5;
+                const labelTop = boxTop - labelHeight - buffer;
+                const isOutOfBoundsTop = labelTop < imgTop + buffer;
+
+                if (isOutOfBoundsTop) {
+                    labelDiv.style.left = `${boxLeft}px`;
+                    labelDiv.style.top = `${boxTop + buffer}px`;
+                    labelDiv.classList.add('below-top-left');
+                } else {
+                    labelDiv.style.left = `${boxLeft}px`;
+                    labelDiv.style.top = `${boxTop - labelHeight - buffer}px`;
+                }
+
+                overlay.appendChild(labelDiv);
+            } else if (isMultiLabel) {
+                // For multi-label boxes, show class IDs separated by commas (matching inline editor)
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'bbox-label multilabel-label';
+
+                // Get class IDs for display - just show the numeric IDs
+                let labelText;
+                if (labelIds.length > 0) {
+                    labelText = labelIds.join(', ');
+                    // Limit to 30 characters to match inline editor
+                    if (labelText.length > 30) {
+                        labelText = labelText.substring(0, 27) + '...';
+                    }
+                } else {
+                    labelText = "NO LABELS";
+                    labelDiv.style.fontStyle = 'italic';
+                    labelDiv.style.color = '#666';
+                    labelDiv.style.backgroundColor = 'rgba(136, 136, 136, 0.85)';
+                }
+
+                labelDiv.textContent = labelText;
 
                 // Position the label
                 const labelHeight = 22;
@@ -514,7 +664,8 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
                     labelDiv.classList.add('crowd-label');
                 }
 
-                // Get the class name
+                // Get the class name (for single label)
+                const labelId = labelIds[0];
                 let labelName = classLabelMap[labelId] || `Class ${labelId}`;
                 if (labelName.length > 30) {
                     labelName = labelName.substring(0, 27) + '...';
@@ -539,7 +690,6 @@ function renderBoxes(overlay, bboxData, imgLeft, imgTop, scaleX, scaleY, imgHeig
 
                 overlay.appendChild(labelDiv);
             }
-        }
     });
 }
 
