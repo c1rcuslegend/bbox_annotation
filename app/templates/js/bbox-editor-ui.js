@@ -1808,6 +1808,11 @@ class BBoxEditorUI {
         this.bboxes.labels.push(newClassIndex);
         this.bboxes.group.push(groupId);
         
+        // Remove OOD border if it exists (when adding a bbox after marking as "None of ImageNet")
+        if (window.removeOODBorder) {
+            window.removeOODBorder();
+        }
+        
         // Add other flags as well
         if (this.bboxes.crowd_flags) {
             this.bboxes.crowd_flags.push(this.bboxes.crowd_flags[sourceBoxIndex]);
@@ -2813,10 +2818,24 @@ class BBoxEditorUI {
             console.log("Drawing box with Not Sure mode:", this.notSureMode ? "ON" : "OFF");
         });
 
-        canvas.addEventListener('mousemove', (e) => {
+        // Add document-level mousemove listener to handle mouse movements outside canvas
+        document.addEventListener('mousemove', (e) => {
+            // Only process if we're in an active drawing/dragging/resizing operation
+            if (!this.isDrawingNew && !isDragging && !isResizing) return;
+
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            // Constrain coordinates to image boundaries (not canvas boundaries)
+            // This allows proper drawing even when mouse goes outside the canvas
+            const imageLeft = this.offsetX;
+            const imageTop = this.offsetY;
+            const imageRight = this.offsetX + (this.img.naturalWidth * this.scale);
+            const imageBottom = this.offsetY + (this.img.naturalHeight * this.scale);
+            
+            x = Math.max(imageLeft, Math.min(imageRight, x));
+            y = Math.max(imageTop, Math.min(imageBottom, y));
 
             // Handle resizing existing boxes
             if (isResizing && this.selectedIndex >= 0) {
@@ -2949,6 +2968,16 @@ class BBoxEditorUI {
                 this.updatePreviewCanvas(true); // true = show temporary box
                 return;
             }
+        });
+
+        // Add canvas-level mousemove for cursor updates (when not actively drawing/dragging)
+        canvas.addEventListener('mousemove', (e) => {
+            // Skip cursor updates if we're actively drawing, dragging, or resizing
+            if (this.isDrawingNew || isDragging || isResizing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
             // Update cursor based on mouse position
             if (this.selectedIndex >= 0) {
@@ -2977,7 +3006,8 @@ class BBoxEditorUI {
             }
         });
 
-        canvas.addEventListener('mouseup', (e) => {
+        // Use document-level mouseup to catch mouse releases outside canvas
+        document.addEventListener('mouseup', (e) => {
             // If we were drawing a new box, finalize it
             if (this.isDrawingNew && this.tempBox) {
                 const width = this.tempBox[2] - this.tempBox[0];
@@ -3011,6 +3041,11 @@ class BBoxEditorUI {
                     // Add the new box with a default score
                     this.bboxes.boxes.push([...this.tempBox]);
                     this.bboxes.scores.push(100); // 100% confidence for user-drawn boxes
+                    
+                    // Remove OOD border if it exists (when adding a bbox after marking as "None of ImageNet")
+                    if (window.removeOODBorder) {
+                        window.removeOODBorder();
+                    }
 
                     // Get index of the new box
                     const newIndex = this.bboxes.boxes.length - 1;
@@ -3173,7 +3208,8 @@ class BBoxEditorUI {
                         }
                     }
 
-                    // Update the editor's canvas
+                    // Update both the editor's canvas and preview canvas
+                    this.updatePreviewCanvas(); // Update preview canvas to show the new box
                     if (this.editor) {
                         this.editor.redrawCanvas();
                     }
@@ -3186,6 +3222,9 @@ class BBoxEditorUI {
 
                 // Clean up temporary box
                 delete this.tempBox;
+                
+                // Update preview canvas to clear temp box even if box wasn't created
+                this.updatePreviewCanvas();
             }
 
             // Reset drawing state completely
@@ -3313,8 +3352,17 @@ class BBoxEditorUI {
 
         console.log(`BBoxEditorUI: Saving ${bboxDataArray.length} boxes with label_type: ${labelType}`);
 
+        // Check if we're in sanity check mode
+        const sanityModeElement = document.querySelector('input[name="sanity_check_mode"]');
+        const sanityMode = sanityModeElement ? sanityModeElement.value : null;
+        
+        // Determine the save endpoint based on sanity mode
+        const saveEndpoint = sanityMode ? `/${username}/save_bboxes_sanity/${sanityMode}` : `/${username}/save_bboxes`;
+        
+        console.log(`BBoxEditorUI: Using save endpoint: ${saveEndpoint}`);
+
         // Make AJAX call to save the bboxes
-        fetch(`/${username}/save_bboxes`, {
+        fetch(saveEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

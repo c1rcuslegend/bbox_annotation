@@ -563,8 +563,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 
 		// Set label_type to uncertain if any box is uncertain, otherwise basic
+		// But preserve "ood" if it's already set
 		const labelTypeField = document.getElementById('label_type');
-		if (labelTypeField) {
+		if (labelTypeField && labelTypeField.value !== 'ood') {
 			if (hasUncertainBoxes) {
 				labelTypeField.value = "uncertain";
 			} else {
@@ -1483,6 +1484,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		inlineEditor.bboxes.boxes.push([...currentBox]);
 		inlineEditor.bboxes.labels.push(classId);
 		inlineEditor.bboxes.scores.push(1.0);
+		
+		// Remove OOD border if it exists (when adding a bbox after marking as "None of ImageNet")
+		if (window.removeOODBorder) {
+			window.removeOODBorder();
+		}
 		
 		// Make sure to copy all flags
 		if (inlineEditor.bboxes.crowd_flags) {
@@ -3189,6 +3195,11 @@ function updateDropdownVisibility(forceMultiLabel = null) {
 		inlineEditor.bboxes.labels.push(newClassId);
 		inlineEditor.bboxes.group.push(groupId);
 		
+		// Remove OOD border if it exists (when adding a bbox after marking as "None of ImageNet")
+		if (window.removeOODBorder) {
+			window.removeOODBorder();
+		}
+		
 		// Add other flags as well
 		if (inlineEditor.bboxes.crowd_flags) {
 			inlineEditor.bboxes.crowd_flags.push(inlineEditor.bboxes.crowd_flags[sourceBoxIndex]);
@@ -3654,8 +3665,17 @@ function updateDropdownVisibility(forceMultiLabel = null) {
 		debug(`Saving ${bboxDataArray.length} bboxes with label_type: ${saveData.label_type}`);
 		debug(`Save data preview: ${JSON.stringify(saveData).substring(0, 200)}...`);
 
+		// Check if we're in sanity check mode
+		const sanityModeElement = document.querySelector('input[name="sanity_check_mode"]');
+		const sanityMode = sanityModeElement ? sanityModeElement.value : null;
+		
+		// Determine the save endpoint based on sanity mode
+		const saveEndpoint = sanityMode ? `/${username}/save_bboxes_sanity/${sanityMode}` : `/${username}/save_bboxes`;
+		
+		debug(`Using save endpoint: ${saveEndpoint}`);
+
 		// Make AJAX call
-		fetch(`/${username}/save_bboxes`, {
+		fetch(saveEndpoint, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -3997,6 +4017,11 @@ function updateDropdownVisibility(forceMultiLabel = null) {
 					// Add the new box
 					inlineEditor.bboxes.boxes.push(newBox);
 					inlineEditor.bboxes.scores.push(100);
+					
+					// Remove OOD border if it exists (when adding a bbox after marking as "None of ImageNet")
+					if (window.removeOODBorder) {
+						window.removeOODBorder();
+					}
 
 					// Make sure arrays exist with proper length
 					if (!inlineEditor.bboxes.crowd_flags) {

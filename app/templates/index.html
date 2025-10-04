@@ -74,6 +74,62 @@
         }
 
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sanityCheckToggle = document.getElementById('sanityCheckToggle');
+            const modeSelection = document.getElementById('modeSelection');
+            const loginForm = document.getElementById('loginForm');
+            
+            // Toggle mode selection visibility
+            sanityCheckToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    modeSelection.style.display = 'block';
+                } else {
+                    modeSelection.style.display = 'none';
+                    // Clear selection when toggled off
+                    document.querySelectorAll('input[name="sanityMode"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                }
+            });
+            
+            // Validate form on submit
+            loginForm.addEventListener('submit', function(e) {
+                const username = document.getElementById('username').value.trim();
+                
+                if (!username) {
+                    e.preventDefault();
+                    alert('Please enter a username');
+                    return;
+                }
+                
+                if (sanityCheckToggle.checked) {
+                    const selectedMode = document.querySelector('input[name="sanityMode"]:checked');
+                    if (!selectedMode) {
+                        e.preventDefault();
+                        alert('Please select a mode (Mode 1 or Mode 2)');
+                        return;
+                    }
+                    
+                    // Set hidden inputs for form submission
+                    document.getElementById('sanityCheckModeInput').value = 'true';
+                    document.getElementById('selectedModeInput').value = selectedMode.value;
+                    
+                    // Also store in localStorage for client-side checks
+                    localStorage.setItem('sanityCheckMode', 'true');
+                    localStorage.setItem('selectedMode', selectedMode.value);
+                } else {
+                    // Clear hidden inputs
+                    document.getElementById('sanityCheckModeInput').value = '';
+                    document.getElementById('selectedModeInput').value = '';
+                    
+                    // Clear any previous sanity check mode settings
+                    localStorage.removeItem('sanityCheckMode');
+                    localStorage.removeItem('selectedMode');
+                }
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -82,9 +138,35 @@
                 <img src="{{ url_for('static', filename='vrg_favicon.ico') }}" alt="Central Image" style="width: 100px; height: 100px;">
             </div>
             <div class="login-title">Welcome</div>
-            <form action="{{ url_for('index') }}" method="post">
+            <form action="{{ url_for('index') }}" method="post" id="loginForm">
                 <input id="username" name="username" type="text" placeholder="Username">
-                <input type="submit" value="Login">
+                
+                <!-- Hidden inputs for sanity check mode -->
+                <input type="hidden" id="sanityCheckModeInput" name="sanityCheckMode" value="">
+                <input type="hidden" id="selectedModeInput" name="selectedMode" value="">
+                
+                <!-- Sanity Check Mode Toggle -->
+                <div style="margin-top: 15px; margin-bottom: 10px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="sanityCheckToggle" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                        <span style="font-weight: 500;">Verification Mode</span>
+                    </label>
+                </div>
+                
+                <!-- Mode Selection (hidden by default) -->
+                <div id="modeSelection" style="display: none; margin-bottom: 15px; padding: 10px; background-color: #f5f7fa; border-radius: 5px; border: 1px solid #ccd7e4;">
+                    <div style="margin-bottom: 8px; font-weight: 500;">Select Mode:</div>
+                    <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+                        <input type="radio" name="sanityMode" value="1" style="margin-right: 8px; cursor: pointer;">
+                        Mode S
+                    </label>
+                    <label style="display: block; cursor: pointer;">
+                        <input type="radio" name="sanityMode" value="2" style="margin-right: 8px; cursor: pointer;">
+                        Mode M
+                    </label>
+                </div>
+                
+                <input type="submit" value="Login" id="loginButton">
             </form>
             <p class="login-help">If you encounter any issues, please contact:</p>
             <ul>

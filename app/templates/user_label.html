@@ -52,7 +52,96 @@
                 document.getElementById('label_type').value = 'ood';
                 document.getElementById('direction').value = 'save';
                 
-                // Submit the form and navigate back to grid
+                {% if sanity_check_mode %}
+                // Sanity check mode: Delete all bboxes and add black border
+                
+                // Delete all bboxes from both editors
+                if (window.bboxEditor && window.bboxEditor.bboxes) {
+                    window.bboxEditor.bboxes.boxes = [];
+                    window.bboxEditor.bboxes.labels = [];
+                    window.bboxEditor.bboxes.scores = [];
+                    window.bboxEditor.bboxes.crowd_flags = [];
+                    window.bboxEditor.bboxes.reflected_flags = [];
+                    window.bboxEditor.bboxes.rendition_flags = [];
+                    window.bboxEditor.bboxes.ocr_needed_flags = [];
+                    window.bboxEditor.bboxes.uncertain_flags = [];
+                    window.bboxEditor.bboxes.possible_labels = [];
+                    window.bboxEditor.bboxes.group = [];
+                    window.bboxEditor.bboxes.gt = [];
+                    if (window.bboxEditor.redrawCanvas) {
+                        window.bboxEditor.redrawCanvas();
+                    }
+                }
+                
+                if (window.inlineEditor && window.inlineEditor.bboxes) {
+                    window.inlineEditor.bboxes.boxes = [];
+                    window.inlineEditor.bboxes.labels = [];
+                    window.inlineEditor.bboxes.scores = [];
+                    window.inlineEditor.bboxes.crowd_flags = [];
+                    window.inlineEditor.bboxes.reflected_flags = [];
+                    window.inlineEditor.bboxes.rendition_flags = [];
+                    window.inlineEditor.bboxes.ocr_needed_flags = [];
+                    window.inlineEditor.bboxes.uncertain_flags = [];
+                    window.inlineEditor.bboxes.possible_labels = [];
+                    window.inlineEditor.bboxes.group = [];
+                    window.inlineEditor.bboxes.gt = [];
+                }
+                
+                // Add black border to the image container
+                const imageContainer = document.getElementById('image-with-bboxes');
+                if (imageContainer) {
+                    imageContainer.style.border = '5px solid black';
+                    imageContainer.style.boxSizing = 'border-box';
+                }
+                
+                // Show OOD indicator
+                const oodIndicator = document.getElementById('ood-indicator');
+                if (oodIndicator) {
+                    oodIndicator.style.display = 'inline';
+                }
+                
+                // Update bbox selector dropdowns
+                const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+                if (inlineBboxSelector) {
+                    inlineBboxSelector.innerHTML = '<option value="-1">No boxes</option>';
+                    inlineBboxSelector.value = '-1';
+                }
+                
+                const bboxSelector = document.getElementById('bbox-selector');
+                if (bboxSelector) {
+                    bboxSelector.innerHTML = '<option value="-1">No boxes</option>';
+                    bboxSelector.value = '-1';
+                }
+                
+                // Update hidden bboxes field
+                if (window.updateHiddenBboxesField && typeof window.updateHiddenBboxesField === 'function') {
+                    window.updateHiddenBboxesField();
+                }
+                
+                // Save without navigating away
+                const form = document.getElementById('save');
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('OOD label saved successfully in sanity mode');
+                        // Show feedback
+                        showKeyboardShortcutFeedback('Marked as "None of ImageNet" (Shift+S)');
+                    } else {
+                        console.error('Save failed');
+                        alert('Failed to save. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving:', error);
+                    alert('Error saving. Please try again.');
+                });
+                {% else %}
+                // Default mode: Submit the form and navigate back to grid
                 const form = document.getElementById('save');
                 const formData = new FormData(form);
 
@@ -73,6 +162,7 @@
                     console.error('Error saving:', error);
                     window.location.href = `/back2grid/{{ username }}`;
                 });
+                {% endif %}
             });
 
             document.getElementById('not-sure-btn').addEventListener('click', function(e) {
@@ -103,6 +193,45 @@
                 document.getElementById('uncertainty-modal-container').classList.remove('show-modal');
             });
         };
+
+        // Helper function to remove OOD (None of ImageNet) border
+        function removeOODBorder() {
+            const imageContainer = document.getElementById('image-with-bboxes');
+            if (imageContainer) {
+                imageContainer.style.border = '';
+                imageContainer.style.boxSizing = '';
+            }
+            // Hide OOD indicator
+            const oodIndicator = document.getElementById('ood-indicator');
+            if (oodIndicator) {
+                oodIndicator.style.display = 'none';
+            }
+            // Also reset label_type if it was ood
+            const labelTypeField = document.getElementById('label_type');
+            if (labelTypeField && labelTypeField.value === 'ood') {
+                labelTypeField.value = 'basic';
+            }
+        }
+
+        // Make it globally available so it can be called from inline-bbox-editor.js and bbox-editor-ui.js
+        window.removeOODBorder = removeOODBorder;
+
+        // Apply black border and OOD indicator on page load if label_type is "ood"
+        document.addEventListener('DOMContentLoaded', function() {
+            const labelTypeField = document.getElementById('label_type');
+            if (labelTypeField && labelTypeField.value === 'ood') {
+                const imageContainer = document.getElementById('image-with-bboxes');
+                if (imageContainer) {
+                    imageContainer.style.border = '5px solid black';
+                    imageContainer.style.boxSizing = 'border-box';
+                }
+                // Show OOD indicator
+                const oodIndicator = document.getElementById('ood-indicator');
+                if (oodIndicator) {
+                    oodIndicator.style.display = 'inline';
+                }
+            }
+        });
 
         function show_image(img) {
             // Only show modal for images that are not in the bbox container
@@ -156,6 +285,150 @@
                 window.location.href = `/back2grid/${username}`;
             });
         }
+
+        function uploadAnnotation(username, mode) {
+            // Show loading state
+            const uploadBtn = document.getElementById('upload-btn-sanity');
+            const btnContent = uploadBtn.querySelector('.upload-btn-content');
+            const btnLoading = uploadBtn.querySelector('.upload-btn-loading');
+            
+            if (uploadBtn && btnContent && btnLoading) {
+                uploadBtn.disabled = true;
+                btnContent.style.display = 'none';
+                btnLoading.style.display = 'inline-flex';
+            }
+            
+            // First, save bboxes if in advanced editor
+            let savePromise = Promise.resolve();
+            
+            if (window.bboxEditor && window.bboxEditor.bboxes) {
+                // Get the image name from the hidden form input
+                const imageNameInput = document.querySelector('input[name="image_name"]');
+                const imageName = imageNameInput ? imageNameInput.value : '';
+                
+                // Get bboxes directly from the bboxEditor object
+                const bboxes = window.bboxEditor.bboxes;
+                
+                // Format bboxes for saving (similar to saveBboxes method)
+                let bboxDataArray = [];
+                let hasUncertainBoxes = false;
+                
+                if (bboxes.uncertain_flags) {
+                    hasUncertainBoxes = bboxes.uncertain_flags.some(flag => flag === true);
+                }
+                if (!hasUncertainBoxes && bboxes.labels) {
+                    hasUncertainBoxes = bboxes.labels.some(label => label === -1);
+                }
+                
+                const labelType = hasUncertainBoxes ? "uncertain" : "basic";
+                
+                bboxes.boxes.forEach((box, i) => {
+                    const isUncertain = (bboxes.uncertain_flags && bboxes.uncertain_flags[i]) ||
+                                       (bboxes.labels && bboxes.labels[i] === -1);
+                    
+                    let bboxData = {
+                        coordinates: box,
+                        crowd_flag: bboxes.crowd_flags && bboxes.crowd_flags[i],
+                        reflected_flag: bboxes.reflected_flags && bboxes.reflected_flags[i],
+                        rendition_flag: bboxes.rendition_flags && bboxes.rendition_flags[i],
+                        ocr_needed_flag: bboxes.ocr_needed_flags && bboxes.ocr_needed_flags[i]
+                    };
+                    
+                    if (isUncertain) {
+                        bboxData.uncertain_flag = true;
+                        bboxData.label = -1;
+                        bboxData.possible_labels = (bboxes.possible_labels && bboxes.possible_labels[i]) || [];
+                    } else {
+                        let label = 0;
+                        if (bboxes.labels && bboxes.labels[i] !== undefined) {
+                            label = bboxes.labels[i];
+                        } else if (bboxes.gt && bboxes.gt[i] !== undefined) {
+                            label = bboxes.gt[i];
+                        }
+                        bboxData.label = label;
+                    }
+                    
+                    bboxDataArray.push(bboxData);
+                });
+                
+                // Determine the save endpoint based on mode
+                const saveEndpoint = mode ? `/${username}/save_bboxes_sanity/${mode}` : `/${username}/save_bboxes`;
+                
+                savePromise = fetch(saveEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_name: imageName,
+                        bboxes: bboxDataArray,
+                        label_type: labelType,
+                        timestamp: Date.now()
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save bboxes');
+                    }
+                    return response.json();
+                });
+            }
+            
+            // After saving bboxes, trigger Google Drive upload
+            savePromise
+            .then(() => {
+                return fetch('/upload_to_drive', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Annotations uploaded to Google Drive successfully!');
+                    // Stay on current image - just reload to show saved state
+                    window.location.reload();
+                } else {
+                    console.error('Upload failed:', data);
+                    alert('Failed to upload annotations to Google Drive. Please try again.');
+                    // Reset button state on error
+                    if (uploadBtn && btnContent && btnLoading) {
+                        uploadBtn.disabled = false;
+                        btnContent.style.display = 'inline-flex';
+                        btnLoading.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading:', error);
+                alert('Error uploading annotations. Please try again.');
+                // Reset button state on error
+                if (uploadBtn && btnContent && btnLoading) {
+                    uploadBtn.disabled = false;
+                    btnContent.style.display = 'inline-flex';
+                    btnLoading.style.display = 'none';
+                }
+            });
+        }
+
+        function jumpToImage(username, mode) {
+            const input = document.getElementById('jump-to-image-input');
+            const targetIndex = parseInt(input.value);
+            const totalImages = {{ total_images if total_images is defined else 0 }};
+            
+            // Validate input
+            if (isNaN(targetIndex) || targetIndex < 1 || targetIndex > totalImages) {
+                alert(`Please enter a valid image number between 1 and ${totalImages}`);
+                return;
+            }
+            
+            // Convert from 1-based to 0-based index
+            const imageIndex = targetIndex - 1;
+            
+            // Navigate to the target image in sanity check mode
+            window.location.href = `/${username}/sanity_check/${mode}/detail?image_index=${imageIndex}`;
+        }
     </script>
     <script src="{{ url_for('static', filename='js/bbox-editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bbox-editor-ui.js') }}"></script>
@@ -170,10 +443,49 @@
 
 <body>
     <div class="top-nav">
+        {% if sanity_check_mode %}
+        <button id="upload-btn-sanity" onclick="uploadAnnotation('{{ username }}', '{{ sanity_check_mode_number }}')" class="nav-btn upload-btn-sanity" title="Upload annotations">
+            <span class="upload-btn-content">
+                <i class="nav-icon">☁↑</i>
+            </span>
+            <span class="upload-btn-loading" style="display: none;">
+                <i class="nav-icon spinner">⟳</i>
+            </span>
+        </button>
+        <!-- Sanity Check Mode: Display Blinded Predictions in Top Nav -->
+        <div style="flex: 1; display: flex; gap: 15px; padding: 0 20px; overflow-x: auto;">
+            {% for letter in ['A', 'B', 'C', 'D'] %}
+            <div style="min-width: 200px; padding: 8px 12px; background: #f8fbff; border-left: 3px solid #3f72af; border-radius: 4px; font-size: 13px;">
+                <div style="font-weight: 600; color: #112d4e; margin-bottom: 4px;">{{ letter }}:</div>
+                <div style="color: #000000; line-height: 1.4; font-size: 14px;">{{ blinded_predictions[letter] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="padding: 0 15px; color: #000000; font-size: 13px; white-space: nowrap; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+            <div>Image {{ current_image_index + 1 }} / {{ total_images }}</div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="number" 
+                       id="jump-to-image-input" 
+                       min="1" 
+                       max="{{ total_images }}" 
+                       value="{{ current_image_index + 1 }}"
+                       placeholder="Jump to..."
+                       style="width: 60px; padding: 4px 6px; border: 1px solid #cbd5e0; border-radius: 3px; font-size: 12px; text-align: center;"
+                       onkeypress="if(event.key === 'Enter') { event.preventDefault(); jumpToImage('{{ username }}', '{{ sanity_check_mode_number }}'); }">
+                <button onclick="jumpToImage('{{ username }}', '{{ sanity_check_mode_number }}')" 
+                        style="padding: 4px 8px; background: #3f72af; color: white; border: none; border-radius: 3px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.2s;"
+                        onmouseover="this.style.background='#2e5a8a'"
+                        onmouseout="this.style.background='#3f72af'">
+                    Go
+                </button>
+            </div>
+        </div>
+        {% else %}
         <button onclick="saveAndGoBack('{{ username }}')" class="nav-btn back-btn">
             <i class="nav-icon">◀</i> All images
         </button>
         <div class="title-placeholder"></div>
+        {% endif %}
     </div>
 
     <div class="row">
@@ -189,7 +501,10 @@
 
                     <!-- Box selector -->
                     <div class="control-group">
-                        <label for="inline-bbox-selector">Select Box:</label>
+                        <label for="inline-bbox-selector">
+                            Select Box:
+                            <span id="ood-indicator" style="display: none; color: #d32f2f; font-weight: bold; margin-left: 8px;">OOD</span>
+                        </label>
                         <select id="inline-bbox-selector" class="editor-selector"></select>
                     </div>
 
@@ -294,8 +609,10 @@
                     <img class="thumbnail-main enlarged-image" src="/{{ predicted_image }}" alt="Input Image">
                 </div>
 
-                <!-- Ground truth label -->
+                <!-- Ground truth label (hidden in sanity check mode) -->
+                {% if not sanity_check_mode %}
                 <div class="gt-label">Ground Truth: {{ ground_truth_label|default('Unknown') }}</div>
+                {% endif %}
 
                 <!-- Hidden inputs for form submission -->
                 <input form="save" style="display:none;" type="text" name="image_name" value="{{ predicted_image.lstrip('static/images') }}">
@@ -308,6 +625,7 @@
         </div>
     </div>
 
+    {% if not sanity_check_mode %}
     <div class="row">
         <div class="page_number">20 Most likely labels -> </div>
         <div id="page1" class="page_number selected" onclick="pageSelect(1);">1-5</div>
@@ -318,15 +636,26 @@
             <span class="refresh-icon">↻</span> Refresh
         </div>
     </div>
+    {% endif %}
 
     <div class="row">
         <p>
+            {% if sanity_check_mode %}
+            <form id="save" action="{{ url_for('save_sanity_check', username=username, mode=sanity_check_mode_number) }}" method="post">
+            {% else %}
             <form id="save" action="{{ url_for('save', username=username) }}" method="post">
+            {% endif %}
                 <!-- Hidden inputs for label type and selected classes -->
-                <input type="hidden" id="label_type" name="label_type" value="basic">
+                <input type="hidden" id="label_type" name="label_type" value="{{ label_type }}">
                 <input type="hidden" id="selected_classes" name="selected_classes" value="{}">
+                {% if sanity_check_mode %}
+                <input type="hidden" name="current_image_index" value="{{ current_image_index }}">
+                <input type="hidden" name="sanity_check_mode" value="{{ sanity_check_mode_number }}">
+                {% endif %}
             </form>
 
+            {% if not sanity_check_mode %}
+            <!-- Default Mode: Display Similar Images -->
             {% for pred_info, images in similar_images.items() %}
                 {% if loop.index < 21 %}
                     <div class="column
@@ -351,6 +680,7 @@
                     </div>
                 {% endif %}
             {% endfor %}
+            {% endif %}
     </div>
 
     <!-- Image Modal -->

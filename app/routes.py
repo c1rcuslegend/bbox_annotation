@@ -290,7 +290,7 @@ def register_routes(app):
 
         For a GET request, renders and returns the homepage ('index.html').
         For a POST request, extracts the 'username' from the form data, logs it,
-        and redirects to the 'grid_image' route with the username.
+        and redirects to the 'grid_image' route or sanity_check route with the username.
 
         Returns:
             Rendered template ('index.html') on GET request or redirection to
@@ -298,13 +298,313 @@ def register_routes(app):
         """
         if request.method == 'POST':
             username = request.form.get('username')
+            sanity_check_mode = request.form.get('sanityCheckMode')
+            selected_mode = request.form.get('selectedMode')
+            
             app.logger.info(f"Username received: {username}")
+            app.logger.info(f"Sanity Check Mode: {sanity_check_mode}, Selected Mode: {selected_mode}")
 
             if username == 'admin':
                 return redirect(url_for('compare', username=username, class_index=0))
+            
+            # Check if sanity check mode is enabled
+            if sanity_check_mode == 'true' and selected_mode in ['1', '2']:
+                return redirect(url_for('sanity_check', username=username, mode=selected_mode))
+            
             return redirect(url_for('grid_image', username=username))
         else:
             return render_template('index.html')
+
+    @app.route('/<username>/sanity_check/<mode>')
+    def sanity_check(username, mode):
+        """
+        Renders the sanity check mode interface for evaluating model predictions.
+        
+        Args:
+            username (str): The username of the annotator
+            mode (str): Either '1' or '2' for different evaluation datasets
+            
+        Returns:
+            Rendered template with sanity check interface
+        """
+        if username not in app.user_cache:
+            return "No such user exists. Please check it again."
+
+        # Determine which evaluation report to load based on mode
+        if mode == '1':
+            eval_file = 'evaluation_report_M-_1522.json'
+        elif mode == '2':
+            eval_file = 'evaluation_report_S-_1890.json'
+        else:
+            return "Invalid mode. Please select Mode 1 or Mode 2."
+
+        # Load evaluation report
+        eval_report_path = os.path.join(
+            app.config['ANNOTATORS_ROOT_DIRECTORY'], 
+            username, 
+            eval_file
+        )
+        
+        try:
+            with open(eval_report_path, 'r') as f:
+                evaluation_data = json.load(f)
+        except FileNotFoundError:
+            return f"Evaluation report not found: {eval_file}"
+        except json.JSONDecodeError:
+            return f"Error reading evaluation report: {eval_file}"
+
+        # Get class names and mappings
+        label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+        
+        # Get image list
+        image_list = [img for img in evaluation_data.keys() if evaluation_data[img]]
+        if not image_list:
+            return "No images found in evaluation report"
+        
+        # Load last viewed image index from separate file for this mode
+        sanity_check_index_file = os.path.join(
+            app.config['ANNOTATORS_ROOT_DIRECTORY'],
+            username,
+            f'current_image_index_sanity_{mode}_{username}.txt'
+        )
+        
+        try:
+            with open(sanity_check_index_file, 'r') as f:
+                current_image_index = int(f.read().strip())
+                # Validate index
+                if current_image_index >= len(image_list) or current_image_index < 0:
+                    current_image_index = 0
+        except (FileNotFoundError, ValueError):
+            current_image_index = 0
+        
+        # Redirect to sanity check detailed view with the last viewed index
+        return redirect(url_for('sanity_check_detail', 
+                              username=username, 
+                              mode=mode,
+                              image_index=current_image_index))
+
+    @app.route('/<username>/sanity_check/<mode>/detail')
+    def sanity_check_detail(username, mode):
+        """
+        Renders the detailed sanity check view with blinded predictions.
+        
+        Args:
+            username (str): The username of the annotator
+            mode (str): Either '1' or '2' for different evaluation datasets
+            
+        Returns:
+            Rendered template with sanity check detailed view
+        """
+        if username not in app.user_cache:
+            return "No such user exists. Please check it again."
+
+        # Determine which evaluation report to load based on mode
+        if mode == '1':
+            eval_file = 'evaluation_report_M-_1522.json'
+        elif mode == '2':
+            eval_file = 'evaluation_report_S-_1890.json'
+        else:
+            return "Invalid mode. Please select Mode 1 or Mode 2."
+
+        # Load evaluation report
+        eval_report_path = os.path.join(
+            app.config['ANNOTATORS_ROOT_DIRECTORY'], 
+            username, 
+            eval_file
+        )
+        
+        try:
+            with open(eval_report_path, 'r') as f:
+                evaluation_data = json.load(f)
+        except FileNotFoundError:
+            return f"Evaluation report not found: {eval_file}"
+        except json.JSONDecodeError:
+            return f"Error reading evaluation report: {eval_file}"
+
+        # Get class names and mappings
+        label_indices_to_label_names, label_indices_to_human_readable = get_label_indices_to_label_names_dicts(app)
+        
+        # Get image list and current index
+        image_list = [img for img in evaluation_data.keys() if evaluation_data[img]]  # Filter out empty entries
+        if not image_list:
+            return "No images found in evaluation report"
+        
+        # Load current image index from separate file for sanity check mode
+        sanity_check_index_file = os.path.join(
+            app.config['ANNOTATORS_ROOT_DIRECTORY'],
+            username,
+            f'current_image_index_sanity_{mode}_{username}.txt'
+        )
+        
+        # Try to get index from URL parameter first, otherwise load from file
+        current_image_index = request.args.get('image_index', None, type=int)
+        if current_image_index is None:
+            # Load from file
+            try:
+                with open(sanity_check_index_file, 'r') as f:
+                    current_image_index = int(f.read().strip())
+            except (FileNotFoundError, ValueError):
+                current_image_index = 0
+        
+        # Validate and wrap index
+        if current_image_index >= len(image_list):
+            current_image_index = 0
+        elif current_image_index < 0:
+            current_image_index = len(image_list) - 1
+        
+        # Save the current index to file for next time
+        try:
+            with open(sanity_check_index_file, 'w') as f:
+                f.write(str(current_image_index))
+        except Exception as e:
+            app.logger.error(f"Error saving sanity check index: {e}")
+            
+        current_image_name = image_list[current_image_index]
+        current_image_data = evaluation_data[current_image_name]
+        
+        # Get class dict to find image path
+        class_dict = ClassDictionary()
+        current_gt_class = class_dict.get_val_img_class(current_image_name)
+        current_class_name = label_indices_to_label_names[str(current_gt_class)]
+        current_imagepath = os.path.join(current_class_name, current_image_name)
+        
+        # Copy image to static directory
+        copy_to_static_dir([current_imagepath], 
+                          app.config['ANNOTATIONS_ROOT_FOLDER'],
+                          os.path.join(app.config['APP_ROOT_FOLDER'], app.config['STATIC_FOLDER'], 'images'))
+        
+        current_imagepath = os.path.join(app.config['STATIC_FOLDER'], 'images', current_imagepath)
+        
+        # Determine mode suffix for file naming: Mode 1 = 'S', Mode 2 = 'M'
+        mode_suffix = 'S' if mode == '1' else 'M'
+        
+        # Load existing annotations from mode-specific file
+        checkbox_selections = load_user_data(app, username, mode=mode_suffix)
+        
+        # Check for existing bboxes
+        checked_categories = []
+        bboxes = None
+        label_type = "basic"
+        
+        if current_image_name in checkbox_selections:
+            data = checkbox_selections[current_image_name]
+            
+            if isinstance(data, dict) and 'label_type' in data:
+                label_type = data.get('label_type', 'basic')
+                
+                if 'bboxes' in data and isinstance(data['bboxes'], list) and len(data['bboxes']) > 0:
+                    boxes = []
+                    scores = []
+                    labels = []
+                    crowd_flags = []
+                    reflected_flags = []
+                    rendition_flags = []
+                    ocr_needed_flags = []
+                    uncertain_flags = []
+                    possible_labels = []
+                    group = []
+                    checked_labels = set()
+                    
+                    for bbox in data['bboxes']:
+                        boxes.append(bbox['coordinates'])
+                        label = bbox.get('label', -1)
+                        labels.append(label)
+                        scores.append(100)
+                        crowd_flags.append(bbox.get('crowd_flag', False))
+                        reflected_flags.append(bbox.get('reflected_flag', False))
+                        rendition_flags.append(bbox.get('rendition_flag', False))
+                        ocr_needed_flags.append(bbox.get('ocr_needed_flag', False))
+                        uncertain_flags.append(bbox.get('uncertain_flag', False))
+                        possible_labels.append(bbox.get('possible_label', []))
+                        group.append(bbox.get('group', None))
+                        checked_labels.add(str(label))
+                    
+                    if label_type == "basic" and checked_labels:
+                        checked_categories = [label_id for label_id in checked_labels if
+                                            label_id in label_indices_to_label_names]
+                    
+                    bboxes = {
+                        'boxes': boxes,
+                        'scores': scores,
+                        'labels': labels,
+                        'crowd_flags': crowd_flags,
+                        'reflected_flags': reflected_flags,
+                        'rendition_flags': rendition_flags,
+                        'ocr_needed_flags': ocr_needed_flags,
+                        'uncertain_flags': uncertain_flags,
+                        'possible_labels': possible_labels,
+                        'group': group
+                    }
+        
+        # If no bboxes found, create empty structure
+        if bboxes is None:
+            bboxes = {
+                'boxes': [], 'scores': [], 'labels': [], 
+                'crowd_flags': [], 'reflected_flags': [], 
+                'rendition_flags': [], 'ocr_needed_flags': [],
+                'uncertain_flags': [], 'possible_labels': [], 'group': []
+            }
+        
+        # Prepare blinded predictions data
+        # Create a mapping of letters to prediction keys
+        prediction_keys = ['annotation_labels', 'ChatGPT_prediction', 'SigLip_2_prediction', 'ground_truth']
+        letters = ['A', 'B', 'C', 'D']
+        
+        # Generate a deterministic random mapping based on image name (so it stays consistent)
+        import random
+        random.seed(hash(current_image_name) % (2**32))
+        shuffled_letters = letters.copy()
+        random.shuffle(shuffled_letters)
+        
+        # Create the mapping
+        letter_mapping = {}
+        for i, key in enumerate(prediction_keys):
+            letter_mapping[shuffled_letters[i]] = key
+        
+        # Create the blinded predictions display
+        blinded_predictions = {}
+        for letter in ['A', 'B', 'C', 'D']:
+            key = letter_mapping[letter]
+            if key in current_image_data:
+                class_ids = current_image_data[key]
+                if not isinstance(class_ids, list):
+                    class_ids = [class_ids]
+                
+                # Format the prediction text
+                formatted_labels = []
+                for class_id in class_ids:
+                    if class_id == -1:
+                        formatted_labels.append('-1 - [No prediction]')
+                    else:
+                        class_name = label_indices_to_human_readable.get(str(class_id), f'Class {class_id}')
+                        formatted_labels.append(f'{class_id} - {class_name}')
+                
+                blinded_predictions[letter] = ', '.join(formatted_labels) if formatted_labels else '-1 - [No prediction]'
+            else:
+                blinded_predictions[letter] = '-1 - [No prediction]'
+        
+        # Render the template
+        return render_template('user_label.html',
+                             predicted_image=current_imagepath,
+                             similar_images={},  # Empty for sanity check mode
+                             username=username,
+                             ground_truth_label=class_dict.get_class_name(current_gt_class),
+                             ground_truth_class_index=current_gt_class,
+                             checked_categories=checked_categories,
+                             comments={},
+                             human_readable_classes_map=label_indices_to_human_readable,
+                             current_image_index=current_image_index,
+                             num_similar_images=0,  # No similar images in sanity check mode
+                             bboxes=bboxes,
+                             image_name=[current_imagepath],
+                             bboxes_source='sanity_check',
+                             label_type=label_type,
+                             cluster_name='Sanity Check',
+                             clusters={},
+                             sanity_check_mode=True,  # Flag to indicate sanity check mode
+                             sanity_check_mode_number=mode,
+                             blinded_predictions=blinded_predictions,
+                             total_images=len(image_list))
 
     @app.route('/<username>/compare/<int:class_index>')
     def compare(username, class_index=None):
@@ -1139,7 +1439,7 @@ def register_routes(app):
         bboxes_dict = app.load_bbox_openclip_data(username)
         man_annotated_bboxes_dict = read_json_file(
             os.path.join(app.config['ANNOTATORS_ROOT_DIRECTORY'], username, f'checkbox_selections_{username}.json'),
-            app)
+            app) or {}
 
         checked_images_count = 0
         # Process each image in the grid
@@ -1219,7 +1519,7 @@ def register_routes(app):
         # Get form data
         image_name, checkbox_values, direction = get_form_data()
 
-        # Extract the base image name - we only save with base image name as key
+        # Extract the base image name - we only save with base_image_name as key
         base_image_name = os.path.basename(image_name)
 
         # Get new label_type field (default to "basic")
@@ -1336,6 +1636,96 @@ def register_routes(app):
         print(f"Time taken in save: {timeit.default_timer() - start}")
         return redirect(url_for('label_image', username=username))
 
+    @app.route('/<username>/sanity_check/<mode>/save', methods=['POST'])
+    def save_sanity_check(username, mode):
+        """Save annotations for sanity check mode and navigate to next/previous image."""
+        import timeit
+        start = timeit.default_timer()
+
+        # Get form data
+        image_name, checkbox_values, direction = get_form_data()
+
+        # Extract the base image name
+        base_image_name = os.path.basename(image_name)
+
+        # Get label_type field (default to "basic")
+        label_type = request.form.get('label_type', 'basic')
+
+        # Check for bboxes_data field
+        bboxes_data = request.form.get('bboxes_data')
+        bboxes = []
+        if bboxes_data:
+            try:
+                bboxes = json.loads(bboxes_data)
+                app.logger.info(f"Loaded {len(bboxes)} bboxes from form data")
+                for box in bboxes['bboxes']:
+                    if 'label' in box and box['label'] == -1:
+                        box['label'] = '-1'
+            except json.JSONDecodeError:
+                app.logger.error(f"Invalid JSON for bboxes_data: {bboxes_data}")
+                bboxes = []
+
+        # Determine mode suffix for file naming: Mode 1 = 'S', Mode 2 = 'M'
+        mode_suffix = 'S' if mode == '1' else 'M'
+
+        # Load and update user data from mode-specific file
+        checkbox_selections = load_user_data(app, username, mode=mode_suffix)
+
+        # Create or update the image data structure
+        if bboxes:
+            image_data = {
+                "bboxes": bboxes['bboxes'],
+                "label_type": label_type
+            }
+            checkbox_selections[base_image_name] = image_data
+        else:
+            image_data = {
+                "bboxes": [],
+                "label_type": label_type
+            }
+            checkbox_selections[base_image_name] = image_data
+
+        # Save the updated checkbox selections to mode-specific file
+        save_user_data(app, username, checkbox_selections=checkbox_selections, mode=mode_suffix)
+
+        # Get current image index and navigate
+        current_image_index = int(request.form.get('current_image_index', 0))
+        
+        # Determine which evaluation report to load based on mode
+        if mode == '1':
+            eval_file = 'evaluation_report_M-_1522.json'
+        else:
+            eval_file = 'evaluation_report_S-_1890.json'
+
+        eval_report_path = os.path.join(
+            app.config['ANNOTATORS_ROOT_DIRECTORY'], 
+            username, 
+            eval_file
+        )
+        
+        try:
+            with open(eval_report_path, 'r') as f:
+                evaluation_data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return "Error loading evaluation report"
+
+        image_list = [img for img in evaluation_data.keys() if evaluation_data[img]]
+        
+        # Navigate based on direction
+        if direction == "next":
+            new_index = current_image_index + 1
+            if new_index >= len(image_list):
+                new_index = 0  # Wrap to beginning
+        elif direction == "prev":
+            new_index = current_image_index - 1
+            if new_index < 0:
+                new_index = len(image_list) - 1  # Wrap to end
+        else:
+            new_index = current_image_index
+
+        print(f"Time taken in save_sanity_check: {timeit.default_timer() - start}")
+        return redirect(url_for('sanity_check_detail', username=username, mode=mode, image_index=new_index))
+
     @app.route('/<username>/save_bboxes', methods=['POST'])
     def save_bboxes(username):
         """Save bounding box data via AJAX."""
@@ -1382,6 +1772,57 @@ def register_routes(app):
 
         except Exception as e:
             app.logger.error(f"Error saving bboxes for user {username}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/<username>/save_bboxes_sanity/<mode>', methods=['POST'])
+    def save_bboxes_sanity(username, mode):
+        """Save bounding box data via AJAX for sanity check mode."""
+        try:
+            # Get the data from the request
+            data = request.get_json()
+            image_name = data.get('image_name')
+            bboxes = data.get('bboxes', [])
+            is_uncertain = False
+
+           
+
+            # Convert bbox coordinates to integers
+            for bbox in bboxes:
+                if 'uncertain_flag' in bbox and bbox['uncertain_flag']:
+                    is_uncertain = True
+                    bbox['label'] = '-1'  # Set label to -1 for uncertain bboxes
+                if 'coordinates' in bbox:
+                    bbox['coordinates'] = [round(coord) for coord in bbox['coordinates']]
+
+            timestamp = data.get('timestamp', time.time())  # For debugging
+
+            if not image_name:
+                return jsonify({'error': 'Image name is required'}), 400
+
+            # Extract base image name regardless of path
+            base_image_name = os.path.basename(image_name)
+
+            # Determine mode suffix for file naming: Mode 1 = 'S', Mode 2 = 'M'
+            mode_suffix = 'S' if mode == '1' else 'M'
+
+            # Load existing checkbox selections from mode-specific file
+            checkbox_selections = load_user_data(app, username, mode=mode_suffix)
+
+            # Check if we already have label_type info for this image
+            label_type = "basic" if not is_uncertain else "uncertain"
+
+            checkbox_selections[base_image_name] = {
+                "bboxes": bboxes,
+                "label_type": label_type
+            }
+
+            # Save the updated checkbox selections to mode-specific file
+            save_user_data(app, username, checkbox_selections=checkbox_selections, mode=mode_suffix)
+
+            return jsonify({'success': True, 'message': 'Bboxes saved successfully'})
+
+        except Exception as e:
+            app.logger.error(f"Error saving bboxes for user {username} in sanity mode {mode}: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
     # New endpoint to handle cluster-based navigation

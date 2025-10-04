@@ -184,10 +184,29 @@ def get_form_data():
     return image_name, checkbox_values, direction
 
 
-def load_user_data(app, username):
+def load_user_data(app, username, mode=None):
+    """
+    Load user annotation data.
+    
+    Args:
+        app: Flask app instance
+        username: Username of the annotator
+        mode: Optional mode suffix ('S' for Mode 1, 'M' for Mode 2)
+              If None, loads default checkbox_selections file
+    
+    Returns:
+        Dictionary with checkbox selections
+    """
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
-    checkbox_selections = load_json_data(os.path.join(results_dir, username,
-                                                      'checkbox_selections_{}.json'.format(username)))
+    
+    if mode:
+        # Load mode-specific file
+        filename = f'checkbox_selections_{username}_{mode}.json'
+    else:
+        # Load default file
+        filename = f'checkbox_selections_{username}.json'
+    
+    checkbox_selections = load_json_data(os.path.join(results_dir, username, filename))
     return checkbox_selections
 
 
@@ -229,11 +248,27 @@ def update_current_image_index_simple(app, username, current_image_index_dct, cu
         f.write(str(current_image_index_dct[username]))
 
 
-def save_user_data(app, username, checkbox_selections=None):
+def save_user_data(app, username, checkbox_selections=None, mode=None):
+    """
+    Save user annotation data.
+    
+    Args:
+        app: Flask app instance
+        username: Username of the annotator
+        checkbox_selections: Dictionary with checkbox selections to save
+        mode: Optional mode suffix ('S' for Mode 1, 'M' for Mode 2)
+              If None, saves to default checkbox_selections file
+    """
     results_dir = app.config['ANNOTATORS_ROOT_DIRECTORY']
     if checkbox_selections is not None:
-        save_json_data(os.path.join(results_dir, username, 'checkbox_selections_{}.json'.format(username)),
-                       checkbox_selections)
+        if mode:
+            # Save to mode-specific file
+            filename = f'checkbox_selections_{username}_{mode}.json'
+        else:
+            # Save to default file
+            filename = f'checkbox_selections_{username}.json'
+        
+        save_json_data(os.path.join(results_dir, username, filename), checkbox_selections)
 
 
 def save_json_data(file_path, data):

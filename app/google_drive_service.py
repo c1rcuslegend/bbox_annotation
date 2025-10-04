@@ -243,23 +243,34 @@ class GoogleDriveService:
                 user_folder_id = self.get_or_create_folder(username, app_folder_id)
                 self.logger.info(f"Using default folder structure for user: {username}")
             
-            # Upload only the checkbox_selections_<username>.json file
-            checkbox_filename = f"checkbox_selections_{username}.json"
-            local_file_path = os.path.join(local_data_dir, checkbox_filename)
+            # Upload all checkbox_selections files (default + mode-specific)
+            # Files to upload: checkbox_selections_<username>.json, checkbox_selections_<username>_S.json, checkbox_selections_<username>_M.json
+            checkbox_files = [
+                f"checkbox_selections_{username}.json",       # Default mode
+                f"checkbox_selections_{username}_S.json",     # Sanity Check Mode 1
+                f"checkbox_selections_{username}_M.json"      # Sanity Check Mode 2
+            ]
             
-            if os.path.exists(local_file_path):
-                try:
-                    file_id = self.upload_file(local_file_path, checkbox_filename, user_folder_id)
-                    results['uploaded_files'].append({
-                        'filename': checkbox_filename,
-                        'file_id': file_id
-                    })
-                    self.logger.info(f"Successfully uploaded {checkbox_filename} for user {username}")
-                except Exception as e:
-                    results['errors'].append(f"Error uploading {checkbox_filename}: {str(e)}")
-                    results['success'] = False
-            else:
-                results['errors'].append(f"Checkbox selections file not found: {local_file_path}")
+            files_uploaded = False
+            for checkbox_filename in checkbox_files:
+                local_file_path = os.path.join(local_data_dir, checkbox_filename)
+                
+                if os.path.exists(local_file_path):
+                    try:
+                        file_id = self.upload_file(local_file_path, checkbox_filename, user_folder_id)
+                        results['uploaded_files'].append({
+                            'filename': checkbox_filename,
+                            'file_id': file_id
+                        })
+                        self.logger.info(f"Successfully uploaded {checkbox_filename} for user {username}")
+                        files_uploaded = True
+                    except Exception as e:
+                        results['errors'].append(f"Error uploading {checkbox_filename}: {str(e)}")
+                        self.logger.warning(f"Failed to upload {checkbox_filename}: {str(e)}")
+            
+            # Only set success to False if NO files were uploaded at all
+            if not files_uploaded:
+                results['errors'].append(f"No checkbox selections files found for user {username}")
                 results['success'] = False
                 
         except Exception as e:
@@ -308,24 +319,34 @@ class GoogleDriveService:
             # Create local directory if it doesn't exist
             os.makedirs(local_data_dir, exist_ok=True)
             
-            # Look for the specific checkbox_selections_<username>.json file
-            checkbox_filename = f"checkbox_selections_{username}.json"
-            file_id = self.find_file(checkbox_filename, user_folder_id)
+            # Look for all checkbox_selections files (default + mode-specific)
+            checkbox_files = [
+                f"checkbox_selections_{username}.json",       # Default mode
+                f"checkbox_selections_{username}_S.json",     # Sanity Check Mode 1
+                f"checkbox_selections_{username}_M.json"      # Sanity Check Mode 2
+            ]
             
-            if file_id:
-                local_file_path = os.path.join(local_data_dir, checkbox_filename)
-                try:
-                    if self.download_file(file_id, local_file_path):
-                        results['downloaded_files'].append(checkbox_filename)
-                        self.logger.info(f"Successfully downloaded {checkbox_filename} for user {username}")
-                    else:
-                        results['errors'].append(f"Failed to download {checkbox_filename}")
-                        results['success'] = False
-                except Exception as e:
-                    results['errors'].append(f"Error downloading {checkbox_filename}: {str(e)}")
-                    results['success'] = False
-            else:
-                results['errors'].append(f"Checkbox selections file not found on Google Drive: {checkbox_filename}")
+            files_downloaded = False
+            for checkbox_filename in checkbox_files:
+                file_id = self.find_file(checkbox_filename, user_folder_id)
+                
+                if file_id:
+                    local_file_path = os.path.join(local_data_dir, checkbox_filename)
+                    try:
+                        if self.download_file(file_id, local_file_path):
+                            results['downloaded_files'].append(checkbox_filename)
+                            self.logger.info(f"Successfully downloaded {checkbox_filename} for user {username}")
+                            files_downloaded = True
+                        else:
+                            results['errors'].append(f"Failed to download {checkbox_filename}")
+                            self.logger.warning(f"Failed to download {checkbox_filename}")
+                    except Exception as e:
+                        results['errors'].append(f"Error downloading {checkbox_filename}: {str(e)}")
+                        self.logger.warning(f"Error downloading {checkbox_filename}: {str(e)}")
+            
+            # Only set success to False if NO files were downloaded at all
+            if not files_downloaded:
+                results['errors'].append(f"No checkbox selections files found for user {username} on Google Drive")
                 results['success'] = False
                         
         except Exception as e:
