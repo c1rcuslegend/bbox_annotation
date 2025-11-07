@@ -14,11 +14,16 @@ const DETAIL_VIEW_SHORTCUTS = {
     'Ctrl+B': 'Toggle Text based flag for selected bbox',
     'Ctrl+Y': 'Toggle Multi-label mode for selected bbox',
     'Ctrl+X': 'Delete currently selected bounding box',
+    'Ctrl+Z': 'Delete last drawn bounding box (undo last)',
     'Ctrl+Alt': 'Open class selection dropdown for selected bbox',
     'Shift+C': 'Copy and paste selected bounding box',
     'Ctrl+A': 'Create whole image bounding box',
-    'Ctrl+Z': 'Activate "Not Sure" mode',
-    'Shift+S': 'Mark image as "None of ImageNet classes"'
+    'Ctrl+M': 'Activate "Not Sure" mode',
+    'Shift+S': 'Mark image as "None of ImageNet classes"',
+    'Shift+A': 'Assign label A to selected bbox (M/S modes)',
+    'Shift+B': 'Assign label B to selected bbox (M/S modes)',
+    'Alt+C': 'Assign label C to selected bbox (M/S modes)',
+    'Alt+D': 'Assign label D to selected bbox (M/S modes)'
 };
 
 // Keyboard shortcuts available only in Grid View (img_grid.html)

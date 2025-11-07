@@ -233,6 +233,33 @@
             }
         });
 
+        /**
+         * Assign a blinded prediction label (A, B, C, or D) to the selected bbox
+         * This is a keyboard shortcut helper for sanity check modes
+         */
+        function assignBlindedPredictionLabel(letter) {
+            // Check if we're in sanity check mode
+            const predictionLabels = document.querySelectorAll('.blinded-prediction-label');
+            if (!predictionLabels || predictionLabels.length === 0) {
+                // Not in sanity check mode
+                console.log('Not in sanity check mode - blinded prediction labels not available');
+                return;
+            }
+            
+            // Find the label element for the requested letter
+            const labelElement = Array.from(predictionLabels).find(el => 
+                el.getAttribute('data-letter') === letter
+            );
+            
+            if (!labelElement) {
+                console.error(`Label ${letter} not found`);
+                return;
+            }
+            
+            // Simulate a click on the label element
+            labelElement.click();
+        }
+        
         function show_image(img) {
             // Only show modal for images that are not in the bbox container
             if (!img.closest('#image-with-bboxes')) {
@@ -262,7 +289,211 @@
                     });
                 });
             }
+            
+            // Setup click handlers for blinded prediction labels (A, B, C, D) in M/S modes
+            setupBlindedPredictionClickHandlers();
         });
+        
+        /**
+         * Setup click handlers for A, B, C, D labels in sanity check modes
+         * Allows clicking individual class labels to assign them to the selected bbox
+         */
+        function setupBlindedPredictionClickHandlers() {
+            const predictionLabels = document.querySelectorAll('.blinded-prediction-label');
+            if (!predictionLabels || predictionLabels.length === 0) {
+                // Not in sanity check mode
+                return;
+            }
+            
+            predictionLabels.forEach(labelContainer => {
+                const letter = labelContainer.getAttribute('data-letter');
+                const predictionText = labelContainer.getAttribute('data-prediction');
+                
+                // Parse class IDs from the prediction text
+                const classData = parseClassDataFromPrediction(predictionText);
+                
+                if (classData.length === 0) {
+                    console.log('No valid class data found in prediction:', predictionText);
+                    return;
+                }
+                
+                // Find the text content div
+                const textDiv = labelContainer.querySelector('.prediction-text');
+                if (!textDiv) return;
+                
+                // Clear existing content
+                textDiv.innerHTML = '';
+                
+                // Create clickable spans for each class
+                classData.forEach((classInfo, index) => {
+                    const span = document.createElement('span');
+                    span.className = 'clickable-class-label';
+                    span.textContent = classInfo.fullText;
+                    span.setAttribute('data-class-id', classInfo.classId);
+                    span.setAttribute('data-letter', letter);
+                    span.style.cssText = 'cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background 0.2s; display: inline-block;';
+                    
+                    // Add hover effect
+                    span.addEventListener('mouseenter', function() {
+                        this.style.background = 'rgba(76, 175, 80, 0.2)';
+                    });
+                    span.addEventListener('mouseleave', function() {
+                        this.style.background = 'transparent';
+                    });
+                    
+                    // Add click handler
+                    span.addEventListener('click', function(event) {
+                        event.stopPropagation(); // Prevent parent click
+                        const classId = parseInt(this.getAttribute('data-class-id'));
+                        const letter = this.getAttribute('data-letter');
+                        
+                        // Check if a bbox is currently selected
+                        if (!window.inlineEditor || window.inlineEditor.currentBoxIndex < 0) {
+                            showKeyboardShortcutFeedback('Please select a bounding box first');
+                            return;
+                        }
+                        
+                        // Assign the class to the selected bbox
+                        assignClassToSelectedBbox(classId, letter);
+                        
+                        // Visual feedback
+                        showKeyboardShortcutFeedback(`Assigned ${classInfo.className} to selected box`);
+                        
+                        // Highlight the specific label briefly
+                        this.style.background = '#4caf50';
+                        this.style.color = 'white';
+                        setTimeout(() => {
+                            this.style.background = 'transparent';
+                            this.style.color = 'inherit';
+                        }, 500);
+                        
+                        console.log(`Assigned class ${classId} from label ${letter}`);
+                    });
+                    
+                    textDiv.appendChild(span);
+                    
+                    // Add comma separator if not the last item
+                    if (index < classData.length - 1) {
+                        const comma = document.createElement('span');
+                        comma.textContent = ', ';
+                        comma.style.cssText = 'padding: 0 2px;';
+                        textDiv.appendChild(comma);
+                    }
+                });
+            });
+        }
+        
+        /**
+         * Parse class data from prediction text with full information
+         * Returns array of objects with classId, className, and fullText
+         */
+        function parseClassDataFromPrediction(predictionText) {
+            const classData = [];
+            
+            if (!predictionText || predictionText === '-1 - [No prediction]') {
+                return classData;
+            }
+            
+            // Split by comma for multiple predictions
+            const parts = predictionText.split(',');
+            
+            for (const part of parts) {
+                const trimmedPart = part.trim();
+                // Extract the class ID and full text (everything before the first " - " is the ID)
+                const match = trimmedPart.match(/^(\d+)\s*-\s*(.+)$/);
+                if (match) {
+                    const classId = parseInt(match[1]);
+                    const className = match[2].trim();
+                    if (!isNaN(classId) && classId >= 0) {
+                        classData.push({
+                            classId: classId,
+                            className: className,
+                            fullText: trimmedPart
+                        });
+                    }
+                }
+            }
+            
+            return classData;
+        }
+        
+        /**
+         * Parse class IDs from prediction text
+         * Handles formats like "123 - class_name" or "123 - class_name, 456 - another_class"
+         */
+        function parseClassIdsFromPrediction(predictionText) {
+            const classIds = [];
+            
+            if (!predictionText || predictionText === '-1 - [No prediction]') {
+                return classIds;
+            }
+            
+            // Split by comma for multiple predictions
+            const parts = predictionText.split(',');
+            
+            for (const part of parts) {
+                // Extract the class ID (everything before the first " - ")
+                const match = part.trim().match(/^(\d+)\s*-/);
+                if (match) {
+                    const classId = parseInt(match[1]);
+                    if (!isNaN(classId) && classId >= 0) {
+                        classIds.push(classId);
+                    }
+                }
+            }
+            
+            return classIds;
+        }
+        
+        /**
+         * Assign a class ID to the currently selected bbox
+         */
+        function assignClassToSelectedBbox(classId, letter) {
+            // Access the inline editor
+            if (!window.inlineEditor || !window.inlineEditor.bboxes) {
+                console.error('Inline editor not available');
+                return;
+            }
+            
+            const boxIndex = window.inlineEditor.currentBoxIndex;
+            if (boxIndex < 0 || boxIndex >= window.inlineEditor.bboxes.boxes.length) {
+                console.error('Invalid box index:', boxIndex);
+                return;
+            }
+            
+            // Assign the class
+            window.inlineEditor.bboxes.labels[boxIndex] = classId;
+            
+            // Update the class selector dropdown if it exists
+            const classSelector = document.getElementById('inline-class-selector');
+            if (classSelector) {
+                classSelector.value = classId;
+            }
+            
+            // Update the search input if it exists
+            const classSearch = document.getElementById('inline-class-search');
+            if (classSearch && window.inlineEditor.classLabels) {
+                const className = window.inlineEditor.classLabels[classId] || `Class ${classId}`;
+                classSearch.value = `${classId} - ${className}`;
+            }
+            
+            // Redraw the canvas to show the updated label
+            if (window.inlineEditor.editor && window.inlineEditor.editor.redrawCanvas) {
+                window.inlineEditor.editor.redrawCanvas();
+            }
+            
+            // Update the bbox selector dropdown to show the new label
+            if (typeof window.updateBboxSelector === 'function') {
+                window.updateBboxSelector();
+            }
+            
+            // Update hidden field
+            if (typeof window.updateHiddenBboxesField === 'function') {
+                window.updateHiddenBboxesField();
+            }
+            
+            console.log(`Assigned class ${classId} (from label ${letter}) to box ${boxIndex}`);
+        }
 
         function saveAndGoBack(username) {
             const form = document.getElementById('save');
@@ -453,13 +684,32 @@
             </span>
         </button>
         <!-- Sanity Check Mode: Display Blinded Predictions in Top Nav -->
-        <div style="flex: 1; display: flex; gap: 15px; padding: 0 20px; overflow-x: auto;">
+        <div style="flex: 1; display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; align-items: center;">
             {% for letter in ['A', 'B', 'C', 'D'] %}
-            <div style="min-width: 200px; padding: 8px 12px; background: #f8fbff; border-left: 3px solid #3f72af; border-radius: 4px; font-size: 13px;">
+            <div class="blinded-prediction-label" data-letter="{{ letter }}" data-prediction="{{ blinded_predictions[letter] }}" 
+                 style="min-width: 200px; padding: 8px 12px; background: #f8fbff; border-left: 3px solid #3f72af; border-radius: 4px; font-size: 13px; transition: all 0.2s;">
                 <div style="font-weight: 600; color: #112d4e; margin-bottom: 4px;">{{ letter }}:</div>
-                <div style="color: #000000; line-height: 1.4; font-size: 14px;">{{ blinded_predictions[letter] }}</div>
+                <div class="prediction-text" style="color: #000000; line-height: 1.4; font-size: 14px;">{{ blinded_predictions[letter] }}</div>
             </div>
             {% endfor %}
+            <!-- Reference Links -->
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-left: 10px; padding: 8px 12px; background: #fff3e0; border-left: 3px solid #ff9800; border-radius: 4px; min-width: 150px;">
+                <div style="font-weight: 600; color: #e65100; font-size: 11px; margin-bottom: 2px;">📚 Reference:</div>
+                <a href="https://docs.google.com/spreadsheets/d/1CEA00WXrrCXEPFuOY7bhZNFSpEi-WO-S1d4J70gcfSs/edit?gid=0#gid=0" 
+                   target="_blank" 
+                   style="color: #1976d2; text-decoration: none; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                   onmouseover="this.style.textDecoration='underline'"
+                   onmouseout="this.style.textDecoration='none'">
+                    📋 Class Definitions
+                </a>
+                <a href="https://gonikisgo.github.io/imagenet-class-preview/" 
+                   target="_blank" 
+                   style="color: #1976d2; text-decoration: none; font-size: 11px; display: flex; align-items: center; gap: 4px;"
+                   onmouseover="this.style.textDecoration='underline'"
+                   onmouseout="this.style.textDecoration='none'">
+                    🖼️ Class Overview
+                </a>
+            </div>
         </div>
         <div style="padding: 0 15px; color: #000000; font-size: 13px; white-space: nowrap; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <div>Image {{ current_image_index + 1 }} / {{ total_images }}</div>
@@ -876,7 +1126,11 @@
                             event.preventDefault();
                             createWholeImageBBox();
                             break;
-                        case 'z': // Ctrl+Z - Not sure (uncertainty mode) - disabled in advanced editor
+                        case 'z': // Ctrl+Z - Delete last drawn bbox (undo last)
+                            event.preventDefault();
+                            deleteLastDrawnBbox();
+                            break;
+                        case 'm': // Ctrl+M - Not sure (uncertainty mode) - disabled in advanced editor
                             event.preventDefault();
                             // Check if we're in advanced editor mode
                             const advancedModal = document.getElementById('bbox-modal-container');
@@ -913,8 +1167,31 @@
                             event.preventDefault();
                             copyAndPasteBbox();
                             break;
+                        case 'a': // Shift+A - Assign label A to selected bbox (Sanity mode)
+                            event.preventDefault();
+                            assignBlindedPredictionLabel('A');
+                            break;
+                        case 'b': // Shift+B - Assign label B to selected bbox (Sanity mode)
+                            event.preventDefault();
+                            assignBlindedPredictionLabel('B');
+                            break;
                     }
                     return; // Don't process other keys when Shift is pressed
+                }
+                
+                // Handle Alt key combinations (for C and D to avoid conflicts)
+                if (event.altKey && !event.ctrlKey) {
+                    switch(event.key.toLowerCase()) {
+                        case 'c': // Alt+C - Assign label C to selected bbox (Sanity mode)
+                            event.preventDefault();
+                            assignBlindedPredictionLabel('C');
+                            break;
+                        case 'd': // Alt+D - Assign label D to selected bbox (Sanity mode)
+                            event.preventDefault();
+                            assignBlindedPredictionLabel('D');
+                            break;
+                    }
+                    return;
                 }
 
                 // Left Arrow or 'A' key - Previous
@@ -1126,6 +1403,53 @@
                     console.error('Delete button not found in inline editor mode');
                 }
             }
+        }
+
+        function deleteLastDrawnBbox() {
+            // Check if we're in advanced editor mode
+            const advancedModal = document.getElementById('bbox-modal-container');
+            const isAdvancedMode = advancedModal && advancedModal.classList.contains('show-modal');
+            
+            let bboxes = null;
+            
+            // Get bboxes from the appropriate source
+            if (isAdvancedMode && window.bboxEditor) {
+                bboxes = window.bboxEditor.bboxes;
+            } else if (window.inlineEditor) {
+                bboxes = window.inlineEditor.bboxes;
+            }
+            
+            // Check if there are any bboxes to delete
+            if (!bboxes || !bboxes.boxes || bboxes.boxes.length === 0) {
+                console.log('No bboxes to delete');
+                showKeyboardShortcutFeedback('No boxes to delete');
+                return;
+            }
+            
+            // Get the index of the last bbox
+            const lastBoxIndex = bboxes.boxes.length - 1;
+            
+            // Select the last bbox first
+            if (isAdvancedMode) {
+                const bboxSelector = document.getElementById('bbox-selector');
+                if (bboxSelector) {
+                    bboxSelector.value = lastBoxIndex.toString();
+                    bboxSelector.dispatchEvent(new Event('change'));
+                }
+            } else {
+                const inlineBboxSelector = document.getElementById('inline-bbox-selector');
+                if (inlineBboxSelector) {
+                    inlineBboxSelector.value = lastBoxIndex.toString();
+                    inlineBboxSelector.dispatchEvent(new Event('change'));
+                }
+            }
+            
+            // Wait a bit for the selection to process, then delete
+            setTimeout(() => {
+                deleteCurrentBbox();
+                showKeyboardShortcutFeedback(`Deleted last box (Box ${lastBoxIndex + 1})`);
+                console.log(`Deleted last drawn bbox at index ${lastBoxIndex}`);
+            }, 50);
         }
 
         function copyAndPasteBbox() {
