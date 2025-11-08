@@ -332,9 +332,9 @@ def register_routes(app):
 
         # Determine which evaluation report to load based on mode
         if mode == '1':
-            eval_file = 'evaluation_report_M-_1522.json'
+            eval_file = 'evaluation_report_M-_1537.json'
         elif mode == '2':
-            eval_file = 'evaluation_report_S-_1890.json'
+            eval_file = 'evaluation_report_S-_1918.json'
         else:
             return "Invalid mode. Please select Mode 1 or Mode 2."
 
@@ -400,9 +400,9 @@ def register_routes(app):
 
         # Determine which evaluation report to load based on mode
         if mode == '1':
-            eval_file = 'evaluation_report_M-_1522.json'
+            eval_file = 'evaluation_report_M-_1537.json'
         elif mode == '2':
-            eval_file = 'evaluation_report_S-_1890.json'
+            eval_file = 'evaluation_report_S-_1918.json'
         else:
             return "Invalid mode. Please select Mode 1 or Mode 2."
 
@@ -1693,9 +1693,9 @@ def register_routes(app):
         
         # Determine which evaluation report to load based on mode
         if mode == '1':
-            eval_file = 'evaluation_report_M-_1522.json'
+            eval_file = 'evaluation_report_M-_1537.json'
         else:
-            eval_file = 'evaluation_report_S-_1890.json'
+            eval_file = 'evaluation_report_S-_1918.json'
 
         eval_report_path = os.path.join(
             app.config['ANNOTATORS_ROOT_DIRECTORY'], 
